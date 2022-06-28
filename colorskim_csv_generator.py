@@ -13,14 +13,21 @@ data = pd.read_csv('colorskim_articles.csv', names=[
 # Inisialisasi dataframe akhir
 dataset_kata = pd.DataFrame([])
 
-for i in range(len(data)):  # loop setiap bars dalam dataframe data
-    # split nama artikel dengan spasi dan merubahnya ke dalam list
-    split_artikel = data.loc[i, 'nama_artikel'].replace('-', ' ').split()
+for i in range(len(data)):  # loop setiap baris dalam dataframe data
+    # mengganti karakter '/' dan '-' dengan spasi ' '
+    replace_karakter = '/-'
+    artikel_full = data.loc[i, 'nama_artikel']
+    artikel_untuk_split = artikel_full
+    for c in replace_karakter:
+        artikel_untuk_split = artikel_untuk_split.replace(c, ' ')
+    # split artikel berdasarkan spasi
+    split_artikel = artikel_untuk_split.split()
     print(f'Memproses {i+1} dari {len(data)} baris...')
     for i in range(len(split_artikel)):  # loop dalam list hasil split_artikel (per kata)
         # bentuk dataframe untuk menampung kata, label, urut_kata dan total_kata
-        artikel_df = pd.DataFrame([[split_artikel[i], '', i+1, len(split_artikel)]],
-                                  columns=['kata', 'label', 'urut_kata', 'total_kata'])
+        # edit: menambahkan full article name untuk referensi saat labeling
+        artikel_df = pd.DataFrame([[artikel_full, split_artikel[i], '', i+1, len(split_artikel)]],
+                                  columns=['nama_artikel', 'kata', 'label', 'urut_kata', 'total_kata'])
         # menggabungkan dataframe yang dihasilkan ke dalam dataframe akhir
         dataset_kata = pd.concat([dataset_kata, artikel_df], ignore_index=True)
 
