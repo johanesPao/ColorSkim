@@ -1,0 +1,12 @@
+site_name: ColorSkim
+site_url: https://colorskim.jpao.live/
+nav:
+  - Tentang ColorSkim: index.md
+  - Dokumentasi: colorskim_ai.md
+theme:
+  name: material
+  palette:
+    scheme: default
+    primary: black
+    accent: red
+  language: id
