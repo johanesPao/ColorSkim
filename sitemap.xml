@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://jpao.live/ColorSkim/</loc>
+         <loc>https://colorskim.jpao.live/</loc>
          <lastmod>2022-06-29</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://jpao.live/ColorSkim/ColorSkim_AI/</loc>
+         <loc>https://colorskim.jpao.live/colorskim_ai/</loc>
          <lastmod>2022-06-29</lastmod>
          <changefreq>daily</changefreq>
     </url>
