@@ -1,0 +1,23 @@
+{
+    "os": "Windows-10-10.0.25151-SP0",
+    "python": "3.9.12",
+    "heartbeatAt": "2022-07-06T10:55:31.108060",
+    "startedAt": "2022-07-06T10:55:19.481132",
+    "docker": null,
+    "gpu": "NVIDIA GeForce MX250",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": null,
+    "state": "running",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/johanesPao/ColorSkim.git",
+        "commit": "475ec334cacc0bd744e86b741b15feb42b738f79"
+    },
+    "email": "johanes.pao@gmail.com",
+    "root": "D:/ColorSkim",
+    "host": "jPao-Office",
+    "username": "jPao",
+    "executable": "c:\\Users\\jPao\\anaconda3\\envs\\tf-py39\\python.exe"
+}

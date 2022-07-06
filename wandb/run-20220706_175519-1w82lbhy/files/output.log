@@ -1,0 +1,301 @@
+
+Epoch 1/5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - ETA: 0s - loss: 0.0726 - accuracy: 0.9823
+[34m[1mwandb[39m[22m: [32m[41mERROR[39m[49m Can't save model in the h5py format. The model will be saved as W&B Artifacts in the SavedModel format.
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op while saving (showing 1 of 1). These functions will not be directly callable after loading.
+
+1419/1419 [==============================] - ETA: 0s - loss: 0.0726 - accuracy: 0.9823INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220706_175519-1w82lbhy\files\model-best\assets
+1419/1419 [==============================] - 130s 91ms/step - loss: 0.0726 - accuracy: 0.9823 - val_loss: 0.0277 - val_accuracy: 0.9934 - _timestamp: 1657105053.0000 - _runtime: 127.0000
+Epoch 2/5
+  17/1419 [..............................] - ETA: 1:45 - loss: 0.0255 - accuracy: 0.9926
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - ETA: 0s - loss: 0.0181 - accuracy: 0.9951
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op while saving (showing 1 of 1). These functions will not be directly callable after loading.
+INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220706_175519-1w82lbhy\files\model-best\assets
+1419/1419 [==============================] - ETA: 0s - loss: 0.0181 - accuracy: 0.9951INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220706_175519-1w82lbhy\files\model-best\assets
+1419/1419 [==============================] - 148s 104ms/step - loss: 0.0181 - accuracy: 0.9951 - val_loss: 0.0266 - val_accuracy: 0.9931 - _timestamp: 1657105205.0000 - _runtime: 279.0000
+Epoch 3/5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - ETA: 0s - loss: 0.0161 - accuracy: 0.9956
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op while saving (showing 1 of 1). These functions will not be directly callable after loading.
+INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220706_175519-1w82lbhy\files\model-best\assets
+1419/1419 [==============================] - ETA: 0s - loss: 0.0161 - accuracy: 0.9956INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220706_175519-1w82lbhy\files\model-best\assets
+1419/1419 [==============================] - 104s 73ms/step - loss: 0.0161 - accuracy: 0.9956 - val_loss: 0.0259 - val_accuracy: 0.9931 - _timestamp: 1657105311.0000 - _runtime: 385.0000
+Epoch 4/5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - ETA: 0s - loss: 0.0152 - accuracy: 0.9957
+WARNING:absl:Found untraced functions such as _jit_compiled_convolution_op while saving (showing 1 of 1). These functions will not be directly callable after loading.
+INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220706_175519-1w82lbhy\files\model-best\assets
+1419/1419 [==============================] - ETA: 0s - loss: 0.0152 - accuracy: 0.9957INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220706_175519-1w82lbhy\files\model-best\assets
+1419/1419 [==============================] - 112s 79ms/step - loss: 0.0152 - accuracy: 0.9957 - val_loss: 0.0257 - val_accuracy: 0.9937 - _timestamp: 1657105422.0000 - _runtime: 496.0000
+Epoch 5/5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - 117s 82ms/step - loss: 0.0146 - accuracy: 0.9958 - val_loss: 0.0257 - val_accuracy: 0.9937 - _timestamp: 1657105544.0000 - _runtime: 618.0000
+c:\Users\jPao\anaconda3\envs\tf-py39\lib\site-packages\tensorflow\python\data\ops\structured_function.py:264: UserWarning: Even though the `tf.config.experimental_run_functions_eagerly` option is set, this option does not apply to tf.data functions. To force eager execution of tf.data functions, please use `tf.data.experimental.enable_debug_mode()`.
+  warnings.warn(
+1/1 [==============================] - 0s 288ms/step
