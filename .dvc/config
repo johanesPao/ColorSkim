@@ -1,6 +1,6 @@
 [core]
-    remote = datalokal
+    remote = datacenter
 ['remote "datacenter"']
-    url = gdrive://root/data/colorskim
+    url = gdrive://1pm-xFvGv8xNxrb2SVubEpavIxVlsu9c-
 ['remote "datalokal"']
     url = /data
