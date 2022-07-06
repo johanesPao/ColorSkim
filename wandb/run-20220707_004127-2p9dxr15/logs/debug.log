@@ -1,0 +1,258 @@
+2022-07-07 00:41:27,321 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Configure stats pid to 7284
+2022-07-07 00:41:27,321 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Loading settings from /home/jpao/.config/wandb/settings
+2022-07-07 00:41:27,322 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Loading settings from /home/jpao/ColorSkim/wandb/settings
+2022-07-07 00:41:27,322 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2022-07-07 00:41:27,322 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program': '<python with no main file>'}
+2022-07-07 00:41:27,322 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Applying login settings: {'api_key': '***REDACTED***'}
+2022-07-07 00:41:27,322 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Applying login settings: {'api_key': '***REDACTED***'}
+2022-07-07 00:41:27,323 INFO    MainThread:7284 [wandb_init.py:_log_setup():461] Logging user logs to /home/jpao/ColorSkim/wandb/run-20220707_004127-2p9dxr15/logs/debug.log
+2022-07-07 00:41:27,323 INFO    MainThread:7284 [wandb_init.py:_log_setup():462] Logging internal logs to /home/jpao/ColorSkim/wandb/run-20220707_004127-2p9dxr15/logs/debug-internal.log
+2022-07-07 00:41:27,323 INFO    MainThread:7284 [wandb_init.py:_jupyter_setup():411] configuring jupyter hooks <wandb.sdk.wandb_init._WandbInit object at 0x7f3f9e6a1ca0>
+2022-07-07 00:41:27,324 INFO    MainThread:7284 [wandb_init.py:init():495] calling init triggers
+2022-07-07 00:41:27,324 INFO    MainThread:7284 [wandb_init.py:init():498] wandb.init called with sweep_config: {}
+config: {'epochs': 3, 'n_layers': 6}
+2022-07-07 00:41:27,325 INFO    MainThread:7284 [wandb_init.py:init():548] starting backend
+2022-07-07 00:41:27,325 INFO    MainThread:7284 [backend.py:_multiprocessing_setup():97] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2022-07-07 00:41:27,351 INFO    MainThread:7284 [backend.py:ensure_launched():217] starting backend process...
+2022-07-07 00:41:27,377 INFO    MainThread:7284 [backend.py:ensure_launched():222] started backend process with pid: 7398
+2022-07-07 00:41:27,381 INFO    MainThread:7284 [wandb_init.py:init():558] backend started and connected
+2022-07-07 00:41:27,405 INFO    MainThread:7284 [wandb_run.py:_label_probe_notebook():1084] probe notebook
+2022-07-07 00:41:27,406 INFO    MainThread:7284 [wandb_run.py:_label_probe_notebook():1094] Unable to probe notebook: 'NoneType' object has no attribute 'get'
+2022-07-07 00:41:27,407 INFO    MainThread:7284 [wandb_init.py:init():634] updated telemetry
+2022-07-07 00:41:27,473 INFO    MainThread:7284 [wandb_init.py:init():665] communicating run to backend with 30 second timeout
+2022-07-07 00:41:29,445 INFO    MainThread:7284 [wandb_run.py:_on_init():1919] communicating current version
+2022-07-07 00:41:29,578 INFO    MainThread:7284 [wandb_run.py:_on_init():1923] got version response 
+2022-07-07 00:41:29,578 INFO    MainThread:7284 [wandb_init.py:init():700] starting run threads in backend
+2022-07-07 00:41:34,595 INFO    MainThread:7284 [wandb_run.py:_console_start():1893] atexit reg
+2022-07-07 00:41:34,596 INFO    MainThread:7284 [wandb_run.py:_redirect():1766] redirect: SettingsConsole.WRAP
+2022-07-07 00:41:34,597 INFO    MainThread:7284 [wandb_run.py:_redirect():1803] Wrapping output streams.
+2022-07-07 00:41:34,603 INFO    MainThread:7284 [wandb_run.py:_redirect():1827] Redirects installed.
+2022-07-07 00:41:34,603 INFO    MainThread:7284 [wandb_init.py:init():732] run started, returning control to user process
+2022-07-07 01:14:40,258 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:14:40,259 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:14:40,465 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:16:28,322 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:16:28,323 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:16:30,321 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:33,886 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:33,887 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:34,208 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:34,227 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:34,227 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:34,606 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:34,657 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:34,658 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:35,227 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:45,779 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:45,779 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:46,089 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:49,590 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:49,590 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:49,770 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:50,695 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:50,695 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:50,906 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:50,998 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:50,998 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:51,579 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:51,897 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:51,898 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:52,106 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:52,133 INFO    MainThread:7284 [wandb_init.py:_pause_backend():374] pausing backend
+2022-07-07 01:17:52,133 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:52,573 INFO    MainThread:7284 [wandb_init.py:_resume_backend():383] resuming backend
+2022-07-07 01:17:52,612 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Configure stats pid to 7284
+2022-07-07 01:17:52,613 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Loading settings from /home/jpao/.config/wandb/settings
+2022-07-07 01:17:52,613 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Loading settings from /home/jpao/ColorSkim/wandb/settings
+2022-07-07 01:17:52,613 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2022-07-07 01:17:52,614 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program': '<python with no main file>'}
+2022-07-07 01:17:52,614 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Applying login settings: {'api_key': '***REDACTED***'}
+2022-07-07 01:17:52,614 INFO    MainThread:7284 [wandb_setup.py:_flush():76] Applying login settings: {'api_key': '***REDACTED***'}
+2022-07-07 01:17:52,614 INFO    MainThread:7284 [wandb_init.py:_log_setup():461] Logging user logs to /home/jpao/ColorSkim/wandb/run-20220707_011752-21xhajfu/logs/debug.log
+2022-07-07 01:17:52,615 INFO    MainThread:7284 [wandb_init.py:_log_setup():462] Logging internal logs to /home/jpao/ColorSkim/wandb/run-20220707_011752-21xhajfu/logs/debug-internal.log
+2022-07-07 01:17:52,615 INFO    MainThread:7284 [wandb_init.py:init():495] calling init triggers
+2022-07-07 01:17:52,615 INFO    MainThread:7284 [wandb_init.py:init():498] wandb.init called with sweep_config: {}
+config: {'epochs': 3, 'n_layers': 6}
+2022-07-07 01:17:52,616 INFO    MainThread:7284 [wandb_init.py:init():514] re-initializing run, found existing run on stack: 2p9dxr15
+2022-07-07 01:17:52,625 INFO    MainThread:7284 [wandb_run.py:_finish():1680] finishing run jpao/ColorSkim/2p9dxr15
+2022-07-07 01:17:52,628 INFO    MainThread:7284 [jupyter.py:save_history():435] not saving jupyter history
+2022-07-07 01:17:52,629 INFO    MainThread:7284 [jupyter.py:save_ipynb():377] not saving jupyter notebook
+2022-07-07 01:17:52,629 INFO    MainThread:7284 [wandb_init.py:_jupyter_teardown():393] cleaning up jupyter logic
+2022-07-07 01:17:52,629 INFO    MainThread:7284 [wandb_run.py:_atexit_cleanup():1862] got exitcode: 0
+2022-07-07 01:17:52,646 INFO    MainThread:7284 [wandb_run.py:_restore():1834] restore
+2022-07-07 01:17:53,234 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 1
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3642828
+  total_bytes: 3642828
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:53,656 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 1
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3642828
+  total_bytes: 3642828
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:54,321 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3642828
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:54,423 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3642828
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:54,528 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3642828
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:54,646 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3642828
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:54,748 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:54,851 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:54,953 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:55,056 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:55,159 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:55,263 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:56,114 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+
+2022-07-07 01:17:56,524 INFO    MainThread:7284 [wandb_run.py:_on_finish():1991] got exit ret: done: true
+exit_result {
+}
+file_counts {
+  wandb_count: 6
+  media_count: 1
+  artifact_count: 4
+  other_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 3662501
+  total_bytes: 3662501
+  deduped_bytes: 13844
+}
+local_info {
+}
+
+2022-07-07 01:17:58,519 INFO    MainThread:7284 [wandb_run.py:_footer_history_summary_info():3099] rendering history
+2022-07-07 01:17:58,520 INFO    MainThread:7284 [wandb_run.py:_footer_history_summary_info():3131] rendering summary
+2022-07-07 01:17:58,535 INFO    MainThread:7284 [wandb_run.py:_footer_sync_info():3055] logging synced files
