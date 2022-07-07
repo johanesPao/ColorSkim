@@ -1,0 +1,256 @@
+
+Epoch 1/3
+[34m[1mwandb[39m[22m: [33mWARNING[39m Unable to compute FLOPs for this model.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - 157s 108ms/step - loss: 0.5851 - accuracy: 0.7125 - val_loss: 0.4620 - val_accuracy: 0.9055 - _timestamp: 1657168206.0000 - _runtime: 162.0000
+Epoch 2/3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - 150s 106ms/step - loss: 0.3688 - accuracy: 0.9020 - val_loss: 0.3056 - val_accuracy: 0.9027 - _timestamp: 1657168358.0000 - _runtime: 314.0000
+Epoch 3/3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1419/1419 [==============================] - 154s 109ms/step - loss: 0.2764 - accuracy: 0.9056 - val_loss: 0.2576 - val_accuracy: 0.9009 - _timestamp: 1657168511.0000 - _runtime: 467.0000
+
+
+
+
+
+
+
+
+355/355 [==============================] - 17s 47ms/step - loss: 0.2576 - accuracy: 0.9009
+You must install pydot (`pip install pydot`) and install graphviz (see instructions at https://graphviz.gitlab.io/download/) for plot_model/model_to_dot to work.
+You must install pydot (`pip install pydot`) and install graphviz (see instructions at https://graphviz.gitlab.io/download/) for plot_model/model_to_dot to work.
+You must install pydot (`pip install pydot`) and install graphviz (see instructions at https://graphviz.gitlab.io/download/) for plot_model/model_to_dot to work.
+[[1.1504408e-03]
+ [1.9722916e-03]
+ [4.0858454e-04]
+ [5.0871045e-04]
+ [1.1504408e-03]
+ [9.9964142e-01]
+ [1.1504408e-03]
+ [9.9883169e-01]]
+tf.Tensor([0. 0. 0. 0. 0. 1. 0. 1.], shape=(8,), dtype=float32)
+tf.Tensor([0. 0. 0. 0. 0. 1. 0. 1.], shape=(8,), dtype=float32)
+tf.Tensor(0.0, shape=(), dtype=float32)
+tf.Tensor(0.0, shape=(), dtype=float32)
+0
+Kata: PUMA
+Prediksi: warna
+Kata: XTG
+Prediksi: warna
+Kata: WOVEN
+Prediksi: warna
+Kata: PANTS
+Prediksi: warna
+Kata: PUMA
+Prediksi: warna
+Kata: BLACK
+Prediksi: bukan_warna
+Kata: PUMA
+Prediksi: warna
+Kata: WHITE
+Prediksi: bukan_warna
+Kata: PUMA
+Prediksi: bukan_warna
+Kata: XTG
+Prediksi: bukan_warna
+Kata: WOVEN
+Prediksi: bukan_warna
+Kata: PANTS
+Prediksi: bukan_warna
+Kata: PUMA
+Prediksi: bukan_warna
+Kata: BLACK
+Prediksi: warna
+Kata: PUMA
+Prediksi: bukan_warna
+Kata: WHITE
