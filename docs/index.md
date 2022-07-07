@@ -1,17 +1,16 @@
-# Welcome to MkDocs
+# ColorSkim AI Machine Learning
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+>*The voice that navigated was definitely that of a machine, and yet you could tell that the machine was a woman, which hurt my mind a little. How can machines have genders? The machine also had an American accent. How can machines have nationalities? This can't be a good idea, making machines talk like real people, can it? Giving machines humanoid identities?*
 
-## Commands
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+>***- Matthew Quick, The Good Luck of Right Now***
 
-## Project layout
+## Latar Belakang Natural Language Processing
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+Isi latar belakang disini..
+
+## Objektif
+
+Isi objektif disini
+
+![Sejarah Pembelajaran Mesin](/images/what-is-ml.png)

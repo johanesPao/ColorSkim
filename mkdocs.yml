@@ -1,12 +1,38 @@
-site_name: ColorSkim
+site_name: ColorSkim AI Machine Learning
 site_url: https://colorskim.jpao.live/
 nav:
-  - Tentang ColorSkim: index.md
-  - Dokumentasi: colorskim_ai.md
+  - Permasalahan dan Objektif: index.md
+  - Dokumentasi ColorSkim: ColorSkim_AI.md
 theme:
   name: material
+  icon:
+    logo: fontawesome/solid/robot
+  favicon: images/favicon.png
   palette:
-    scheme: default
-    primary: black
-    accent: red
+    scheme: slate
+    primary: amber
+    accent: amber
   language: id
+  font:
+    text: Nunito
+    code: JetBrains Mono
+  highlightjs: true
+  hljs_languages:
+    - python
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.prune
+    - toc.integrate
+    - navigation.top
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+extra:
+  version:
+    provider: mike
+repo_url: https://github.com/johanesPao/ColorSkim
+repo_name: johanesPao/ColorSkim

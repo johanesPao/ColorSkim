@@ -1,6 +1,7 @@
 # file dan folder yang di-ignore
 colorskim_dataset.*
 rahasia.py
+wandb/
 
 # kecuali file di bawah ini yang on progress dikerjakan di beberapa device (HP Pavilion, Asus ROG)
 !colorskim_dataset.xlsx
