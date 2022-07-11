@@ -216,7 +216,7 @@ data['label'].value_counts()
 
 Berdasarkan porsi data 1 yang cukup berimbang dengan rasio 1.51:1 `bukan_warna` : `warna`, maka data dianggap cukup valid untuk dilakukan training ke dalam model. Data dibagi ke dalam train dan test data menggunakan metode `train_test_split` dari modul *sklearn.model_selection* dengan random seed yang ditetapkan di 42 dan test_size sebesar 50% (untuk menghindari overfit pada data train, variabel split ini masih bisa berubah tergantung seberapa akurat training pada model dan derajat overfit dari training).
 
-Kita akan membuat 
+Kita akan membuat fungsi untuk mempermudah perubahan nilai rasio train dan test data yang akan digunakan dalam training dari model yang akan kita buat. Fungsi ini akan menerima tiga argumen yaitu `data_kata`, `data_label` dan terutama adalah **`test_size`** yang merupakan rasio dari train berbanding dengan test. Fungsi ini akan mengembalikan tuple dalam bentuk `train_kata`, `test_kata`, `train_label` dan `test_label`
 
 
 ```python
