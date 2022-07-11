@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import wandb as wb
-from rahasia import API_KEY_WANDB
+from rahasia import API_KEY_WANDB # type: ignore
 tf.config.run_functions_eagerly(True)
 tf.data.experimental.enable_debug_mode()
 ```
@@ -35,14 +35,14 @@ device_lib.list_local_devices()[1]
 
     name: "/device:GPU:0"
     device_type: "GPU"
-    memory_limit: 4852809728
+    memory_limit: 1408103015
     locality {
       bus_id: 1
       links {
       }
     }
-    incarnation: 17804305938031545614
-    physical_device_desc: "device: 0, name: NVIDIA GeForce GTX 1060, pci bus id: 0000:01:00.0, compute capability: 6.1"
+    incarnation: 5514232586070941878
+    physical_device_desc: "device: 0, name: NVIDIA GeForce MX250, pci bus id: 0000:02:00.0, compute capability: 6.1"
     xla_global_id: 416903419
 
 
@@ -58,7 +58,7 @@ wb.login(key=API_KEY_WANDB)
     [34m[1mwandb[0m: [33mWARNING[0m If you're specifying your api key in code, ensure this code is not shared publicly.
     [34m[1mwandb[0m: [33mWARNING[0m Consider setting the WANDB_API_KEY environment variable, or running `wandb login` from the command line.
     [34m[1mwandb[0m: Appending key for api.wandb.ai to your netrc file: C:\Users\jPao/.netrc
-
+    
 
 
 
@@ -68,6 +68,10 @@ wb.login(key=API_KEY_WANDB)
 
 
 ## Membaca data
+
+Data yang dipergunakan adalah sebanyak 101,077 kata. Terdapat 2 versi data, data versi 1 hanya memiliki 56,751 kata dan data versi 2 adalah data lengkap.
+* Data 1: 56,751 kata, terdiri dari 34,174 kata dengan label `bukan_warna` dan 22,577 kata dengan label `warna` atau rasio 1.51 : 1 `bukan_warna` berbanding `warna`
+* Data 2: 101,077 kata, rincian menyusul....
 
 
 ```python
@@ -210,26 +214,66 @@ data['label'].value_counts()
 
 ## Konversi data ke dalam train dan test
 
+Berdasarkan porsi data 1 yang cukup berimbang dengan rasio 1.51:1 `bukan_warna` : `warna`, maka data dianggap cukup valid untuk dilakukan training ke dalam model. Data dibagi ke dalam train dan test data menggunakan metode `train_test_split` dari modul *sklearn.model_selection* dengan random seed yang ditetapkan di 42 dan test_size sebesar 50% (untuk menghindari overfit pada data train, variabel split ini masih bisa berubah tergantung seberapa akurat training pada model dan derajat overfit dari training).
+
+Kita akan membuat 
+
 
 ```python
 from sklearn.model_selection import train_test_split
-train_kata, test_kata, train_label, test_label = train_test_split(data['kata'].to_numpy(), data['label'].to_numpy(), test_size=0.2, random_state=42)
-train_kata[:5], test_kata[:5], train_label[:5], test_label[:5]
+
+def data_train_test(data_kata, data_label, test_size):
+    """
+    Melakukan split pada data training dan test berdasarkan rasio tertentu yang diberikan
+    
+    Args:
+        data_kata (pandas.DataFrame): Dataframe yang berisi kata
+        data_label (pandas.DataFrame): Dataframe yang berisi label
+        test_size (float): Rasio data test yang akan diberikan
+    
+    Returns:
+        train_kata (numpy.array): Dataframe yang berisi kata training
+        test_kata (numpy.array): Dataframe yang berisi kata test
+        train_label (numpy.array): Dataframe yang berisi label training
+        test_label (numpy.array): Dataframe yang berisi label test
+    """
+    train_kata, test_kata, train_label, test_label = train_test_split(data_kata, data_label, test_size=test_size, random_state=42)
+    return train_kata, test_kata, train_label, test_label
+
+rasio = 0.5 # set rasio data training dan data testing
+train_kata, test_kata, train_label, test_label = data_train_test(data['kata'].to_numpy(), data['label'].to_numpy(), rasio)
+
+train_label_unik, train_label_hitung = np.unique(train_label, return_counts=True)
+test_label_unik, test_label_hitung = np.unique(test_label, return_counts=True)
+print(f'{train_kata[:5]}\n') 
+print(f'{test_kata[:5]}\n')
+train_label_distribusi = np.column_stack((train_label_unik, train_label_hitung))
+test_label_distribusi = np.column_stack((test_label_unik, test_label_hitung))
+print(f'Distribusi label di train: \n{train_label_distribusi}\n')
+print(f'Distribusi label di test: \n{test_label_distribusi}')
 ```
 
-
-
-
-    (array(['INVIS', 'SOLRED', 'JR', 'REACT', 'WHITE'], dtype=object),
-     array(['6', 'GA', 'NIKE', 'BLUE', 'BLACK'], dtype=object),
-     array(['bukan_warna', 'warna', 'bukan_warna', 'bukan_warna', 'warna'],
-           dtype=object),
-     array(['bukan_warna', 'bukan_warna', 'bukan_warna', 'warna', 'warna'],
-           dtype=object))
-
-
+    ['6' 'ADJUST' 'BLACK' 'RESPONSE' 'PINK']
+    
+    ['6' 'GA' 'NIKE' 'BLUE' 'BLACK']
+    
+    Distribusi label di train: 
+    [['bukan_warna' 17120]
+     ['warna' 11255]]
+    
+    Distribusi label di test: 
+    [['bukan_warna' 17054]
+     ['warna' 11322]]
+    
 
 ## Konversi label ke dalam numerik
+
+Kita akan melakukan pengkonversian data label ke dalam bentuk numerik, dikarenakan jaringan saraf buatan hanya dapat bekerja dalam data numerik. Data label diubah dalam format numerik menggunakan metode `LabelEncoder` dari modul *sklearn.preprocessing*. Alternatif lainnya adalah menggunakan OneHotEncoder dimana data label akan ditranslasi menjadi jumlah kolom sesuai dengan jumlah output dan output tertentu akan memiliki nilai 1 pada kolom nilai yang menjadi sasaran.
+Contoh:
+* LabelEncoder akan merubah `bukan_warna` dan `warna` menjadi 1 dan 0
+* OneHotEncoder akan merubah `bukan_warna` dan `warna` menjadi [1, 0] dan [0, 1]
+
+Tergantung kasus dan loss function yang akan digunakan, pada kasus multiclass classification, pelabelan dalam bentuk LabelEncoder atau lebih dikenal dengan istilah sparse_category akan menggunakan loss function `SparseCategoricalCrossEntropy` sedangkan pelabelan dalam bentuk `OneHotEncoder` membutuhkan loss function `CategoricalCrossEntropy` atau dalam kasus Binomial Classification akan menggunakan loss function `BinaryCrossEntropy`. Dimana dalam kasus ini dikarenakan hanya terdapat dua kemungkinan output yang akan diprediksi dan dinilai akurasinya, maka kita akan menggunakan `LabelEncoder` dan `BinaryCrossEntropy` untuk loss function-nya.
 
 
 ```python
@@ -243,11 +287,25 @@ train_label_encode[:5], test_label_encode[:5]
 
 
 
-    (array([0, 1, 0, 0, 1]), array([0, 0, 0, 1, 1]))
+    (array([0, 0, 1, 0, 1]), array([0, 0, 0, 1, 1]))
 
 
 
 ## Model 0: model dasar
+
+Model pertama yang akan kita buat adalah model *Multinomial Naive-Bayes* yang akan mengkategorisasikan input ke dalam kategori output. *Multinomial Naive-Bayes* adalah sebuah algoritma dengan metode *supervised learning* yang paling umum digunakan dalam pengkategorisasian data tekstual.
+Pada dasarnya *Naive-Bayes* merupakan algoritma yang menghitung probabilitas dari sebuah event (output) berdasarkan probabilitas akumulatif kejadian dari event sebelumnya. Secara singkat algoritma ini akan mempelajari berapa probabilitas dari sebuah kata, misalkan 'ADISSAGE' adalah sebuah label `bukan_warna` berdasarkan probabilitas kejadian 'ADISSAGE' adalah `bukan_warna` pada event - event sebelumnya.
+
+Formula dari probabilitias algoritma Naive-Bayes:
+
+$P(A|B) = \frac{P(A) * P(B|A)}{P(B)}$
+
+Sebelum melakukan training menggunakan algoritma *Multinomial Naive-Bayes* kita perlu untuk merubah data kata menjadi bentuk numerik yang kali ini akan dikonversi menggunakan metode TF-IDF (*Term Frequency-Inverse Document Frequency*). TF-IDF sendiri merupakan metode yang akan berusaha memvaluasi nilai relevansi dan frekuensi dari sebuah kata dalam sekumpulan dokumen. *Term Frequency* merujuk pada seberapa sering sebuah kata muncul dalam 1 dokumen, sedangkan *Inverse Document Frequency* adalah perhitungan logaritma dari jumlah seluruh dokumen dibagi dengan jumlah dokumen dengan kata yang dimaksud terdapat di dalamnya. Hasil perhitungan dari TF dan IDF ini akan dikalikan untuk mendapatkan nilai dari seberapa sering dan seberapa relevan nilai dari sebuah kata. Misalkan 'ADISSAGE' sering muncul dalam 1 dokumen tapi tidak terlalu banyak muncul di dokumen - dokumen lainnya, maka hal ini dapat mengindikasikan bahwa kata 'ADISSAGE' mungkin memiliki relevansi yang tinggi dalam kategorisasi sebuah dokumen, sebaliknya jika kata 'WHITE' sering muncul di 1 dokumen dan juga sering muncul di dokumen - dokumen lainnya, maka kata 'WHITE' ini mungkin merupakan sebuah kata yang umum dan memiliki nilai relevansi yang rendah dalam pengkategorisasian sebuah dokumen.
+
+Untuk lebih lengkapnya mengenai *Naive-Bayes* dan TF-IDF dapat merujuk pada sumber berikut:
+* https://towardsdatascience.com/naive-bayes-classifier-81d512f50a7c
+* https://monkeylearn.com/blog/what-is-tf-idf/
+
 
 
 ```python
@@ -281,9 +339,11 @@ model_0.score(X=test_kata, y=test_label_encode)
 
 
 
-    0.9935688485595983
+    0.9925641387087679
 
 
+
+Pada hasil training dengan menggunakan model algoritma Multinomial Naive-Bayes kita mendapatkan akurasi sebesar 
 
 
 ```python
@@ -295,7 +355,7 @@ pred_model_0
 
 
 
-    array([0, 0, 0, ..., 1, 1, 0])
+    array([0, 0, 0, ..., 1, 0, 1])
 
 
 
@@ -338,10 +398,10 @@ model_0_metrik
 
 
 
-    {'akurasi': 0.9935688485595983,
-     'presisi': 0.9935690437085363,
-     'recall': 0.9935688485595983,
-     'f1-score': 0.9935671438217326}
+    {'akurasi': 0.9925641387087679,
+     'presisi': 0.9925843096339476,
+     'recall': 0.9925641387087679,
+     'f1-score': 0.9925577689780182}
 
 
 
@@ -358,7 +418,7 @@ len(train_kata)
 
 
 
-    45400
+    28375
 
 
 
@@ -372,14 +432,14 @@ jumlah_kata_train
 
 
 
-    2940
+    2448
 
 
 
 
 ```python
 # Membuat text vectorizer
-from tensorflow.keras.layers import TextVectorization
+from tensorflow.keras.layers import TextVectorization # type: ignore
 vectorizer_kata = TextVectorization(max_tokens=jumlah_kata_train,
                                     output_sequence_length=1,
                                     standardize='lower')
@@ -401,11 +461,11 @@ print(f'Kata setelah vektorisasi:\n{vectorizer_kata([target_kata])}')
 ```
 
     Kata:
-    5
+    WMNS
     
     Kata setelah vektorisasi:
-    [[47]]
-
+    [[18]]
+    
 
 
 ```python
@@ -419,7 +479,7 @@ vectorizer_kata.get_config()
      'trainable': True,
      'batch_input_shape': (None,),
      'dtype': 'string',
-     'max_tokens': 2940,
+     'max_tokens': 2448,
      'standardize': 'lower',
      'split': 'whitespace',
      'ngrams': None,
@@ -443,7 +503,7 @@ len(jumlah_vocab)
 
 
 
-    2938
+    2448
 
 
 
@@ -452,7 +512,7 @@ len(jumlah_vocab)
 
 ```python
 # Membuat text embedding layer
-from tensorflow.keras.layers import Embedding
+from tensorflow.keras.layers import Embedding # type: ignore
 kata_embed = Embedding(input_dim=len(jumlah_vocab),
                        output_dim=64,
                        mask_zero=True,
@@ -471,31 +531,34 @@ print(f'Shape dari kata setelah embedding:\n{kata_terembed.shape}')
 ```
 
     Kata sebelum vektorisasi:
-    5
+    WMNS
     
     
     Kata sesudah vektorisasi (sebelum embedding):
-    [[47]]
+    [[18]]
     
     
     Kata setelah embedding:
-    [[[-0.00258959  0.04990998 -0.04441559 -0.02205954 -0.03956609
-       -0.01799051 -0.02189567 -0.01263437  0.04183039 -0.029005
-       -0.02622869  0.02765231 -0.04219884  0.00494075 -0.04544568
-       -0.02989398  0.0400069  -0.03978921  0.03846495  0.01232683
-        0.0007933  -0.02543398  0.00365927 -0.01668191  0.01294837
-        0.00481149 -0.02894466 -0.02507013  0.04588108  0.0405197
-       -0.01860956 -0.04605418 -0.03735595 -0.00483001 -0.00458407
-       -0.01903701  0.03657718  0.00718967  0.01976332 -0.02251861
-        0.00589142 -0.00238026 -0.01294807  0.02448275 -0.02560136
-        0.033471    0.0314525   0.00829456 -0.03963711  0.03865555
-        0.01974393  0.00157628 -0.01058214  0.04987845 -0.01076373
-       -0.02952557  0.03197506 -0.01180102 -0.02673483  0.03148599
-       -0.04402238  0.01858581 -0.01718934 -0.00017769]]]
+    [[[ 3.4963731e-02  4.8215393e-02  6.2733516e-03  5.1901340e-03
+        2.2898983e-02 -3.9663114e-02  4.8714224e-02 -3.7121892e-02
+        2.7161241e-03 -8.7516084e-03  4.7124591e-02  1.4262687e-02
+        7.5260289e-03 -2.4054421e-02  2.6290867e-02 -4.9074378e-02
+        2.9274199e-02  5.0576106e-03  3.5100948e-02  1.1594355e-02
+        2.0217869e-02  3.5937894e-02 -8.7981932e-03 -2.4823522e-02
+       -1.6386397e-03  4.4990648e-02 -1.5357364e-02  3.2790724e-02
+       -4.8587073e-02  7.9304948e-03  6.3098967e-05  1.4596883e-02
+        3.4207132e-02 -9.8742247e-03 -2.2936240e-03 -4.9581755e-02
+        4.0270891e-02  4.0548768e-02  1.3687339e-02 -3.7664153e-02
+        4.8339281e-02  2.3454953e-02  4.1899238e-02 -2.0059235e-03
+        1.0535013e-02 -8.5597746e-03 -1.9007698e-03 -3.8338244e-02
+       -9.9762529e-04  2.0842645e-02 -2.3960805e-02 -3.8633596e-02
+       -1.3471007e-02 -2.2540843e-02  2.4116103e-02 -5.6176186e-03
+       -4.7617674e-02  3.7474785e-02  4.8199687e-02  7.5462349e-03
+       -4.7364842e-02 -5.5571087e-03 -1.2407742e-02  3.1438183e-02]]]
     
     Shape dari kata setelah embedding:
     (1, 1, 64)
-
+    
 
 ### Membuat TensorFlow Dataset
 
@@ -536,7 +599,7 @@ train_dataset
 
 ```python
 # Membuat model_1 dengan layer Conv1D dari kata yang divektorisasi dan di-embed
-from tensorflow.keras import layers
+from tensorflow.keras import layers # type: ignore
 
 inputs = layers.Input(shape=(1,), dtype=tf.string, name='layer_input')
 layer_vektor = vectorizer_kata(inputs)
@@ -567,7 +630,7 @@ model_1.summary()
      text_vectorization (TextVec  (None, 1)                0         
      torization)                                                     
                                                                      
-     layer_token_embedding (Embe  (None, 1, 64)            188032    
+     layer_token_embedding (Embe  (None, 1, 64)            156672    
      dding)                                                          
                                                                      
      conv1d (Conv1D)             (None, 1, 64)             20544     
@@ -578,20 +641,26 @@ model_1.summary()
      layer_output (Dense)        (None, 1)                 65        
                                                                      
     =================================================================
-    Total params: 208,641
-    Trainable params: 208,641
+    Total params: 177,281
+    Trainable params: 177,281
     Non-trainable params: 0
     _________________________________________________________________
-
+    
 
 
 ```python
 # Plot model_1
-from tensorflow.keras.utils import plot_model
+from tensorflow.keras.utils import plot_model # type: ignore
 plot_model(model_1, show_shapes=True)
 ```
 
-    You must install pydot (`pip install pydot`) and install graphviz (see instructions at https://graphviz.gitlab.io/download/) for plot_model/model_to_dot to work.
+
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_38_0.png)
+    
+
 
 
 
@@ -614,73 +683,61 @@ hist_model_1 = model_1.fit(train_dataset,
 ```
 
     [34m[1mwandb[0m: Currently logged in as: [33mjpao[0m. Use [1m`wandb login --relogin`[0m to force relogin
-
+    
 
 
 Tracking run with wandb version 0.12.21
 
 
 
-Run data is saved locally in <code>d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s</code>
+Run data is saved locally in <code>d:\ColorSkim\wandb\run-20220711_115920-o6q99kym</code>
 
 
 
-Syncing run <strong><a href="https://wandb.ai/jpao/ColorSkim/runs/15oqfl8s" target="_blank">model_1_Conv1D_embed</a></strong> to <a href="https://wandb.ai/jpao/ColorSkim" target="_blank">Weights & Biases</a> (<a href="https://wandb.me/run" target="_blank">docs</a>)<br/>
+Syncing run <strong><a href="https://wandb.ai/jpao/ColorSkim/runs/o6q99kym" target="_blank">model_1_Conv1D_embed</a></strong> to <a href="https://wandb.ai/jpao/ColorSkim" target="_blank">Weights & Biases</a> (<a href="https://wandb.me/run" target="_blank">docs</a>)<br/>
 
 
     [34m[1mwandb[0m: [33mWARNING[0m The save_model argument by default saves the model in the HDF5 format that cannot save custom objects like subclassed models and custom layers. This behavior will be deprecated in a future release in favor of the SavedModel format. Meanwhile, the HDF5 model is saved as W&B files and the SavedModel as W&B Artifacts.
-
+    
 
     WARNING:tensorflow:Issue encountered when serializing table_initializer.
     Type is unsupported, or the types of the items don't match field type in CollectionDef. Note this is a warning and probably safe to ignore.
     'NoneType' object has no attribute 'name'
-    WARNING:tensorflow:From c:\Users\jPao\miniconda3\envs\tf-py39\lib\site-packages\tensorflow\python\profiler\internal\flops_registry.py:138: tensor_shape_from_node_def_name (from tensorflow.python.framework.graph_util_impl) is deprecated and will be removed in a future version.
+    WARNING:tensorflow:From c:\Users\jPao\anaconda3\envs\tf-py39\lib\site-packages\tensorflow\python\profiler\internal\flops_registry.py:138: tensor_shape_from_node_def_name (from tensorflow.python.framework.graph_util_impl) is deprecated and will be removed in a future version.
     Instructions for updating:
     Use `tf.compat.v1.graph_util.tensor_shape_from_node_def_name`
     Epoch 1/3
-    1419/1419 [==============================] - ETA: 0s - loss: 0.0729 - accuracy: 0.9841
+    887/887 [==============================] - ETA: 0s - loss: 0.1017 - accuracy: 0.9794
 
     [34m[1mwandb[0m: [32m[41mERROR[0m Can't save model in the h5py format. The model will be saved as W&B Artifacts in the SavedModel format.
     WARNING:absl:Found untraced functions such as adapt_step while saving (showing 1 of 1). These functions will not be directly callable after loading.
+    
 
+    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220711_115920-o6q99kym\files\model-best\assets
+    
 
-    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best\assets
+    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220711_115920-o6q99kym\files\model-best\assets
+    [34m[1mwandb[0m: Adding directory to artifact (d:\ColorSkim\wandb\run-20220711_115920-o6q99kym\files\model-best)... Done. 0.3s
+    
 
-
-    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best\assets
-    [34m[1mwandb[0m: Adding directory to artifact (d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best)... Done. 0.2s
-
-
-    1419/1419 [==============================] - 104s 71ms/step - loss: 0.0729 - accuracy: 0.9841 - val_loss: 0.0273 - val_accuracy: 0.9930 - _timestamp: 1657167802.0000 - _runtime: 109.0000
+    887/887 [==============================] - 210s 225ms/step - loss: 0.1017 - accuracy: 0.9794 - val_loss: 0.0326 - val_accuracy: 0.9922 - _timestamp: 1657515766.0000 - _runtime: 205.0000
     Epoch 2/3
-    1419/1419 [==============================] - ETA: 0s - loss: 0.0178 - accuracy: 0.9952
+    887/887 [==============================] - ETA: 0s - loss: 0.0191 - accuracy: 0.9952
 
     WARNING:absl:Found untraced functions such as adapt_step while saving (showing 1 of 1). These functions will not be directly callable after loading.
+    
 
+    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220711_115920-o6q99kym\files\model-best\assets
+    
 
-    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best\assets
+    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220711_115920-o6q99kym\files\model-best\assets
+    [34m[1mwandb[0m: Adding directory to artifact (d:\ColorSkim\wandb\run-20220711_115920-o6q99kym\files\model-best)... Done. 0.1s
+    
 
-
-    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best\assets
-    [34m[1mwandb[0m: Adding directory to artifact (d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best)... Done. 0.1s
-
-
-    1419/1419 [==============================] - 102s 72ms/step - loss: 0.0178 - accuracy: 0.9952 - val_loss: 0.0264 - val_accuracy: 0.9931 - _timestamp: 1657167905.0000 - _runtime: 212.0000
+    887/887 [==============================] - 149s 168ms/step - loss: 0.0191 - accuracy: 0.9952 - val_loss: 0.0300 - val_accuracy: 0.9925 - _timestamp: 1657515924.0000 - _runtime: 363.0000
     Epoch 3/3
-    1419/1419 [==============================] - ETA: 0s - loss: 0.0159 - accuracy: 0.9956
-
-    WARNING:absl:Found untraced functions such as adapt_step while saving (showing 1 of 1). These functions will not be directly callable after loading.
-
-
-    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best\assets
-
-
-    INFO:tensorflow:Assets written to: d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best\assets
-    [34m[1mwandb[0m: Adding directory to artifact (d:\ColorSkim\wandb\run-20220707_112133-15oqfl8s\files\model-best)... Done. 0.1s
-
-
-    1419/1419 [==============================] - 99s 70ms/step - loss: 0.0159 - accuracy: 0.9956 - val_loss: 0.0261 - val_accuracy: 0.9936 - _timestamp: 1657168005.0000 - _runtime: 312.0000
-
+    887/887 [==============================] - 129s 146ms/step - loss: 0.0163 - accuracy: 0.9956 - val_loss: 0.0303 - val_accuracy: 0.9926 - _timestamp: 1657516060.0000 - _runtime: 499.0000
+    
 
 
 ```python
@@ -688,13 +745,13 @@ Syncing run <strong><a href="https://wandb.ai/jpao/ColorSkim/runs/15oqfl8s" targ
 model_1.evaluate(test_dataset)
 ```
 
-    355/355 [==============================] - 14s 39ms/step - loss: 0.0261 - accuracy: 0.9936
+    887/887 [==============================] - 45s 51ms/step - loss: 0.0303 - accuracy: 0.9926
+    
 
 
 
 
-
-    [0.026110293343663216, 0.9935688376426697]
+    [0.03030860796570778, 0.9925641417503357]
 
 
 
@@ -708,16 +765,16 @@ model_1_pred_prob[:10]
 
 
 
-    array([[4.4162782e-05],
-           [7.1573093e-05],
-           [4.8019815e-06],
-           [9.9727100e-01],
-           [9.9964142e-01],
-           [1.0789679e-05],
-           [1.4505963e-04],
-           [4.8167007e-03],
-           [1.1653579e-04],
-           [9.9448615e-01]], dtype=float32)
+    array([[5.1793031e-05],
+           [6.5180029e-05],
+           [8.7126767e-07],
+           [9.9771899e-01],
+           [9.9969602e-01],
+           [2.4920701e-06],
+           [2.1196477e-04],
+           [2.2293185e-03],
+           [1.2963725e-04],
+           [9.9663699e-01]], dtype=float32)
 
 
 
@@ -731,7 +788,7 @@ model_1_pred
 
 
 
-    <tf.Tensor: shape=(11351,), dtype=float32, numpy=array([0., 0., 0., ..., 1., 1., 0.], dtype=float32)>
+    <tf.Tensor: shape=(28376,), dtype=float32, numpy=array([0., 0., 0., ..., 1., 0., 1.], dtype=float32)>
 
 
 
@@ -746,10 +803,10 @@ model_1_metrik
 
 
 
-    {'akurasi': 0.9935688485595983,
-     'presisi': 0.9935703064543551,
-     'recall': 0.9935688485595983,
-     'f1-score': 0.9935666849784249}
+    {'akurasi': 0.9925641387087679,
+     'presisi': 0.9925790596107587,
+     'recall': 0.9925641387087679,
+     'f1-score': 0.9925584581306051}
 
 
 
@@ -775,17 +832,17 @@ print(f'Panjang dari kata setelah embedding: {len(kata_embed_pretrain[0])}')
 ```
 
     Kata acak:
-     BLACK
+     QUESTAR
     
     Kata setelah embed dengan USE:
-    [-0.05150617 -0.00596834  0.04953347  0.0329339   0.02531563 -0.0103454
-      0.05544865  0.01774512 -0.00898479  0.04252742 -0.02970365 -0.03763022
-     -0.00209826 -0.05936718 -0.0276504  -0.03143836  0.0275419   0.05507992
-     -0.05129641 -0.02967714 -0.00617658  0.0467336  -0.00554184  0.00347361
-     -0.04157941  0.01770764 -0.0202241  -0.06021477  0.01153699  0.03923866]
+    [ 0.00866413 -0.06154143  0.05114514  0.04181407  0.0199904   0.05046864
+     -0.01953758 -0.05738599  0.06517273 -0.00517753  0.00351421  0.02564281
+      0.02964722  0.06797459 -0.00300142  0.0053544  -0.00830155 -0.03211842
+      0.04801427 -0.00119406 -0.00043531  0.01120288  0.04401749 -0.01213133
+     -0.00378824  0.04055084 -0.01255467  0.02171156  0.05214996  0.01138981]
     
     Panjang dari kata setelah embedding: 512
-
+    
 
 
 ```python
@@ -827,7 +884,7 @@ model_2.summary()
     Trainable params: 449
     Non-trainable params: 256,797,824
     _________________________________________________________________
-
+    
 
 
 ```python
@@ -839,7 +896,7 @@ plot_model(model_2, show_shapes=True)
 
 
     
-![png](output_47_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_49_0.png)
     
 
 
@@ -869,7 +926,7 @@ hist_model_2 = model_2.fit(train_dataset,
 ```
 
 
-Finishing last run (ID:15oqfl8s) before initializing another...
+Finishing last run (ID:o6q99kym) before initializing another...
 
 
 
@@ -882,19 +939,19 @@ Waiting for W&B process to finish... <strong style="color:green">(success).</str
     .wandb-row { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; width: 100% }
     .wandb-col { display: flex; flex-direction: column; flex-basis: 100%; flex: 1; padding: 10px; }
     </style>
-<div class="wandb-row"><div class="wandb-col"><h3>Run history:</h3><br/><table class="wandb"><tr><td>accuracy</td><td>▁██</td></tr><tr><td>epoch</td><td>▁▅█</td></tr><tr><td>loss</td><td>█▁▁</td></tr><tr><td>val_accuracy</td><td>▁▂█</td></tr><tr><td>val_loss</td><td>█▃▁</td></tr></table><br/></div><div class="wandb-col"><h3>Run summary:</h3><br/><table class="wandb"><tr><td>GFLOPS</td><td>0.0</td></tr><tr><td>accuracy</td><td>0.99562</td></tr><tr><td>best_epoch</td><td>2</td></tr><tr><td>best_val_loss</td><td>0.02611</td></tr><tr><td>epoch</td><td>2</td></tr><tr><td>loss</td><td>0.01587</td></tr><tr><td>val_accuracy</td><td>0.99357</td></tr><tr><td>val_loss</td><td>0.02611</td></tr></table><br/></div></div>
+<div class="wandb-row"><div class="wandb-col"><h3>Run history:</h3><br/><table class="wandb"><tr><td>accuracy</td><td>▁██</td></tr><tr><td>epoch</td><td>▁▅█</td></tr><tr><td>loss</td><td>█▁▁</td></tr><tr><td>val_accuracy</td><td>▁▆█</td></tr><tr><td>val_loss</td><td>█▁▂</td></tr></table><br/></div><div class="wandb-col"><h3>Run summary:</h3><br/><table class="wandb"><tr><td>GFLOPS</td><td>0.0</td></tr><tr><td>accuracy</td><td>0.99556</td></tr><tr><td>best_epoch</td><td>1</td></tr><tr><td>best_val_loss</td><td>0.03002</td></tr><tr><td>epoch</td><td>2</td></tr><tr><td>loss</td><td>0.01627</td></tr><tr><td>val_accuracy</td><td>0.99256</td></tr><tr><td>val_loss</td><td>0.03031</td></tr></table><br/></div></div>
 
 
 
-Synced <strong style="color:#cdcd00">model_1_Conv1D_embed</strong>: <a href="https://wandb.ai/jpao/ColorSkim/runs/15oqfl8s" target="_blank">https://wandb.ai/jpao/ColorSkim/runs/15oqfl8s</a><br/>Synced 5 W&B file(s), 1 media file(s), 10 artifact file(s) and 1 other file(s)
+Synced <strong style="color:#cdcd00">model_1_Conv1D_embed</strong>: <a href="https://wandb.ai/jpao/ColorSkim/runs/o6q99kym" target="_blank">https://wandb.ai/jpao/ColorSkim/runs/o6q99kym</a><br/>Synced 5 W&B file(s), 1 media file(s), 7 artifact file(s) and 1 other file(s)
 
 
 
-Find logs at: <code>.\wandb\run-20220707_112133-15oqfl8s\logs</code>
+Find logs at: <code>.\wandb\run-20220711_115920-o6q99kym\logs</code>
 
 
 
-Successfully finished last run (ID:15oqfl8s). Initializing new run:<br/>
+Successfully finished last run (ID:o6q99kym). Initializing new run:<br/>
 
 
 
@@ -902,23 +959,23 @@ Tracking run with wandb version 0.12.21
 
 
 
-Run data is saved locally in <code>d:\ColorSkim\wandb\run-20220707_112718-298uq3pm</code>
+Run data is saved locally in <code>d:\ColorSkim\wandb\run-20220711_121421-3rlrlcvr</code>
 
 
 
-Syncing run <strong><a href="https://wandb.ai/jpao/ColorSkim/runs/298uq3pm" target="_blank">model_2_Conv1D_USE_embed</a></strong> to <a href="https://wandb.ai/jpao/ColorSkim" target="_blank">Weights & Biases</a> (<a href="https://wandb.me/run" target="_blank">docs</a>)<br/>
+Syncing run <strong><a href="https://wandb.ai/jpao/ColorSkim/runs/3rlrlcvr" target="_blank">model_2_Conv1D_USE_embed</a></strong> to <a href="https://wandb.ai/jpao/ColorSkim" target="_blank">Weights & Biases</a> (<a href="https://wandb.me/run" target="_blank">docs</a>)<br/>
 
 
     [34m[1mwandb[0m: [33mWARNING[0m Unable to compute FLOPs for this model.
-
+    
 
     Epoch 1/3
-    1419/1419 [==============================] - 157s 108ms/step - loss: 0.5851 - accuracy: 0.7125 - val_loss: 0.4620 - val_accuracy: 0.9055 - _timestamp: 1657168206.0000 - _runtime: 162.0000
+    887/887 [==============================] - 226s 246ms/step - loss: 0.6405 - accuracy: 0.6114 - val_loss: 0.5905 - val_accuracy: 0.8387 - _timestamp: 1657516765.0000 - _runtime: 297.0000
     Epoch 2/3
-    1419/1419 [==============================] - 150s 106ms/step - loss: 0.3688 - accuracy: 0.9020 - val_loss: 0.3056 - val_accuracy: 0.9027 - _timestamp: 1657168358.0000 - _runtime: 314.0000
+    887/887 [==============================] - 219s 247ms/step - loss: 0.5211 - accuracy: 0.8137 - val_loss: 0.4554 - val_accuracy: 0.8914 - _timestamp: 1657516982.0000 - _runtime: 514.0000
     Epoch 3/3
-    1419/1419 [==============================] - 154s 109ms/step - loss: 0.2764 - accuracy: 0.9056 - val_loss: 0.2576 - val_accuracy: 0.9009 - _timestamp: 1657168511.0000 - _runtime: 467.0000
-
+    887/887 [==============================] - 228s 257ms/step - loss: 0.4021 - accuracy: 0.8879 - val_loss: 0.3575 - val_accuracy: 0.9052 - _timestamp: 1657517211.0000 - _runtime: 743.0000
+    
 
 
 ```python
@@ -926,13 +983,13 @@ Syncing run <strong><a href="https://wandb.ai/jpao/ColorSkim/runs/298uq3pm" targ
 model_2.evaluate(test_dataset)
 ```
 
-    355/355 [==============================] - 17s 47ms/step - loss: 0.2576 - accuracy: 0.9009
+    887/887 [==============================] - 67s 76ms/step - loss: 0.3575 - accuracy: 0.9052
+    
 
 
 
 
-
-    [0.25761494040489197, 0.9008898138999939]
+    [0.3574761152267456, 0.9051663279533386]
 
 
 
@@ -946,16 +1003,16 @@ model_2_pred_prob[:10]
 
 
 
-    array([[0.10366567],
-           [0.07147089],
-           [0.0694409 ],
-           [0.91198367],
-           [0.95933306],
-           [0.13955557],
-           [0.05977627],
-           [0.14464849],
-           [0.07072161],
-           [0.6322903 ]], dtype=float32)
+    array([[0.16605161],
+           [0.15431982],
+           [0.20437935],
+           [0.6168258 ],
+           [0.8310257 ],
+           [0.19871134],
+           [0.21265136],
+           [0.17426637],
+           [0.1890059 ],
+           [0.4124583 ]], dtype=float32)
 
 
 
@@ -969,7 +1026,7 @@ model_2_pred
 
 
 
-    <tf.Tensor: shape=(11351,), dtype=float32, numpy=array([0., 0., 0., ..., 0., 1., 0.], dtype=float32)>
+    <tf.Tensor: shape=(28376,), dtype=float32, numpy=array([0., 0., 0., ..., 1., 0., 1.], dtype=float32)>
 
 
 
@@ -984,10 +1041,10 @@ model_2_hasil
 
 
 
-    {'akurasi': 0.9008897894458638,
-     'presisi': 0.9008754342105381,
-     'recall': 0.9008897894458638,
-     'f1-score': 0.9003678474557234}
+    {'akurasi': 0.9051663377502115,
+     'presisi': 0.9052541793259783,
+     'recall': 0.9051663377502115,
+     'f1-score': 0.9045830735846138}
 
 
 
@@ -1036,7 +1093,7 @@ for i in range(0, len(article_list)):
     Prediksi: warna
     
     
-
+    
 
 
 ```python
@@ -1046,14 +1103,7 @@ model_test
 
 
 
-    array([[1.5349576e-03],
-           [7.1742781e-04],
-           [1.4221472e-04],
-           [2.2269943e-04],
-           [1.5349576e-03],
-           [9.9965119e-01],
-           [1.5349576e-03],
-           [9.9896502e-01]], dtype=float32)
+    <tf.Tensor: shape=(8,), dtype=float32, numpy=array([0., 0., 0., 0., 0., 1., 0., 1.], dtype=float32)>
 
 
 
