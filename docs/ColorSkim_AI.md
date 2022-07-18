@@ -1,25 +1,63 @@
 # ColorSkim Machine Learning AI
 
-Saat ini `item_description` untuk artikel ditulis dalam bentuk/format `nama_artikel + warna` dimana pemisahan `nama_artikel` dan `warna` bervariasi antar brand, beberapa menggunakan spasi, dash, garis miring dsbnya.
-
-Pembelajaran mesin ini merupakan pembelajaran yang akan menerapkan jaringan saraf buatan (neural network) untuk mempelajari pola penulisan artikel yang bercampur dengan warna untuk mengekstrak warna saja dari artikel.
-
-Akan dilakukan beberapa scenario modelling **Natural Language Procesing** untuk permasalahan *sequence to sequence* ini. Pada intinya kita akan membagi kalimat (`item_description`) berdasarkan kata per kata dan mengkategorisasikan masing - masing kata ke dalam satu dari dua kategori warna atau bukan_warna (logistik biner).
-
 
 
 
 ```python
 # import modul
-import tensorflow as tf
-from tensorflow.python.client import device_lib
+import os
+
+# import pandas dan numpy
 import pandas as pd
 import numpy as np
+
+# import daftar device terdeteksi oleh tensorflow
+from tensorflow.python.client.device_lib import list_local_devices
+
+# import utilitas umum tensorflow
+from tensorflow.config import run_functions_eagerly # type: ignore
+from tensorflow.data.experimental import enable_debug_mode # type: ignore
+
+# import pembuatan dataset
+from sklearn.model_selection import train_test_split
+
+# import preprocessing data
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+
+# import pipeline scikit untuk model_0
+from sklearn.pipeline import Pipeline
+
+# import layer neural network
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from tensorflow.keras.layers import Conv1D # type: ignore
+
+# import callbacks untuk tensorflow
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau # type: ignore
+
+# import metriks dan alat evaluasi
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+
+# import grafik
 import matplotlib.pyplot as plt
+import seaborn as sns
+
+# import display untuk menampilkan dataframe berdasar settingan tertentu (situasional)
+from IPython.display import display
+
+# import library log untuk training
 import wandb as wb
+from wandb.keras import WandbCallback
+
+# import kunci untuk login wandb
 from rahasia import API_KEY_WANDB # type: ignore
-tf.config.run_functions_eagerly(True)
-tf.data.experimental.enable_debug_mode()
+
+# set output tensorflow
+run_functions_eagerly(True)
+enable_debug_mode()
+
+# set matplotlib untuk menggunakan tampilan seaborn
+sns.set()
 ```
 
 
@@ -27,7 +65,7 @@ tf.data.experimental.enable_debug_mode()
 # cek ketersediaan GPU untuk modeling
 # NVidia GeForce MX250 - office
 # NVidia GeForce GTX1060 - home
-device_lib.list_local_devices()[1]
+list_local_devices()[1]
 ```
 
 
@@ -41,37 +79,75 @@ device_lib.list_local_devices()[1]
       links {
       }
     }
-    incarnation: 5514232586070941878
+    incarnation: 236889098973226599
     physical_device_desc: "device: 0, name: NVIDIA GeForce MX250, pci bus id: 0000:02:00.0, compute capability: 6.1"
     xla_global_id: 416903419
 
 
 
+## Variabel Global
+
+
+```python
+DIR_MODEL_CHECKPOINT = 'colorskim_checkpoint'
+# kita akan mengatur toleransi_es sebagai fraksi (fraksi_toleransi) tertentu dari jumlah total epoch
+# dan toleransi_rlop sebagai toleransi_es dibagi dengan jumlah kesempatan (kesempatan_rlop)
+# dilakukannya reduksi pada learning_rate 
+EPOCHS = 1000
+FRAKSI_TOLERANSI = 0.2
+KESEMPATAN_RLOP = 4
+TOLERANSI_ES = int(EPOCHS*FRAKSI_TOLERANSI)
+TOLERANSI_RLOP = int(TOLERANSI_ES/KESEMPATAN_RLOP)
+FRAKSI_REDUKSI_LR = 0.1
+RANDOM_STATE = 11
+RASIO_TEST_TRAIN = 0.2
+
+```
+
+## Callbacks
+
+Beberapa *callbacks* yang akan digunakan dalam proses *training* model diantaranya:
+* `WandbCallback` - *Callback* ke [wandb.ai](https://wandb.ai) untuk mencatat log dari sesi *training* model.
+* `ModelCheckpoint` - Untuk menyimpan model dengan *val_loss* terbaik dari seluruh *epoch* dalam *training* model.
+* `EarlyStopping` (ES) - *Callback* ini digunakan untuk menghentikan proses *training* model jika selama beberapa *epoch* model tidak mengalami perbaikan pada metrik *val_loss*-nya. *Callback* ini juga digunakan bersama dengan `ReduceLROnPlateau` dimana *patience* ES > *patience* RLOP.
+* `ReduceLROnPlateau` (RLOP) - *Callback* ini digunakan untuk memperkecil *learning_rate* dari model jika tidak mengalami perbaikan *val_loss* selama beberapa *epoch*.
+
+*Patience* dari ES di-set lebih tinggi dari *patience* RLOP untuk memberikan kesempatan bagi RLOP untuk memperkecil *learning_rate* beberapa kali sebelum proses *training* model dihentikan oleh ES setelah tidak berhasil mendapatkan *val_loss* yang lebih baik selama beberapa *epoch*.
+
 
 ```python
 # login ke wandb
 wb.login(key=API_KEY_WANDB)
+
+# Pembuatan fungsi callback
+def wandb_callback():
+    return WandbCallback(save_model=False, # model akan disimpan menggunakan callback ModelCheckpoint
+                         log_weights=True, # weight akan disimpan untuk visualisasi di wandb
+                         log_gradients=True) # gradient akan disimpan untuk visualisasi di wandb
+def model_checkpoint(nama_model):
+    return ModelCheckpoint(filepath=os.path.join(DIR_MODEL_CHECKPOINT, nama_model),
+                           verbose=0,
+                           save_best_only=True) # model dengan 'val_loss' terbaik akan disimpan
+def early_stopping():
+    return EarlyStopping(patience=TOLERANSI_ES)
+def reduce_lr_on_plateau():
+    return ReduceLROnPlateau(factor=FRAKSI_REDUKSI_LR, # pengurangan learning_rate diset sebesar 0.1 * learning_rate
+                             patience=TOLERANSI_RLOP,
+                             verbose=0)
 ```
 
-    Failed to detect the name of this notebook, you can set it manually with the WANDB_NOTEBOOK_NAME environment variable to enable code saving.
-    [34m[1mwandb[0m: Currently logged in as: [33mjpao[0m ([33mpri-data[0m). Use [1m`wandb login --relogin`[0m to force relogin
     [34m[1mwandb[0m: [33mWARNING[0m If you're specifying your api key in code, ensure this code is not shared publicly.
     [34m[1mwandb[0m: [33mWARNING[0m Consider setting the WANDB_API_KEY environment variable, or running `wandb login` from the command line.
     [34m[1mwandb[0m: Appending key for api.wandb.ai to your netrc file: C:\Users\jPao/.netrc
     
 
-
-
-
-    True
-
-
-
-## Membaca data
+## Data
 
 Data yang dipergunakan adalah sebanyak 101,077 kata. Terdapat 2 versi data, data versi 1 hanya memiliki 56,751 kata dan data versi 2 adalah data lengkap.
 * Data 1: 56,751 kata, terdiri dari 34,174 kata dengan label `bukan_warna` dan 22,577 kata dengan label `warna` atau rasio 1.51 : 1 `bukan_warna` berbanding `warna`
 * Data 2: 101,077 kata, rincian menyusul....
+
+`brand`, `urut_kata` dan `total_kata` akan digunakan sebagai alternatif variabel independen tambahan dalam model tertentu.
 
 
 ```python
@@ -101,6 +177,7 @@ data[:10]
   <thead>
     <tr style="text-align: right;">
       <th></th>
+      <th>brand</th>
       <th>nama_artikel</th>
       <th>kata</th>
       <th>label</th>
@@ -111,6 +188,7 @@ data[:10]
   <tbody>
     <tr>
       <th>0</th>
+      <td>ADI</td>
       <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
       <td>ADISSAGE</td>
       <td>bukan_warna</td>
@@ -119,6 +197,7 @@ data[:10]
     </tr>
     <tr>
       <th>1</th>
+      <td>ADI</td>
       <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
       <td>BLACK</td>
       <td>warna</td>
@@ -127,6 +206,7 @@ data[:10]
     </tr>
     <tr>
       <th>2</th>
+      <td>ADI</td>
       <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
       <td>BLACK</td>
       <td>warna</td>
@@ -135,6 +215,7 @@ data[:10]
     </tr>
     <tr>
       <th>3</th>
+      <td>ADI</td>
       <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
       <td>RUNWHT</td>
       <td>warna</td>
@@ -143,6 +224,7 @@ data[:10]
     </tr>
     <tr>
       <th>4</th>
+      <td>ADI</td>
       <td>ADISSAGE-N.NAVY/N.NAVY/RUNWHT</td>
       <td>ADISSAGE</td>
       <td>bukan_warna</td>
@@ -151,6 +233,7 @@ data[:10]
     </tr>
     <tr>
       <th>5</th>
+      <td>ADI</td>
       <td>ADISSAGE-N.NAVY/N.NAVY/RUNWHT</td>
       <td>N.NAVY</td>
       <td>warna</td>
@@ -159,6 +242,7 @@ data[:10]
     </tr>
     <tr>
       <th>6</th>
+      <td>ADI</td>
       <td>ADISSAGE-N.NAVY/N.NAVY/RUNWHT</td>
       <td>N.NAVY</td>
       <td>warna</td>
@@ -167,6 +251,7 @@ data[:10]
     </tr>
     <tr>
       <th>7</th>
+      <td>ADI</td>
       <td>ADISSAGE-N.NAVY/N.NAVY/RUNWHT</td>
       <td>RUNWHT</td>
       <td>warna</td>
@@ -175,6 +260,7 @@ data[:10]
     </tr>
     <tr>
       <th>8</th>
+      <td>ADI</td>
       <td>3 STRIPE D 29.5-BASKETBALL NATURAL</td>
       <td>3</td>
       <td>bukan_warna</td>
@@ -183,6 +269,7 @@ data[:10]
     </tr>
     <tr>
       <th>9</th>
+      <td>ADI</td>
       <td>3 STRIPE D 29.5-BASKETBALL NATURAL</td>
       <td>STRIPE</td>
       <td>bukan_warna</td>
@@ -195,7 +282,7 @@ data[:10]
 
 
 
-## Eksplorasi data
+### Eksplorasi Data
 
 
 ```python
@@ -212,91 +299,555 @@ data['label'].value_counts()
 
 
 
-## Konversi data ke dalam train dan test
-
-Berdasarkan porsi data 1 yang cukup berimbang dengan rasio 1.51:1 `bukan_warna` : `warna`, maka data dianggap cukup valid untuk dilakukan training ke dalam model. Data dibagi ke dalam train dan test data menggunakan metode `train_test_split` dari modul *sklearn.model_selection* dengan random seed yang ditetapkan di 42 dan test_size sebesar 50% (untuk menghindari overfit pada data train, variabel split ini masih bisa berubah tergantung seberapa akurat training pada model dan derajat overfit dari training).
-
-Kita akan membuat fungsi untuk mempermudah perubahan nilai rasio train dan test data yang akan digunakan dalam training dari model yang akan kita buat. Fungsi ini akan menerima tiga argumen yaitu `data_kata`, `data_label` dan terutama adalah **`test_size`** yang merupakan rasio dari train berbanding dengan test. Fungsi ini akan mengembalikan tuple dalam bentuk `train_kata`, `test_kata`, `train_label` dan `test_label`
-
 
 ```python
-from sklearn.model_selection import train_test_split
-
-def data_train_test(data_kata, data_label, test_size):
-    """
-    Melakukan split pada data training dan test berdasarkan rasio tertentu yang diberikan
-    
-    Args:
-        data_kata (pandas.DataFrame): Dataframe yang berisi kata
-        data_label (pandas.DataFrame): Dataframe yang berisi label
-        test_size (float): Rasio data test yang akan diberikan
-    
-    Returns:
-        train_kata (numpy.array): Dataframe yang berisi kata training
-        test_kata (numpy.array): Dataframe yang berisi kata test
-        train_label (numpy.array): Dataframe yang berisi label training
-        test_label (numpy.array): Dataframe yang berisi label test
-    """
-    train_kata, test_kata, train_label, test_label = train_test_split(data_kata, data_label, test_size=test_size, random_state=42)
-    return train_kata, test_kata, train_label, test_label
-
-rasio = 0.5 # set rasio data training dan data testing
-train_kata, test_kata, train_label, test_label = data_train_test(data['kata'].to_numpy(), data['label'].to_numpy(), rasio)
-
-train_label_unik, train_label_hitung = np.unique(train_label, return_counts=True)
-test_label_unik, test_label_hitung = np.unique(test_label, return_counts=True)
-print(f'{train_kata[:5]}\n') 
-print(f'{test_kata[:5]}\n')
-train_label_distribusi = np.column_stack((train_label_unik, train_label_hitung))
-test_label_distribusi = np.column_stack((test_label_unik, test_label_hitung))
-print(f'Distribusi label di train: \n{train_label_distribusi}\n')
-print(f'Distribusi label di test: \n{test_label_distribusi}')
+# distribusi label dalam brand (data hanya menunjukkan 10 teratas)
+data[['brand', 'label']].value_counts().unstack().sort_values(by='bukan_warna', ascending=False)[:10]
 ```
 
-    ['6' 'ADJUST' 'BLACK' 'RESPONSE' 'PINK']
-    
-    ['6' 'GA' 'NIKE' 'BLUE' 'BLACK']
-    
-    Distribusi label di train: 
-    [['bukan_warna' 17120]
-     ['warna' 11255]]
-    
-    Distribusi label di test: 
-    [['bukan_warna' 17054]
-     ['warna' 11322]]
-    
 
-## Konversi label ke dalam numerik
 
-Kita akan melakukan pengkonversian data label ke dalam bentuk numerik, dikarenakan jaringan saraf buatan hanya dapat bekerja dalam data numerik. Data label diubah dalam format numerik menggunakan metode `LabelEncoder` dari modul *sklearn.preprocessing*. Alternatif lainnya adalah menggunakan OneHotEncoder dimana data label akan ditranslasi menjadi jumlah kolom sesuai dengan jumlah output dan output tertentu akan memiliki nilai 1 pada kolom nilai yang menjadi sasaran.
-Contoh:
-* LabelEncoder akan merubah `bukan_warna` dan `warna` menjadi 1 dan 0
-* OneHotEncoder akan merubah `bukan_warna` dan `warna` menjadi [1, 0] dan [0, 1]
 
-Tergantung kasus dan loss function yang akan digunakan, pada kasus multiclass classification, pelabelan dalam bentuk LabelEncoder atau lebih dikenal dengan istilah sparse_category akan menggunakan loss function `SparseCategoricalCrossEntropy` sedangkan pelabelan dalam bentuk `OneHotEncoder` membutuhkan loss function `CategoricalCrossEntropy` atau dalam kasus Binomial Classification akan menggunakan loss function `BinaryCrossEntropy`. Dimana dalam kasus ini dikarenakan hanya terdapat dua kemungkinan output yang akan diprediksi dan dinilai akurasinya, maka kita akan menggunakan `LabelEncoder` dan `BinaryCrossEntropy` untuk loss function-nya.
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>label</th>
+      <th>bukan_warna</th>
+      <th>warna</th>
+    </tr>
+    <tr>
+      <th>brand</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>NIK</th>
+      <td>13396.0</td>
+      <td>10807.0</td>
+    </tr>
+    <tr>
+      <th>ADI</th>
+      <td>10028.0</td>
+      <td>7073.0</td>
+    </tr>
+    <tr>
+      <th>PUM</th>
+      <td>4279.0</td>
+      <td>2062.0</td>
+    </tr>
+    <tr>
+      <th>BBC</th>
+      <td>1174.0</td>
+      <td>367.0</td>
+    </tr>
+    <tr>
+      <th>CAO</th>
+      <td>887.0</td>
+      <td>61.0</td>
+    </tr>
+    <tr>
+      <th>HER</th>
+      <td>868.0</td>
+      <td>287.0</td>
+    </tr>
+    <tr>
+      <th>AGL</th>
+      <td>611.0</td>
+      <td>212.0</td>
+    </tr>
+    <tr>
+      <th>KIP</th>
+      <td>554.0</td>
+      <td>321.0</td>
+    </tr>
+    <tr>
+      <th>STN</th>
+      <td>494.0</td>
+      <td>255.0</td>
+    </tr>
+    <tr>
+      <th>WAR</th>
+      <td>404.0</td>
+      <td>298.0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+### Konversi Fitur dan Label ke dalam numerik
+
+Kita akan melakukan pengkonversian fitur dan label ke dalam bentuk numerik, dikarenakan jaringan saraf buatan hanya dapat bekerja dalam data numerik. 
+
+Terdapat dua jenis *encoding* untuk data yang bersifat kategorikal:
+* `OneHotEncoder`
+* `LabelEncoder`
+
+**OneHotEncoder**
+*Encoding* ini akan merubah data satu kolom menjadi multi-kolom dengan nilai 1 dan 0 dimana jumlah kolom sama dengan jumlah kategori, seperti berikut:
+| brand | brand_NIK | brand_ADI | brand_SPE | brand_PIE | brand_... |
+| --- | --- | --- | --- | --- | --- |
+| NIK | 1 | 0 | 0 | 0 | ... |
+| SPE | 0 | 0 | 1 | 0 | ... |
+| PIE | 0 | 0 | 0 | 1 | ... |
+| ADI | 0 | 1 | 0 | 0 | ... |
+| SPE | 0 | 0 | 1 | 0 | ... |
+| ... | ... | ... | ... | ... | ... |
+
+**LabelEncoder**
+*Encoding* ini akan merubah data pada satu kolom menjadi 0, 1, 2, 3.. dstnya sesuai dengan jumlah kategorinya, seperti berikut:
+| brand | brand_label_encoded |
+| --- | --- |
+| NIK | 0 |
+| SPE | 1 |
+| PIE | 2 |
+| ADI | 3 |
+| SPE | 1 |
+| ... | ... |
+
+**Kapan menggunakan `OneHotEncoder` atau `LabelEncoder` dalam sebuah proses encoding?** Kita dapat menggunakan `OneHotEncoder` ketika kita tidak menginginkan suatu bentuk hubungan hirarki di dalam data kategorikal yang kita miliki. Dalam hal ini ketika kita tidak ingin jaringan saraf buatan untuk memandang ADI (3) lebih signifikan dari NIK (0) dalam hal nilainya jika dilakukan label *encoding*, maka kita dapat menggunakan `OneHotEncoder`.
+Jika kategori bersifat biner seperti 'Pria' atau 'Wanita', 'Ya' atau 'Tidak' dsbnya, penggunaan `LabelEncoder` dinilai lebih efektif.
+
+> Dengan pertimbangan di atas dan melihat struktur data kita, maka kita akan menggunakan `OneHotEncoder` untuk kolom *brand* (fitur) dan menggunakan `LabelEncoder` untuk kolom *label* (target), kecuali untuk **Model 0** yang akan menggunakan fungsi ekstraksi fitur dengan `TfIdfVectorizer` kita hanya akan menggunakan kolom 'label' yang belum di-*encode*.
 
 
 ```python
-from sklearn.preprocessing import LabelEncoder
+# OneHotEncoding pada fitur brand
+fitur_encoder = OneHotEncoder(sparse=False)
+brand_encoded = fitur_encoder.fit_transform(data['brand'].to_numpy().reshape(-1, 1))
+df_fitur_encoded = pd.DataFrame(brand_encoded, columns=fitur_encoder.get_feature_names_out(['brand']))
+
+# LabelEncoding pada target label
 label_encoder = LabelEncoder()
-train_label_encode = label_encoder.fit_transform(train_label)
-test_label_encode = label_encoder.transform(test_label)
-train_label_encode[:5], test_label_encode[:5]
+label_encoded = label_encoder.fit_transform(data['label'])
+df_label_encoded = pd.DataFrame(label_encoded, columns=['label_encoded'])
+
+# gabungkan dengan dataframe awal
+data_encoded = data.copy()
+data_encoded = pd.concat([data_encoded,df_fitur_encoded, df_label_encoded], axis=1)
+data_encoded
 ```
 
 
 
 
-    (array([0, 0, 1, 0, 1]), array([0, 0, 0, 1, 1]))
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>brand</th>
+      <th>nama_artikel</th>
+      <th>kata</th>
+      <th>label</th>
+      <th>urut_kata</th>
+      <th>total_kata</th>
+      <th>brand_ADI</th>
+      <th>brand_ADS</th>
+      <th>brand_AGL</th>
+      <th>brand_AND</th>
+      <th>...</th>
+      <th>brand_PTG</th>
+      <th>brand_PUM</th>
+      <th>brand_REL</th>
+      <th>brand_SAU</th>
+      <th>brand_SOC</th>
+      <th>brand_STN</th>
+      <th>brand_UME</th>
+      <th>brand_VAP</th>
+      <th>brand_WAR</th>
+      <th>label_encoded</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>ADI</td>
+      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
+      <td>ADISSAGE</td>
+      <td>bukan_warna</td>
+      <td>1</td>
+      <td>4</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>ADI</td>
+      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
+      <td>BLACK</td>
+      <td>warna</td>
+      <td>2</td>
+      <td>4</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>ADI</td>
+      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
+      <td>BLACK</td>
+      <td>warna</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>ADI</td>
+      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
+      <td>RUNWHT</td>
+      <td>warna</td>
+      <td>4</td>
+      <td>4</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ADI</td>
+      <td>ADISSAGE-N.NAVY/N.NAVY/RUNWHT</td>
+      <td>ADISSAGE</td>
+      <td>bukan_warna</td>
+      <td>1</td>
+      <td>4</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>56746</th>
+      <td>WAR</td>
+      <td>125CM PAISLEY WHITE FLAT</td>
+      <td>PAISLEY</td>
+      <td>warna</td>
+      <td>2</td>
+      <td>4</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>56747</th>
+      <td>WAR</td>
+      <td>125CM PAISLEY WHITE FLAT</td>
+      <td>WHITE</td>
+      <td>warna</td>
+      <td>3</td>
+      <td>4</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>56748</th>
+      <td>WAR</td>
+      <td>125CM VINTAGE ORANGE</td>
+      <td>125CM</td>
+      <td>bukan_warna</td>
+      <td>1</td>
+      <td>3</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>56749</th>
+      <td>WAR</td>
+      <td>125CM VINTAGE ORANGE</td>
+      <td>VINTAGE</td>
+      <td>warna</td>
+      <td>2</td>
+      <td>3</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>56750</th>
+      <td>WAR</td>
+      <td>125CM VINTAGE ORANGE</td>
+      <td>ORANGE</td>
+      <td>warna</td>
+      <td>3</td>
+      <td>3</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+<p>56751 rows × 44 columns</p>
+</div>
 
 
+
+### Konversi Data ke dalam Train dan Test untuk Model 0
+
+Data akan dibagi ke dalam train dan test data menggunakan metode `train_test_split` dari modul *sklearn.model_selection* dengan menggunakan rasio dan keacakan yang telah ditentukan di variabel global (lihat *RASIO_TEST_TRAIN* dan *RANDOM_STATE*).
+
+
+```python
+# Menyimpan header data
+data_header = data_encoded.drop(['nama_artikel', 'label_encoded'], axis=1).columns
+data_header
+
+# Model 0 adalah MultinomialNB yang akan menggunakan feature_extraction TfIdfVectorizer
+# dimana TfIdfVectorizer hanya dapat menerima satu kolom data yang akan diubah menjadi vector
+# (angka), kecuali kita dapat menggabungkan kembali brand kata dan kolom kolom lainnya ke dalam
+# satu kolom seperti['NIK GREEN 1 0 0 0 1'] alih - alih [['NIK', 'GREEN', '1', '0', '0', '0', '1']]
+# Maka untuk Model 0 kita tetap akan hanya menggunakan kolom 'kata' sebagai fitur.
+train_data_mnb, test_data_mnb, train_target_mnb, test_target_mnb = train_test_split(data_encoded['kata'].to_numpy(),
+                                                                                    data_encoded['label_encoded'].to_numpy(),
+                                                                                    test_size=RASIO_TEST_TRAIN,
+                                                                                    random_state=RANDOM_STATE)
+
+train_data, test_data, train_target, test_target = train_test_split(data_encoded.drop(['nama_artikel', 'label_encoded'], axis=1).to_numpy(),
+                                                                    data_encoded['label_encoded'].to_numpy(),
+                                                                    test_size=RASIO_TEST_TRAIN,
+                                                                    random_state=RANDOM_STATE)
+```
+
+
+
+
+    Index(['brand', 'kata', 'label', 'urut_kata', 'total_kata', 'brand_ADI',
+           'brand_ADS', 'brand_AGL', 'brand_AND', 'brand_ASC', 'brand_BAL',
+           'brand_BBC', 'brand_BEA', 'brand_CAO', 'brand_CIT', 'brand_CRP',
+           'brand_DOM', 'brand_FIS', 'brand_GUE', 'brand_HER', 'brand_JAS',
+           'brand_KIP', 'brand_NEW', 'brand_NFA', 'brand_NFC', 'brand_NFL',
+           'brand_NIB', 'brand_NIC', 'brand_NIK', 'brand_NPS', 'brand_ODD',
+           'brand_PBY', 'brand_PSB', 'brand_PTG', 'brand_PUM', 'brand_REL',
+           'brand_SAU', 'brand_SOC', 'brand_STN', 'brand_UME', 'brand_VAP',
+           'brand_WAR'],
+          dtype='object')
+
+
+
+
+```python
+# Eksplorasi contoh hasil split train dan test
+train_target_unik, train_target_hitung = np.unique(train_target_mnb, return_counts=True)
+test_target_unik, test_target_hitung = np.unique(test_target_mnb, return_counts=True)
+print(f'2 data pertama di train_data:\n{np.squeeze(train_data_mnb)[:2]}\n') 
+print(f'2 label pertama di train_target:\n{train_target_mnb[:2]}\n') 
+print(f'2 data pertama di test_data:\n{test_data_mnb[:2]}\n')
+print(f'2 label pertama di test_target:\n{test_target_mnb[:2]}\n')
+train_target_distribusi = np.column_stack((train_target_unik, train_target_hitung))
+test_target_distribusi = np.column_stack((test_target_unik, test_target_hitung))
+print(f'Distribusi label (target) di train: \n{train_target_distribusi}\n')
+print(f'Distribusi label (target) di test: \n{test_target_distribusi}\n')
+print('Dimana label 0 = bukan warna dan label 1 = warna')
+```
+
+    2 data pertama di train_data:
+    ['GREY' 'BLACK']
+    
+    2 label pertama di train_target:
+    [1 1]
+    
+    2 data pertama di test_data:
+    ['SESOYE' 'GHOST']
+    
+    2 label pertama di test_target:
+    [1 0]
+    
+    Distribusi label (target) di train: 
+    [[    0 27355]
+     [    1 18045]]
+    
+    Distribusi label (target) di test: 
+    [[   0 6819]
+     [   1 4532]]
+    
+    Dimana label 0 = bukan warna dan label 1 = warna
+    
 
 ## Model 0: model dasar
 
-Model pertama yang akan kita buat adalah model *Multinomial Naive-Bayes* yang akan mengkategorisasikan input ke dalam kategori output. *Multinomial Naive-Bayes* adalah sebuah algoritma dengan metode *supervised learning* yang paling umum digunakan dalam pengkategorisasian data tekstual.
-Pada dasarnya *Naive-Bayes* merupakan algoritma yang menghitung probabilitas dari sebuah event (output) berdasarkan probabilitas akumulatif kejadian dari event sebelumnya. Secara singkat algoritma ini akan mempelajari berapa probabilitas dari sebuah kata, misalkan 'ADISSAGE' adalah sebuah label `bukan_warna` berdasarkan probabilitas kejadian 'ADISSAGE' adalah `bukan_warna` pada event - event sebelumnya.
+Model pertama yang akan kita buat adalah model *Multinomial Naive-Bayes* yang akan mengkategorisasikan *input* ke dalam kategori *output*. *Multinomial Naive-Bayes* adalah sebuah algoritma dengan metode *supervised learning* yang paling umum digunakan dalam pengkategorisasian data tekstual.
+Pada dasarnya *Naive-Bayes* merupakan algoritma yang menghitung probabilitas dari sebuah event (*output*) berdasarkan probabilitas akumulatif kejadian dari event sebelumnya. Secara singkat algoritma ini akan mempelajari berapa probabilitas dari sebuah kata, misalkan 'ADISSAGE' adalah sebuah label `bukan_warna` berdasarkan probabilitas kejadian 'ADISSAGE' adalah `bukan_warna` pada event - event sebelumnya.
 
-Formula dari probabilitias algoritma Naive-Bayes:
+Formula dari probabilitias algoritma *Naive-Bayes*:
 
 $P(A|B) = \frac{P(A) * P(B|A)}{P(B)}$
 
@@ -309,10 +860,6 @@ Untuk lebih lengkapnya mengenai *Naive-Bayes* dan TF-IDF dapat merujuk pada sumb
 
 
 ```python
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-
 # Membuat pipeline untuk mengubah kata ke dalam tf-idf
 model_0 = Pipeline([
     ("tf-idf", TfidfVectorizer()),
@@ -320,49 +867,54 @@ model_0 = Pipeline([
 ])
 
 # Fit pipeline dengan data training
-model_0.fit(X=train_kata, y=train_label_encode)
+model_0.fit(X=train_data_mnb, y=train_target_mnb)
 ```
 
 
 
 
-<style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox" ><label for="sk-estimator-id-1" class="sk-toggleable__label sk-toggleable__label-arrow">Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox" ><label for="sk-estimator-id-2" class="sk-toggleable__label sk-toggleable__label-arrow">TfidfVectorizer</label><div class="sk-toggleable__content"><pre>TfidfVectorizer()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-3" type="checkbox" ><label for="sk-estimator-id-3" class="sk-toggleable__label sk-toggleable__label-arrow">MultinomialNB</label><div class="sk-toggleable__content"><pre>MultinomialNB()</pre></div></div></div></div></div></div></div>
+<style>#sk-container-id-4 {color: black;background-color: white;}#sk-container-id-4 pre{padding: 0;}#sk-container-id-4 div.sk-toggleable {background-color: white;}#sk-container-id-4 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-4 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-4 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-4 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-4 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-4 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-4 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-4 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-4 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-4 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-4 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-4 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-4 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-4 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-4 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-4 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-4 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-4 div.sk-item {position: relative;z-index: 1;}#sk-container-id-4 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-4 div.sk-item::before, #sk-container-id-4 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-4 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-4 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-4 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-4 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-4 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-4 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-4 div.sk-label-container {text-align: center;}#sk-container-id-4 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-4 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-4" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-10" type="checkbox" ><label for="sk-estimator-id-10" class="sk-toggleable__label sk-toggleable__label-arrow">Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-11" type="checkbox" ><label for="sk-estimator-id-11" class="sk-toggleable__label sk-toggleable__label-arrow">TfidfVectorizer</label><div class="sk-toggleable__content"><pre>TfidfVectorizer()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-12" type="checkbox" ><label for="sk-estimator-id-12" class="sk-toggleable__label sk-toggleable__label-arrow">MultinomialNB</label><div class="sk-toggleable__content"><pre>MultinomialNB()</pre></div></div></div></div></div></div></div>
 
 
 
 
 ```python
 # Evaluasi model_0 pada data test
-model_0.score(X=test_kata, y=test_label_encode)
+skor_model_0 = model_0.score(X=test_data_mnb, y=test_target_mnb)
+skor_model_0
 ```
 
 
 
 
-    0.9925641387087679
+    0.9921592811206061
 
 
 
-Pada hasil training dengan menggunakan model algoritma Multinomial Naive-Bayes kita mendapatkan akurasi sebesar 
+### Eksplorasi Hasil Model 0
+Pada hasil training dengan menggunakan model algoritma *Multinomial Naive-Bayes* kita mendapatkan akurasi sebesar ~99.22%
+
+Secara sekilas model yang pertama ini (model 0) memberikan akurasi yang sangat tinggi dalam membedakan kata `warna` dan `bukan_warna`. Namun secara brand speisifik, akurasi ini mungkin akan lebih buruk karena di beberapa brand terutama 'PUM' kita dapat menjumpai artikel dengan nama misalkan 'PUMA XTG WOVEN PANTS PUMA BLACK-PUMA WHITE' dimana kata PUMA pertama adalah `bukan_warna` namun kata PUMA kedua dan ketiga adalah bagian dari `warna`.
+
+Dengan demikian, nanti kita mungkin akan mengulas lebih mendalam model pertama ini menggunakan dataset yang dipisahkan berdasar brand. Untuk sementara kita akan melanjutkan mengembangkan model - model alternatif untuk pemisahan `bukan_warna` dan `warna` dari nama artikel.
 
 
 ```python
 # Membuat prediksi menggunakan data test
-pred_model_0 = model_0.predict(test_kata)
+pred_model_0 = model_0.predict(test_data_mnb)
 pred_model_0
 ```
 
 
 
 
-    array([0, 0, 0, ..., 1, 0, 1])
+    array([1, 0, 1, ..., 0, 0, 0])
 
 
 
 
 ```python
 # Membuat fungsi dasar untuk menghitung accuray, precision, recall, f1-score
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 def hitung_metrik(target, prediksi):
     """
     Menghitung accuracy, precision, recall dan f1-score dari model klasifikasi biner
@@ -390,7 +942,7 @@ def hitung_metrik(target, prediksi):
 
 ```python
 # Menghitung metrik dari model_0
-model_0_metrik = hitung_metrik(target=test_label_encode, 
+model_0_metrik = hitung_metrik(target=test_target_mnb, 
                                prediksi=pred_model_0)
 model_0_metrik
 ```
@@ -398,16 +950,916 @@ model_0_metrik
 
 
 
-    {'akurasi': 0.9925641387087679,
-     'presisi': 0.9925843096339476,
-     'recall': 0.9925641387087679,
-     'f1-score': 0.9925577689780182}
+    {'akurasi': 0.9921592811206061,
+     'presisi': 0.9921602131872556,
+     'recall': 0.9921592811206061,
+     'f1-score': 0.9921562044603152}
 
 
 
-## Menyiapkan data (text) untuk model deep sequence
+**Akurasi** merupakan metrik yang menghitung jumlah prediksi yang benar dibanding total jumlah label yang dijadikan evaluasi (test data, bukan training data).
 
-### Text Vectorizer Layer
+$\frac{\text{prediksi benar}}{\text{total prediksi}}$
+
+**Presisi** merupakan metrik yang menghitung *true positive* berbanding dengan *true positive* dan *false positive*
+
+$\frac{\text{true positive}}{\text{true positive } + \text{ false positive}}$
+
+**Recall** merupakan metrik yang menghitung *true positive* berbanding dengan *true positive* dan *false negative*
+
+$\frac{\text{true positive}}{\text{true positive } + \text{ false negative}}$
+
+**f1-score** merupakan metrik yang mengabungkan presisi dan recall
+
+$2 * \frac{\text{presisi } * \text{ recall}}{\text{presisi } + \text{ recall}}$
+
+Dimana:
+* True Positive (TP): Prediksi `warna` pada target label `warna`
+* False Positive (FP): Prediksi `warna` pada target label `bukan_warna`
+* True Negative (TN): Prediksi `bukan_warna` pada target label `bukan_warna`
+* False Negative (FN): Prediksi `bukan_warna` pada target label `warna`
+
+
+```python
+# Membuat confusion matrix untuk prediksi model_0
+cf_matrix = confusion_matrix(test_target_mnb, pred_model_0)
+
+# Menampilkan confusion matrix menggunakan seaborn
+ax = sns.heatmap(cf_matrix, annot=True, fmt='d', cmap='Blues')
+
+ax.set_title(f'Confusion Matrix Model 0 - Akurasi {skor_model_0:.2%}')
+ax.set_xlabel('Prediksi')
+ax.set_ylabel('Label')
+
+# label tick
+ax.xaxis.set_ticklabels(['bukan_warna', 'warna'])
+ax.yaxis.set_ticklabels(['bukan_warna', 'warna'])
+
+# Tampilkan
+plt.show()
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_25_0.png)
+    
+
+
+Pada tabel *Confusion Matrix* di atas kita dapat melihat bahwa Model 0 berhasil memprediksi secara tepat 6,786 kata dengan label `bukan_warna` dan 4,477 kata dengan label `warna`.
+
+Terdapat setidaknya 55 kata yang merupakan `warna` namun diprediksi oleh Model 0 sebagai `bukan_warna` dan 34 kata yang merupakan `bukan_warna` namun diprediksi oleh Model 0 sebagai `warna`
+
+
+```python
+# Set inverse dari label encoder
+inverse_label_encoder = list(label_encoder.inverse_transform([0, 1]))
+data_test = pd.DataFrame(test_data, columns=data_header)[['brand', 'kata', 'urut_kata', 'total_kata', 'label']]
+data_pred = pd.DataFrame(np.int32(pred_model_0), columns=['prediksi'])
+data_final = pd.concat([data_test, data_pred], axis=1)
+data_final['prediksi'] = data_final['prediksi'].astype(int).map(lambda x: inverse_label_encoder[x])
+data_final = data_final.loc[data_final['label']!= data_final['prediksi']]
+with pd.option_context('display.max_rows', None):
+    display(data_final)
+
+```
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>brand</th>
+      <th>kata</th>
+      <th>urut_kata</th>
+      <th>total_kata</th>
+      <th>label</th>
+      <th>prediksi</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>33</th>
+      <td>STN</td>
+      <td>AQUA</td>
+      <td>3</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>298</th>
+      <td>ADI</td>
+      <td>BASKETBALL</td>
+      <td>5</td>
+      <td>6</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>322</th>
+      <td>NIC</td>
+      <td>7</td>
+      <td>11</td>
+      <td>11</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>950</th>
+      <td>WAR</td>
+      <td>OREO</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>1106</th>
+      <td>NIK</td>
+      <td>FTR10PURE</td>
+      <td>2</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>1427</th>
+      <td>ADI</td>
+      <td>CARDBOARD</td>
+      <td>2</td>
+      <td>2</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>2006</th>
+      <td>ADI</td>
+      <td>FULL</td>
+      <td>1</td>
+      <td>3</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>2370</th>
+      <td>NIK</td>
+      <td>VIALEBLACK</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>2452</th>
+      <td>PUM</td>
+      <td>TRACE</td>
+      <td>2</td>
+      <td>7</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>2466</th>
+      <td>ADI</td>
+      <td>CLOUD</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>2555</th>
+      <td>NIK</td>
+      <td>SIGNAL</td>
+      <td>2</td>
+      <td>11</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>2819</th>
+      <td>ADI</td>
+      <td>LEGIVY</td>
+      <td>6</td>
+      <td>6</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>2833</th>
+      <td>BBC</td>
+      <td>WOODLAND</td>
+      <td>1</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>3239</th>
+      <td>WAR</td>
+      <td>GLOW</td>
+      <td>2</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>3296</th>
+      <td>BBC</td>
+      <td>FULL</td>
+      <td>1</td>
+      <td>8</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>3428</th>
+      <td>STN</td>
+      <td>OATMEAL</td>
+      <td>2</td>
+      <td>2</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>3483</th>
+      <td>NIK</td>
+      <td>EXPX14WHITE</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>3543</th>
+      <td>PUM</td>
+      <td>CORE</td>
+      <td>2</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>3733</th>
+      <td>WAR</td>
+      <td>PAISLEY</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>3785</th>
+      <td>ADI</td>
+      <td>PK</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>3799</th>
+      <td>WAR</td>
+      <td>FULL</td>
+      <td>1</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>3823</th>
+      <td>WAR</td>
+      <td>GLOW</td>
+      <td>2</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>3826</th>
+      <td>AGL</td>
+      <td>5</td>
+      <td>5</td>
+      <td>6</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>3928</th>
+      <td>PUM</td>
+      <td>GLOW</td>
+      <td>3</td>
+      <td>7</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>3995</th>
+      <td>NIK</td>
+      <td>PEELORANGE</td>
+      <td>6</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>4053</th>
+      <td>STN</td>
+      <td>VOLT</td>
+      <td>2</td>
+      <td>2</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>4156</th>
+      <td>ADI</td>
+      <td>LEGEND</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>4274</th>
+      <td>ADI</td>
+      <td>CORE</td>
+      <td>2</td>
+      <td>4</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>4524</th>
+      <td>ADI</td>
+      <td>TESIME</td>
+      <td>6</td>
+      <td>6</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>4592</th>
+      <td>ADI</td>
+      <td>ACTIVE</td>
+      <td>3</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>4719</th>
+      <td>PUM</td>
+      <td>GLOW</td>
+      <td>3</td>
+      <td>8</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>4727</th>
+      <td>ADI</td>
+      <td>MAROON</td>
+      <td>2</td>
+      <td>2</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>4729</th>
+      <td>ADI</td>
+      <td>METAL</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>4739</th>
+      <td>WAR</td>
+      <td>NEON</td>
+      <td>2</td>
+      <td>5</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>5541</th>
+      <td>NIK</td>
+      <td>REACTBRIGHT</td>
+      <td>2</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>5609</th>
+      <td>ADI</td>
+      <td>ALUMINA</td>
+      <td>3</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>5697</th>
+      <td>PUM</td>
+      <td>CORE</td>
+      <td>2</td>
+      <td>7</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>5920</th>
+      <td>ADI</td>
+      <td>EASGRN</td>
+      <td>7</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>5951</th>
+      <td>ADI</td>
+      <td>F17</td>
+      <td>4</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>6292</th>
+      <td>ADI</td>
+      <td>ICEPUR</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>6314</th>
+      <td>ADI</td>
+      <td>SGREEN</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>6445</th>
+      <td>ADI</td>
+      <td>MAROON</td>
+      <td>2</td>
+      <td>2</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>6582</th>
+      <td>ADI</td>
+      <td>SAVANNAH</td>
+      <td>2</td>
+      <td>2</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>6597</th>
+      <td>SAU</td>
+      <td>TAN</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>6598</th>
+      <td>KIP</td>
+      <td>SHADOW</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>6663</th>
+      <td>WAR</td>
+      <td>ORANGE</td>
+      <td>2</td>
+      <td>5</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>6684</th>
+      <td>WAR</td>
+      <td>RED</td>
+      <td>1</td>
+      <td>7</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>6971</th>
+      <td>AGL</td>
+      <td>YELLOW</td>
+      <td>2</td>
+      <td>5</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>7027</th>
+      <td>PUM</td>
+      <td>PUMA</td>
+      <td>2</td>
+      <td>5</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>7063</th>
+      <td>NIK</td>
+      <td>23</td>
+      <td>10</td>
+      <td>11</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>7120</th>
+      <td>PTG</td>
+      <td>ORANGE</td>
+      <td>2</td>
+      <td>3</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>7254</th>
+      <td>SAU</td>
+      <td>BRN</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>7327</th>
+      <td>BBC</td>
+      <td>DARK</td>
+      <td>2</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>7343</th>
+      <td>WAR</td>
+      <td>THE</td>
+      <td>2</td>
+      <td>5</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>7494</th>
+      <td>ADI</td>
+      <td>SESAME</td>
+      <td>5</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>7523</th>
+      <td>PUM</td>
+      <td>CORE</td>
+      <td>1</td>
+      <td>7</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>7544</th>
+      <td>ADI</td>
+      <td>CORE</td>
+      <td>2</td>
+      <td>4</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>7877</th>
+      <td>ADI</td>
+      <td>CARGO</td>
+      <td>4</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>7998</th>
+      <td>ADI</td>
+      <td>SESAME</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>8194</th>
+      <td>ADI</td>
+      <td>SHOCK</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>8308</th>
+      <td>HER</td>
+      <td>NIGHT</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>8550</th>
+      <td>BBC</td>
+      <td>CLEAR</td>
+      <td>2</td>
+      <td>8</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>8715</th>
+      <td>ADI</td>
+      <td>LEGEND</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>8778</th>
+      <td>NIK</td>
+      <td>EXPZ07WHITE</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>8779</th>
+      <td>NIK</td>
+      <td>35</td>
+      <td>5</td>
+      <td>11</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>8860</th>
+      <td>HER</td>
+      <td>BRBDSCHRY</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>8874</th>
+      <td>ADI</td>
+      <td>CORE</td>
+      <td>2</td>
+      <td>4</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>9022</th>
+      <td>ADI</td>
+      <td>VAPOUR</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>9112</th>
+      <td>ADI</td>
+      <td>ACTIVE</td>
+      <td>3</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>9122</th>
+      <td>ADI</td>
+      <td>BOAQUA</td>
+      <td>2</td>
+      <td>4</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>9328</th>
+      <td>HER</td>
+      <td>FLORAL</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>9384</th>
+      <td>HER</td>
+      <td>600D</td>
+      <td>3</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>9812</th>
+      <td>AGL</td>
+      <td>BROWN</td>
+      <td>1</td>
+      <td>4</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>9833</th>
+      <td>ADI</td>
+      <td>ACTIVE</td>
+      <td>2</td>
+      <td>3</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>9893</th>
+      <td>PTG</td>
+      <td>DOVE</td>
+      <td>2</td>
+      <td>3</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>9912</th>
+      <td>BEA</td>
+      <td>35</td>
+      <td>2</td>
+      <td>3</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>9974</th>
+      <td>ADI</td>
+      <td>BLK</td>
+      <td>2</td>
+      <td>5</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>10002</th>
+      <td>HER</td>
+      <td>RED</td>
+      <td>4</td>
+      <td>8</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>10232</th>
+      <td>NIK</td>
+      <td>35</td>
+      <td>5</td>
+      <td>10</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>10241</th>
+      <td>NIK</td>
+      <td>8ASHEN</td>
+      <td>3</td>
+      <td>6</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>10376</th>
+      <td>PUM</td>
+      <td>GLOW</td>
+      <td>1</td>
+      <td>5</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>10459</th>
+      <td>STN</td>
+      <td>RASTA</td>
+      <td>2</td>
+      <td>2</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>10545</th>
+      <td>BBC</td>
+      <td>FULL</td>
+      <td>1</td>
+      <td>8</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>10627</th>
+      <td>ADI</td>
+      <td>BGREEN</td>
+      <td>7</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>10630</th>
+      <td>SAU</td>
+      <td>VINTAGE</td>
+      <td>2</td>
+      <td>5</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>10794</th>
+      <td>ADI</td>
+      <td>SESAME</td>
+      <td>6</td>
+      <td>7</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>10867</th>
+      <td>NIK</td>
+      <td>23</td>
+      <td>6</td>
+      <td>6</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+    <tr>
+      <th>11051</th>
+      <td>NIK</td>
+      <td>CORE</td>
+      <td>2</td>
+      <td>6</td>
+      <td>bukan_warna</td>
+      <td>warna</td>
+    </tr>
+    <tr>
+      <th>11214</th>
+      <td>NIK</td>
+      <td>LIGHTCARBON</td>
+      <td>4</td>
+      <td>6</td>
+      <td>warna</td>
+      <td>bukan_warna</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+## Vektorisasi dan Embedding Kata
+
+### Lapisan Vektorisasi Kata
 
 
 ```python
@@ -438,26 +1890,27 @@ jumlah_kata_train
 
 
 ```python
-# Membuat text vectorizer
+# Membuat lapisan vektorisasi kata
 from tensorflow.keras.layers import TextVectorization # type: ignore
-vectorizer_kata = TextVectorization(max_tokens=jumlah_kata_train,
-                                    output_sequence_length=1,
-                                    standardize='lower')
+lapisan_vektorisasi = TextVectorization(max_tokens=jumlah_kata_train,
+                                        output_sequence_length=1,
+                                        standardize='lower',
+                                        name='lapisan_vektorisasi')
 ```
 
 
 ```python
-# Mengadaptaasikan text vectorizer ke dalam train_kata
-vectorizer_kata.adapt(train_kata)
+# Mengadaptaasikan lapisan vektorisasi ke dalam train_kata
+lapisan_vektorisasi.adapt(train_kata)
 ```
 
 
 ```python
-# Test vectorizer kata
+# Uji vektorisasi kata
 import random
 target_kata = random.choice(train_kata)
 print(f'Kata:\n{target_kata}\n')
-print(f'Kata setelah vektorisasi:\n{vectorizer_kata([target_kata])}')
+print(f'Kata setelah vektorisasi:\n{lapisan_vektorisasi([target_kata])}')
 ```
 
     Kata:
@@ -469,7 +1922,7 @@ print(f'Kata setelah vektorisasi:\n{vectorizer_kata([target_kata])}')
 
 
 ```python
-vectorizer_kata.get_config()
+lapisan_vektorisasi.get_config()
 ```
 
 
@@ -495,8 +1948,8 @@ vectorizer_kata.get_config()
 
 
 ```python
-# Jumlah vocabulary dalam vectorizer_kata
-jumlah_vocab = vectorizer_kata.get_vocabulary()
+# Jumlah vocabulary dalam lapisan_vektorisasi
+jumlah_vocab = lapisan_vektorisasi.get_vocabulary()
 len(jumlah_vocab)
 ```
 
@@ -511,21 +1964,21 @@ len(jumlah_vocab)
 
 
 ```python
-# Membuat text embedding layer
+# Membuat lapisan embedding kata
 from tensorflow.keras.layers import Embedding # type: ignore
-kata_embed = Embedding(input_dim=len(jumlah_vocab),
-                       output_dim=64,
-                       mask_zero=True,
-                       name='layer_token_embedding')
+lapisan_embedding = Embedding(input_dim=len(jumlah_vocab),
+                              output_dim=64,
+                              mask_zero=True,
+                              name='lapisan_embedding')
 ```
 
 
 ```python
-# Contoh vectorizer dan embedding
+# Contoh vektorisasi dan embedding
 print(f'Kata sebelum vektorisasi:\n{target_kata}\n')
-kata_tervektor = vectorizer_kata([target_kata])
+kata_tervektor = lapisan_vektorisasi([target_kata])
 print(f'\nKata sesudah vektorisasi (sebelum embedding):\n{kata_tervektor}\n')
-kata_terembed = kata_embed(kata_tervektor)
+kata_terembed = lapisan_embedding(kata_tervektor)
 print(f'\nKata setelah embedding:\n{kata_terembed}\n')
 print(f'Shape dari kata setelah embedding:\n{kata_terembed.shape}')
 ```
@@ -602,8 +2055,8 @@ train_dataset
 from tensorflow.keras import layers # type: ignore
 
 inputs = layers.Input(shape=(1,), dtype=tf.string, name='layer_input')
-layer_vektor = vectorizer_kata(inputs)
-layer_embed = kata_embed(layer_vektor)
+layer_vektor = lapisan_vektorisasi(inputs)
+layer_embed = lapisan_embedding(layer_vektor)
 x = layers.Conv1D(filters=64, kernel_size=5, padding='same', activation='relu')(layer_embed)
 x = layers.GlobalMaxPooling1D(name='layer_max_pool')(x)
 outputs = layers.Dense(units=1, activation='sigmoid', name='layer_output')(x)
@@ -658,7 +2111,7 @@ plot_model(model_1, show_shapes=True)
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_38_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_46_0.png)
     
 
 
@@ -896,7 +2349,7 @@ plot_model(model_2, show_shapes=True)
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_49_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_57_0.png)
     
 
 
