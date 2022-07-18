@@ -402,6 +402,7 @@ Terdapat dua jenis *encoding* untuk data yang bersifat kategorikal:
 
 **OneHotEncoder**
 *Encoding* ini akan merubah data satu kolom menjadi multi-kolom dengan nilai 1 dan 0 dimana jumlah kolom sama dengan jumlah kategori, seperti berikut:
+
 | brand | brand_NIK | brand_ADI | brand_SPE | brand_PIE | brand_... |
 | --- | --- | --- | --- | --- | --- |
 | NIK | 1 | 0 | 0 | 0 | ... |
@@ -413,6 +414,7 @@ Terdapat dua jenis *encoding* untuk data yang bersifat kategorikal:
 
 **LabelEncoder**
 *Encoding* ini akan merubah data pada satu kolom menjadi 0, 1, 2, 3.. dstnya sesuai dengan jumlah kategorinya, seperti berikut:
+
 | brand | brand_label_encoded |
 | --- | --- |
 | NIK | 0 |

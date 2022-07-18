@@ -26,6 +26,7 @@ theme:
     - toc.integrate
     - navigation.top
 markdown_extensions:
+  - tables
   - pymdownx.highlight:
       anchor_linenums: true
       linenums: true
