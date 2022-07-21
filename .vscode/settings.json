@@ -1,4 +1,5 @@
 {
     "dvc.pythonPath": "/home/jpao/miniconda3/envs/tf-py39/bin/python3.9", // path ke python3.9 di WSL: Ubuntu-20.04
-    "dvc.dvcPath": "dvc" // path ke dvc di Windows 11
+    "dvc.dvcPath": "dvc",
+    "gitlens.views.fileHistory.files.layout": "auto" // path ke dvc di Windows 11
 }

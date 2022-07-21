@@ -4,5 +4,11 @@ rahasia.py
 wandb/
 __pycache__/
 
+# untuk model yang menggunakan universal sentence encoder, folder variables
+# yang menyimpan model terbaik di-exclude dari tracking git dikarenakan
+# ukuran save model yang cukup besar ~1GB
+colorskim_checkpoint/model_2_Conv1D_USE_embed/variables
+
+
 # kecuali file di bawah ini yang on progress dikerjakan di beberapa device (HP Pavilion, Asus ROG)
 !colorskim_dataset.xlsx
