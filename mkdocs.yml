@@ -9,9 +9,9 @@ theme:
     logo: fontawesome/solid/robot
   favicon: images/favicon.png
   palette:
-    scheme: slate
-    primary: amber
-    accent: amber
+    scheme: default
+    primary: teal
+    accent: teal
   language: id
   font:
     text: Nunito
