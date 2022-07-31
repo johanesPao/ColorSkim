@@ -1,0 +1,5 @@
+outs:
+- md5: 3cc77922cd986de7598f7491b6eb0e1a.dir
+  size: 1035988391
+  nfiles: 4
+  path: model_2_Conv1D_USE_embed
