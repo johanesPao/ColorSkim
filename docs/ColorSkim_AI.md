@@ -8,7 +8,7 @@
 import os
 import random
 import gc #garbage collector
-
+import io
 # import pandas, numpy dan tensorflow⁡
 import pandas as pd
 import numpy as np
@@ -28,6 +28,7 @@ karena struktur objek dalam tf.data.Dataset, from_tensor_slices()
 tidak dapat dipanggil secara langsung dalam modul import
 """
 from_tensor_slices = tf.data.Dataset.from_tensor_slices
+zip = tf.data.Dataset.zip
 
 # import preprocessing data
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
@@ -40,7 +41,8 @@ from sklearn.pipeline import Pipeline
 # import layer neural network
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from tensorflow.keras.layers import Input, Conv1D, Dense, GlobalMaxPooling1D# type: ignore
+from tensorflow.keras.layers import Input, Conv1D, Dense, GlobalMaxPooling1D, Bidirectional, LSTM, Dropout # type: ignore
+from tensorflow.keras.layers import Concatenate # type: ignore
 from tensorflow.keras.layers import TextVectorization # type: ignore
 from tensorflow.keras.layers import Embedding # type: ignore
 
@@ -62,6 +64,7 @@ from tensorflow.keras.models import load_model # type: ignore
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tensorflow.keras.utils import plot_model # type: ignore
+from scipy.stats import binned_statistic
 
 # import display untuk menampilkan dataframe berdasar settingan tertentu (situasional)
 from IPython.display import display
@@ -100,7 +103,7 @@ list_local_devices()[1]
       links {
       }
     }
-    incarnation: 16971607085435757720
+    incarnation: 16803828788420614469
     physical_device_desc: "device: 0, name: NVIDIA GeForce MX250, pci bus id: 0000:02:00.0, compute capability: 6.1"
     xla_global_id: 416903419
 
@@ -127,7 +130,7 @@ RANDOM_STATE = 11
 # untuk test_data dan memperkecil porsi train_data dengan jumlah epoch
 # yang besar sehingga model masih memiliki waktu untuk melakukan
 # training pada train_data
-RASIO_TEST_TRAIN = 0.4
+RASIO_TEST_TRAIN = 0.2
 
 # wandb init
 wandb = {'proyek': 'ColorSkim',
@@ -137,7 +140,7 @@ wandb = {'proyek': 'ColorSkim',
 MODEL = ['model_0_multinomial_naive_bayes',
          'model_1_Conv1D_vektorisasi_embedding',
          'model_2_Conv1D_USE_embed',
-         'model_3']
+         'model_3_quadbrid_embedding']
 ```
 
 ## Callbacks
@@ -161,8 +164,8 @@ wb.login(key=API_KEY_WANDB)
 def wandb_callback(data_training):
     return WandbCallback(save_model=False, # model akan disimpan menggunakan callback ModelCheckpoint
                          log_weights=True, # weight akan disimpan untuk visualisasi di wandb
-                         log_gradients=True,
-                         training_data=data_training) # gradient akan disimpan untuk visualisasi di wandb
+                         log_gradients=True, # gradient akan disimpan untuk visualisasi di wandb
+                         training_data=data_training) 
 def model_checkpoint(nama_model):
     return ModelCheckpoint(filepath=os.path.join(DIR_MODEL_CHECKPOINT, nama_model),
                            verbose=0,
@@ -811,6 +814,30 @@ train_data, test_data, train_target, test_target = train_test_split(data_encoded
 
 
 ```python
+train_data_mnb.shape, test_data_mnb.shape, train_target_mnb.shape, test_target_mnb.shape
+```
+
+
+
+
+    ((45400, 5), (11351, 5), (45400,), (11351,))
+
+
+
+
+```python
+train_data.shape, test_data.shape, train_target.shape, test_target.shape
+```
+
+
+
+
+    ((45400, 40), (11351, 40), (45400,), (11351,))
+
+
+
+
+```python
 # Eksplorasi contoh hasil split train dan test
 train_target_unik, train_target_hitung = np.unique(train_target_mnb, return_counts=True)
 test_target_unik, test_target_hitung = np.unique(test_target_mnb, return_counts=True)
@@ -832,7 +859,7 @@ print('Dimana label 0 = bukan warna dan label 1 = warna')
 ```
 
     2 data pertama di train_data_mnb:
-    ['BLACK', 'RED']
+    ['GREY', 'BLACK']
     
     2 data pertama di train_data:
     
@@ -900,10 +927,10 @@ print('Dimana label 0 = bukan warna dan label 1 = warna')
   </thead>
   <tbody>
     <tr>
-      <th>30167</th>
-      <td>BLACK</td>
-      <td>11.0</td>
-      <td>11.0</td>
+      <th>43886</th>
+      <td>GREY</td>
+      <td>12.0</td>
+      <td>12.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
@@ -943,34 +970,34 @@ print('Dimana label 0 = bukan warna dan label 1 = warna')
       <td>0.0</td>
     </tr>
     <tr>
-      <th>24191</th>
-      <td>RED</td>
-      <td>5.0</td>
-      <td>9.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
+      <th>14859</th>
+      <td>BLACK</td>
+      <td>4.0</td>
+      <td>4.0</td>
       <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
@@ -1157,12 +1184,12 @@ print('Dimana label 0 = bukan warna dan label 1 = warna')
     [1, 0]
     
     Distribusi label (target) di train: 
-    [[    0 20588]
-     [    1 13462]]
+    [[    0 27355]
+     [    1 18045]]
     
     Distribusi label (target) di test: 
-    [[    0 13586]
-     [    1  9115]]
+    [[   0 6819]
+     [   1 4532]]
     
     Dimana label 0 = bukan warna dan label 1 = warna
     
@@ -1213,7 +1240,7 @@ skor_model_0
 
 
 
-    0.9927756486498392
+    0.9921592811206061
 
 
 
@@ -1227,8 +1254,8 @@ Dengan demikian, nanti kita mungkin akan mengulas lebih mendalam model pertama i
 
 ```python
 # Membuat prediksi menggunakan data test
-pred_model_0 = model_0.predict(np.squeeze(test_data_mnb.iloc[:, 0]))
-pred_model_0
+model_0_pred = model_0.predict(np.squeeze(test_data_mnb.iloc[:, 0]))
+model_0_pred
 ```
 
 
@@ -1269,17 +1296,17 @@ def hitung_metrik(target, prediksi):
 ```python
 # Menghitung metrik dari model_0
 model_0_metrik = hitung_metrik(target=test_target_mnb, 
-                               prediksi=pred_model_0)
+                               prediksi=model_0_pred)
 model_0_metrik
 ```
 
 
 
 
-    {'akurasi': 0.9927756486498392,
-     'presisi': 0.9927808349859054,
-     'recall': 0.9927756486498392,
-     'f1-score': 0.9927719475473187}
+    {'akurasi': 0.9921592811206061,
+     'presisi': 0.9921602131872556,
+     'recall': 0.9921592811206061,
+     'f1-score': 0.9921562044603152}
 
 
 
@@ -1362,34 +1389,39 @@ def plot_conf_matrix(target_label,
     plot_confusion_matrix.xaxis.set_ticklabels(label_titik_x)
     plot_confusion_matrix.yaxis.set_ticklabels(label_titik_y)
     
-    return plt.show()
+    return plot_confusion_matrix
 ```
 
 
 ```python
 # Menampilkan confusion matrix untuk model_0
 plot_conf_matrix(target_label=test_target_mnb,
-                 prediksi_label=pred_model_0,
+                 prediksi_label=model_0_pred,
                  nama_model='Model 0 Multinomial Naive Bayes',
                  akurasi=model_0_metrik['akurasi'],
                  label_titik_x=['bukan_warna', 'warna'],
                  label_titik_y=['bukan_warna', 'warna'])
+plt.show()
 ```
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_26_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_28_0.png)
     
 
 
-Pada tabel *Confusion Matrix* di atas kita dapat melihat bahwa Model 0 berhasil memprediksi secara tepat 6,786 kata dengan label `bukan_warna` dan 4,477 kata dengan label `warna`.
+Pada tabel *Confusion Matrix* di atas kita dapat melihat bahwa Model 0 berhasil memprediksi secara tepat 6,785 kata dengan label `bukan_warna` dan 4,477 kata dengan label `warna`.
 
 Terdapat setidaknya 55 kata yang merupakan `warna` namun diprediksi oleh Model 0 sebagai `bukan_warna` dan 34 kata yang merupakan `bukan_warna` namun diprediksi oleh Model 0 sebagai `warna`
 
 
 ```python
 # Membuat fungsi untuk menampilkan kesalahan model dalam dataframe
-def df_kesalahan_prediksi(label_encoder, test_data, prediksi, order_ulang_header=None):
+def df_kesalahan_prediksi(label_encoder, 
+                          test_data, 
+                          prediksi, 
+                          probabilitas_prediksi=None, 
+                          order_ulang_header=None):
     """
     (penting) Fungsi ini akan menerima objek label encoder sklearn, set test_data
     (penting) sebelum modifikasi encoding fitur dan label, prediksi dari model
@@ -1414,7 +1446,11 @@ def df_kesalahan_prediksi(label_encoder, test_data, prediksi, order_ulang_header
         raise TypeError('order_ulang_header harus berupa list')
     
     kolom_pred = pd.DataFrame(np.int8(prediksi), columns=['prediksi'])
+    kolom_prob_pred = pd.DataFrame(probabilitas_prediksi, columns=['probabilitas']) * 100
     data_final['prediksi'] = kolom_pred.iloc[:, 0].tolist()
+    if probabilitas_prediksi is not None:
+        data_final['probabilitas'] = kolom_prob_pred.iloc[:, 0].tolist()
+        data_final['probabilitas'] = data_final['probabilitas'].round(2).astype(str) + '%'
     data_final['prediksi'] = data_final['prediksi'].astype(int).map(lambda x: inverse_label_encoder[x])
     data_final = data_final.loc[data_final['label'] != data_final['prediksi']]
     with pd.option_context('display.max_rows', None):
@@ -1426,7 +1462,7 @@ def df_kesalahan_prediksi(label_encoder, test_data, prediksi, order_ulang_header
 # Menampilkan kesalahan prediksi 
 df_kesalahan_prediksi(label_encoder=label_encoder,
                       test_data=test_data_mnb,
-                      prediksi=pred_model_0,
+                      prediksi=model_0_pred,
                       order_ulang_header=['brand', 
                                           'kata', 
                                           'urut_kata', 
@@ -1443,12 +1479,12 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
     | 46960 | NIK     | FTR10PURE   |           2 |            7 | warna       | bukan_warna |
     | 13918 | ADI     | CARDBOARD   |           2 |            2 | warna       | bukan_warna |
     |  8735 | ADI     | FULL        |           1 |            3 | bukan_warna | warna       |
-    |  6976 | ADI     | BLUTIN      |           6 |            6 | warna       | bukan_warna |
     | 31091 | NIK     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna |
     | 51267 | PUM     | TRACE       |           2 |            7 | bukan_warna | warna       |
     |  5964 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna |
     | 36008 | NIK     | SIGNAL      |           2 |           11 | bukan_warna | warna       |
     |   808 | ADI     | LEGIVY      |           6 |            6 | warna       | bukan_warna |
+    | 19560 | BBC     | WOODLAND    |           1 |            6 | bukan_warna | warna       |
     | 56083 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       |
     | 18933 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       |
     | 55981 | STN     | OATMEAL     |           2 |            2 | warna       | bukan_warna |
@@ -1473,12 +1509,8 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
     | 46940 | NIK     | REACTBRIGHT |           2 |            7 | warna       | bukan_warna |
     | 15761 | ADI     | ALUMINA     |           3 |            3 | warna       | bukan_warna |
     | 48805 | PUM     | CORE        |           2 |            7 | bukan_warna | warna       |
-    | 16760 | ADI     | EQTBLU      |           4 |            4 | warna       | bukan_warna |
     |  2197 | ADI     | EASGRN      |           7 |            7 | warna       | bukan_warna |
-    |  1031 | ADI     | BLUTIN      |           3 |            5 | warna       | bukan_warna |
     |  1403 | ADI     | F17         |           4 |            4 | warna       | bukan_warna |
-    |   479 | ADI     | CCMELS      |           3 |            3 | warna       | bukan_warna |
-    |  1361 | ADI     | BLUTIN      |           5 |            7 | warna       | bukan_warna |
     |  2592 | ADI     | ICEPUR      |           2 |            4 | warna       | bukan_warna |
     |  7372 | ADI     | SGREEN      |           2 |            4 | warna       | bukan_warna |
     | 10336 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna |
@@ -1492,12 +1524,12 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
     | 32998 | NIK     | 23          |          10 |           11 | warna       | bukan_warna |
     | 48075 | PTG     | ORANGE      |           2 |            3 | bukan_warna | warna       |
     | 54953 | SAU     | BRN         |           2 |            3 | warna       | bukan_warna |
+    | 19265 | BBC     | DARK        |           2 |            6 | bukan_warna | warna       |
     | 56661 | WAR     | THE         |           2 |            5 | warna       | bukan_warna |
     |  4222 | ADI     | SESAME      |           5 |            7 | warna       | bukan_warna |
     | 52841 | PUM     | CORE        |           1 |            7 | bukan_warna | warna       |
     |  8968 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       |
     |  1407 | ADI     | CARGO       |           4 |            4 | warna       | bukan_warna |
-    | 21603 | HER     | DARK        |           2 |            5 | warna       | bukan_warna |
     |  7274 | ADI     | SESAME      |           2 |            4 | warna       | bukan_warna |
     |  3490 | ADI     | SHOCK       |           2 |            3 | warna       | bukan_warna |
     | 21685 | HER     | NIGHT       |           2 |            3 | warna       | bukan_warna |
@@ -1527,79 +1559,8 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
     | 54972 | SAU     | VINTAGE     |           2 |            5 | bukan_warna | warna       |
     |  6532 | ADI     | SESAME      |           6 |            7 | warna       | bukan_warna |
     | 25371 | NIK     | 23          |           6 |            6 | warna       | bukan_warna |
-    | 21687 | HER     | DARK        |           2 |            4 | warna       | bukan_warna |
     | 24154 | NIK     | CORE        |           2 |            6 | bukan_warna | warna       |
     | 31572 | NIK     | LIGHTCARBON |           4 |            6 | warna       | bukan_warna |
-    | 12440 | ADI     | CORE        |           2 |            5 | bukan_warna | warna       |
-    | 56160 | WAR     | BLUE        |           1 |            5 | bukan_warna | warna       |
-    | 30630 | NIK     | 35          |           5 |           10 | bukan_warna | warna       |
-    | 21143 | HER     | STELLAR     |           2 |            2 | warna       | bukan_warna |
-    | 56200 | WAR     | WHITE       |           1 |            5 | bukan_warna | warna       |
-    |  9984 | ADI     | SESAME      |           3 |            3 | warna       | bukan_warna |
-    | 10338 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna |
-    | 29157 | NIK     | 2BLACK      |           3 |            4 | warna       | bukan_warna |
-    |   525 | ADI     | BLUTIN      |           6 |            6 | warna       | bukan_warna |
-    |  1924 | ADI     | MYSRUB      |           2 |            4 | warna       | bukan_warna |
-    | 26852 | NIK     | (GS)WHITE   |           5 |            6 | warna       | bukan_warna |
-    | 21718 | HER     | VAPOR       |           2 |            3 | warna       | bukan_warna |
-    | 56053 | WAR     | BLACK       |           1 |            5 | bukan_warna | warna       |
-    | 30648 | NIK     | 35          |           5 |           12 | bukan_warna | warna       |
-    | 19488 | BBC     | GLOW        |           1 |            7 | bukan_warna | warna       |
-    | 23500 | NIC     | TRUE        |           2 |           10 | bukan_warna | warna       |
-    |   921 | ADI     | CLAQUA      |           5 |            6 | warna       | bukan_warna |
-    | 10392 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna |
-    | 56326 | WAR     | MIX         |           2 |            4 | warna       | bukan_warna |
-    | 49966 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       |
-    |  1506 | ADI     | SIX         |           4 |            4 | warna       | bukan_warna |
-    | 16143 | ADI     | VICTORY     |           2 |            3 | warna       | bukan_warna |
-    |  6890 | ADI     | GUM1        |           5 |            5 | warna       | bukan_warna |
-    | 36001 | NIK     | SIGNAL      |           2 |           12 | bukan_warna | warna       |
-    | 21737 | HER     | RED         |           4 |            8 | bukan_warna | warna       |
-    | 17271 | AGL     | 5           |           5 |            6 | warna       | bukan_warna |
-    | 17100 | ADI     | BBANAT      |           3 |            3 | warna       | bukan_warna |
-    | 10277 | ADI     | DARK        |           2 |            3 | warna       | bukan_warna |
-    | 21141 | HER     | DKSHDW      |           2 |            3 | warna       | bukan_warna |
-    | 33817 | NIK     | EXPX14BLACK |           2 |            5 | warna       | bukan_warna |
-    | 12816 | ADI     | CREAM       |           2 |            3 | warna       | bukan_warna |
-    |  3933 | ADI     | WINTER      |           1 |            3 | bukan_warna | warna       |
-    | 47109 | NIK     | STRKWHITE   |           2 |            6 | warna       | bukan_warna |
-    | 21029 | HER     | WINDSOR     |           2 |            3 | warna       | bukan_warna |
-    | 16758 | ADI     | EQTBLU      |           2 |            4 | warna       | bukan_warna |
-    | 28078 | NIK     | SLPBLACK    |           2 |            4 | warna       | bukan_warna |
-    |   324 | ADI     | VIVGRN      |           5 |            6 | warna       | bukan_warna |
-    |  5952 | ADI     | ACTIVE      |           3 |            4 | warna       | bukan_warna |
-    | 15298 | ADI     | ROSE        |           2 |            4 | warna       | bukan_warna |
-    |  8979 | ADI     | CORE        |           2 |            6 | bukan_warna | warna       |
-    |  1449 | ADI     | FIVE        |           4 |            4 | warna       | bukan_warna |
-    |  3850 | ADI     | POWER       |           2 |            7 | bukan_warna | warna       |
-    | 28999 | NIK     | RAGEBLACK   |           2 |            4 | warna       | bukan_warna |
-    | 21644 | HER     | NIGHT       |           2 |            3 | warna       | bukan_warna |
-    | 56154 | WAR     | BLACK       |           1 |            5 | bukan_warna | warna       |
-    |   465 | ADI     | EQTBLU      |           5 |            7 | warna       | bukan_warna |
-    | 31118 | NIK     | 23          |           6 |            6 | warna       | bukan_warna |
-    | 55344 | STN     | DARKSIDE    |           2 |            6 | warna       | bukan_warna |
-    | 19807 | BEA     | &           |           7 |            9 | warna       | bukan_warna |
-    | 18937 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       |
-    | 56636 | WAR     | THE         |           2 |            4 | warna       | bukan_warna |
-    | 11703 | ADI     | LEGMAR      |           2 |            4 | warna       | bukan_warna |
-    | 11150 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna |
-    | 56251 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       |
-    |  1104 | ADI     | REAPNK      |           7 |            7 | warna       | bukan_warna |
-    | 52776 | PUM     | GLOW        |           2 |            5 | bukan_warna | warna       |
-    | 56096 | WAR     | RED         |           1 |            5 | bukan_warna | warna       |
-    | 10568 | ADI     | ORBIT       |           2 |            3 | warna       | bukan_warna |
-    |  8971 | ADI     | CORE        |           2 |            5 | bukan_warna | warna       |
-    | 34544 | NIK     | XBLACK      |           2 |            3 | warna       | bukan_warna |
-    | 56659 | WAR     | THE         |           2 |            5 | warna       | bukan_warna |
-    | 26397 | NIK     | SHOWERSOLAR |           2 |            5 | warna       | bukan_warna |
-    | 21061 | HER     | WOODLAND    |           2 |            3 | warna       | bukan_warna |
-    | 17893 | AGL     | HEATHERGREY |           2 |            2 | warna       | bukan_warna |
-    |   476 | ADI     | CCMELS      |           3 |            3 | warna       | bukan_warna |
-    | 56088 | WAR     | WHITE       |           1 |            5 | bukan_warna | warna       |
-    | 56579 | WAR     | SALMON      |           2 |            2 | warna       | bukan_warna |
-    | 28840 | NIK     | (GS)WHITE   |           4 |            5 | warna       | bukan_warna |
-    | 10245 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna |
-    | 49969 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       |
     
 
 ## Model 1: Conv1D dengan Embedding
@@ -1610,7 +1571,7 @@ Meskipun umumnya jaringan saraf tiruan *convolution* digunakan untuk klasifikasi
 
 Layer ini pada prinsipnya menggunakan *kernel_size*, *padding* dan juga *stride* untuk menciptakan sebuah jendela yang akan men-*scan* input matrix atau vektor secara perlahan dan melakukan *pooling* (*min*, *max* atau *average pooling*) untuk mengekstrak nilai yang menjadi fitur penting dari input data.
 
-![ConvLayer](images/convlayer.gif)
+![convlayer](images/convlayer.gif)
 
 *contoh `Conv2D` pada jaringan saraf tiruan untuk klasifikasi biner/multiclass dari input gambar*
 
@@ -1652,16 +1613,16 @@ print(f'jumlah data: {len(train_data.kata)}\n')
 train_data.kata[:3]
 ```
 
-    jumlah data: 34050
+    jumlah data: 45400
     
     
 
 
 
 
-    30167    BLACK
-    24191      RED
-    18190    BLACK
+    43886     GREY
+    14859    BLACK
+    47729        U
     Name: kata, dtype: object
 
 
@@ -1676,19 +1637,7 @@ jumlah_kata_train
 
 
 
-    2657
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 0, 'peak': 0}
+    2957
 
 
 
@@ -1716,14 +1665,15 @@ print(f'Kata setelah vektorisasi:\n{lapisan_vektorisasi([target_kata])}')
 ```
 
     Kata:
-    FLEX
+    LEGEND
     
     Kata setelah vektorisasi:
-    [[53]]
+    [[48]]
     
 
 
 ```python
+# konfigurasi lapisan vektorisasi
 lapisan_vektorisasi.get_config()
 ```
 
@@ -1734,7 +1684,7 @@ lapisan_vektorisasi.get_config()
      'trainable': True,
      'batch_input_shape': (None,),
      'dtype': 'string',
-     'max_tokens': 2657,
+     'max_tokens': 2957,
      'standardize': 'lower_and_strip_punctuation',
      'split': 'whitespace',
      'ngrams': None,
@@ -1758,19 +1708,7 @@ len(jumlah_vocab)
 
 
 
-    2616
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 23552, 'peak': 275200}
+    2906
 
 
 
@@ -1787,18 +1725,6 @@ lapisan_embedding = Embedding(input_dim=len(jumlah_vocab),
 
 
 ```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 23552, 'peak': 275200}
-
-
-
-
-```python
 # Contoh vektorisasi dan embedding
 print(f'Kata sebelum vektorisasi:\n{target_kata}\n')
 kata_tervektor = lapisan_vektorisasi([target_kata])
@@ -1809,31 +1735,25 @@ print(f'Shape dari kata setelah embedding:\n{kata_terembed.shape}')
 ```
 
     Kata sebelum vektorisasi:
-    FLEX
+    LEGEND
     
     
     Kata sesudah vektorisasi (sebelum embedding):
-    [[53]]
+    [[48]]
     
     
     Kata setelah embedding:
-    [[[ 0.04908727  0.00489409  0.04614902 -0.02087823]]]
+    [[[ 0.03849443  0.00019671 -0.04510099 -0.00319308  0.04155094
+        0.04344675 -0.0250809  -0.00759856 -0.03895147  0.02165213
+       -0.04660178 -0.02801985  0.0037294   0.01857214 -0.0298463
+        0.01407415 -0.00080757  0.03984049 -0.01322604  0.0383907
+        0.02639275 -0.03076639  0.0047793   0.03325495  0.0136058
+        0.03234738  0.00281041 -0.03449615  0.01464859 -0.02935088
+       -0.01725741  0.02477313]]]
     
     Shape dari kata setelah embedding:
-    (1, 1, 4)
+    (1, 1, 32)
     
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 66816, 'peak': 275200}
-
-
 
 ### Membuat TensorFlow Dataset, Batching dan Prefetching
 
@@ -1848,35 +1768,15 @@ Lihat https://www.tensorflow.org/guide/data_performance
 # Membuat TensorFlow dataset
 train_kata_dataset = from_tensor_slices((train_data.iloc[:, 0], train_target))
 test_kata_dataset = from_tensor_slices((test_data.iloc[:, 0], test_target))
-train_posisi_dataset = from_tensor_slices(((train_data.iloc[:, 1:3].to_numpy()), train_target))
-test_posisi_dataset = from_tensor_slices(((test_data.iloc[:, 1:3].to_numpy()), test_target))
-train_brand_dataset = from_tensor_slices(((train_data.iloc[:, 3:].to_numpy()), train_target))
-test_brand_dataset = from_tensor_slices(((test_data.iloc[:, 3:].to_numpy()), test_target))
 
-train_kata_dataset, test_kata_dataset, train_posisi_dataset, test_posisi_dataset, train_brand_dataset, test_brand_dataset
+train_kata_dataset, test_kata_dataset
 ```
 
 
 
 
     (<TensorSliceDataset element_spec=(TensorSpec(shape=(), dtype=tf.string, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>,
-     <TensorSliceDataset element_spec=(TensorSpec(shape=(), dtype=tf.string, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>,
-     <TensorSliceDataset element_spec=(TensorSpec(shape=(2,), dtype=tf.float32, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>,
-     <TensorSliceDataset element_spec=(TensorSpec(shape=(2,), dtype=tf.float32, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>,
-     <TensorSliceDataset element_spec=(TensorSpec(shape=(37,), dtype=tf.float64, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>,
-     <TensorSliceDataset element_spec=(TensorSpec(shape=(37,), dtype=tf.float64, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>)
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 17319936, 'peak': 17319936}
+     <TensorSliceDataset element_spec=(TensorSpec(shape=(), dtype=tf.string, name=None), TensorSpec(shape=(), dtype=tf.int32, name=None))>)
 
 
 
@@ -1885,35 +1785,15 @@ tf.config.experimental.get_memory_info('GPU:0')
 # Membuat TensorSliceDataset menjadi prefetched dataset
 train_kata_dataset = train_kata_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
 test_kata_dataset = test_kata_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
-train_posisi_dataset = train_posisi_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
-test_posisi_dataset = test_posisi_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
-train_brand_dataset = train_brand_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
-test_brand_dataset = test_brand_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
 
-train_kata_dataset, test_kata_dataset, train_posisi_dataset, test_posisi_dataset, train_brand_dataset, test_brand_dataset
+train_kata_dataset, test_kata_dataset
 ```
 
 
 
 
     (<BatchDataset element_spec=(TensorSpec(shape=(None,), dtype=tf.string, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>,
-     <BatchDataset element_spec=(TensorSpec(shape=(None,), dtype=tf.string, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>,
-     <BatchDataset element_spec=(TensorSpec(shape=(None, 2), dtype=tf.float32, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>,
-     <BatchDataset element_spec=(TensorSpec(shape=(None, 2), dtype=tf.float32, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>,
-     <BatchDataset element_spec=(TensorSpec(shape=(None, 37), dtype=tf.float64, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>,
-     <BatchDataset element_spec=(TensorSpec(shape=(None, 37), dtype=tf.float64, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>)
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 17320448, 'peak': 17320448}
+     <BatchDataset element_spec=(TensorSpec(shape=(None,), dtype=tf.string, name=None), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>)
 
 
 
@@ -1944,7 +1824,7 @@ if not os.path.isdir(f'colorskim_checkpoint/{MODEL[1]}'):
                         name='lapisan_output')(x)
         model_1 = Model(inputs=inputs, 
                         outputs=outputs, 
-                        name=model[1])
+                        name=MODEL[1])
 
         # Compile
         model_1.compile(loss=BinaryCrossentropy(),
@@ -1967,21 +1847,16 @@ if not os.path.isdir(f'colorskim_checkpoint/{MODEL[1]}'):
                                model_checkpoint(model_1.name),
                                early_stopping(),
                                reduce_lr_on_plateau()])
+        
+        # tutup logging wandb
+        wb.finish()
+        
+        # load model_1
+        model_1 = load_model(f'colorskim_checkpoint/{MODEL[1]}')
 else:
+        # load model_1
         model_1 = load_model(f'colorskim_checkpoint/{MODEL[1]}')
 ```
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18056960, 'peak': 20815872}
-
-
 
 
 ```python
@@ -1998,10 +1873,10 @@ model_1.summary()
      lapisan_vektorisasi (TextVe  (None, 1)                0         
      ctorization)                                                    
                                                                      
-     lapisan_embedding (Embeddin  (None, 1, 64)            167424    
+     lapisan_embedding (Embeddin  (None, 1, 32)            92992     
      g)                                                              
                                                                      
-     lapisan_konvolusional_1_dim  (None, 1, 32)            10272     
+     lapisan_konvolusional_1_dim  (None, 1, 32)            5152      
      ensi (Conv1D)                                                   
                                                                      
      lapisan_max_pool (GlobalMax  (None, 32)               0         
@@ -2010,23 +1885,11 @@ model_1.summary()
      lapisan_output (Dense)      (None, 1)                 33        
                                                                      
     =================================================================
-    Total params: 177,729
-    Trainable params: 177,729
+    Total params: 98,177
+    Trainable params: 98,177
     Non-trainable params: 0
     _________________________________________________________________
     
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18056960, 'peak': 20815872}
-
-
 
 
 ```python
@@ -2038,26 +1901,14 @@ plot_model(model_1, show_shapes=True)
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_57_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_51_0.png)
     
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18056960, 'peak': 20815872}
 
 
 
 ### Eksplorasi Hasil Model 1
 
-Setelah proses *training* pada model_1 yang terhenti di epoch 14 setelah melalui beberapa kali reduksi *learning_rate* namun dengan *val_accuracy* yang tidak meningkat setelah melalui sejumlah toleransi epoch dari `EarlyStopping` *callbacks*, kita mendapatkan *val_accuracy* terakhir di 99.28%.
+Setelah proses *training* pada model_1 yang terhenti di epoch 14 setelah melalui beberapa kali reduksi *learning_rate* namun dengan *val_accuracy* yang tidak meningkat setelah melalui sejumlah toleransi epoch dari `EarlyStopping` *callbacks*, kita mendapatkan *val_accuracy* terakhir di 99.21%.
 Di bagian bawah kita akan melakukan beberapa evaluasi dari hasil *training* model_1:
 
 1. Evaluasi *val_loss* dan *val_accuracy* model_1
@@ -2073,57 +1924,49 @@ Di bagian bawah kita akan melakukan beberapa evaluasi dari hasil *training* mode
 model_1.evaluate(test_kata_dataset)
 ```
 
-    5676/5676 [==============================] - 293s 50ms/step - loss: 0.0308 - accuracy: 0.9929
+    355/355 [==============================] - 30s 49ms/step - loss: 0.0289 - accuracy: 0.9921
     
 
 
 
 
-    [0.030789442360401154, 0.9929078221321106]
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18058496, 'peak': 57041152}
+    [0.02888941951096058, 0.9920712113380432]
 
 
 
 
 ```python
 # Membuat prodeksi menggunakan model_1
-model_1_pred = tf.squeeze(tf.round(model_1.predict(test_kata_dataset)))
+model_1_pred_prob = tf.squeeze(model_1.predict(test_kata_dataset))
+model_1_pred_prob
+```
+
+
+
+
+    <tf.Tensor: shape=(11351,), dtype=float32, numpy=
+    array([9.8689961e-01, 1.5283754e-03, 9.9962139e-01, ..., 1.1869609e-05,
+           7.7320910e-06, 4.8428519e-05], dtype=float32)>
+
+
+
+
+```python
+# Pembulatan probabilitas prediksi model_1
+model_1_pred = tf.round(model_1_pred_prob)
 model_1_pred
 ```
 
 
 
 
-    <tf.Tensor: shape=(22701,), dtype=float32, numpy=array([1., 0., 1., ..., 0., 0., 0.], dtype=float32)>
+    <tf.Tensor: shape=(11351,), dtype=float32, numpy=array([1., 0., 1., ..., 0., 0., 0.], dtype=float32)>
 
 
 
 
 ```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18149632, 'peak': 57041152}
-
-
-
-
-```python
-# Menghitung metriks dari model_1_terbaik
+# Menghitung metriks dari model_1
 model_1_metrik = hitung_metrik(target=test_target,
                                prediksi=model_1_pred)
 model_1_metrik
@@ -2132,52 +1975,83 @@ model_1_metrik
 
 
 
-    {'akurasi': 0.9929078014184397,
-     'presisi': 0.9929141168317963,
-     'recall': 0.9929078014184397,
-     'f1-score': 0.9929039706254636}
+    {'akurasi': 0.9920711831556691,
+     'presisi': 0.9920716853479361,
+     'recall': 0.9920711831556691,
+     'f1-score': 0.9920682214744327}
 
 
 
 
 ```python
-tf.config.experimental.get_memory_info('GPU:0')
+
+# ⁡⁣⁢Membuat fungsi untuk plot residual dari model regresi logistik⁡
+def residual_plot_logr(test_target, 
+                       nama_model,
+                       model_akurasi, 
+                       probabilitas_prediksi_model, 
+                       jumlah_bin=100, 
+                       rentang=[0, 1]):
+    """
+    Fungsi ini akan menciptakan residual plot untuk logistik regresi dari permodelan
+    
+    Args:
+        test_target (np.ndarray): target dari test data dalama bentuk 𝟭D numpy array
+        nama_model (str): nama model dalam string untuk ditampilkan di judul plot
+        model_akurasi (float): akurasi model
+        probabilitas_prediksi_model (np.ndarray): probabilitas prediksi model dalam bentuk 𝟭D numpy array
+        jumlah_bin (int): jumlah bin yang akan digunakan untuk plot sepanjang axis x
+        rentang (list): rentang yang akan digunakan di axis x
+        
+    Returns:
+        residual_plot (matplotlib.pyplot.scatter): plot residual dari model regresi logistik⁡⁡
+    """
+    
+    # fungsi internal untuk menjumlahkan residu dalam kelompok bin tertentu
+    def func(residu):
+        y = np.sum(residu)
+        return y
+
+    axis_x = [langkah_x/jumlah_bin for langkah_x in range(jumlah_bin+1)]
+
+    residual = test_target - probabilitas_prediksi_model
+    bin_residual = binned_statistic(residual, residual, statistic=func, bins=jumlah_bin+1, range=rentang)[0]
+    plt.scatter(axis_x, bin_residual, c='r')
+    plt.title(f'Residual Regresi Logistik\n{nama_model}\nAkurasi: {model_akurasi:.2%}',
+              fontsize=14)
+    plt.xlabel('Target Label dalam Bin')
+    plt.ylabel('Residual')
 ```
 
 
+```python
+# Plot residual dari model 1
+residual_plot_logr(test_target, MODEL[1], model_1_metrik['akurasi'], model_1_pred_prob)
+plt.show()
+```
 
 
-    {'current': 18149632, 'peak': 57041152}
-
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_58_0.png)
+    
 
 
 
 ```python
-# Menampilkan confusion matrix dari model_1_terbaik
+# Menampilkan confusion matrix dari model_1
 plot_conf_matrix(target_label=test_target,
                  prediksi_label=model_1_pred,
                  nama_model='Model Conv1D dengan Vektorisasi Embedding',
                  akurasi=model_1_metrik['akurasi'],
                  label_titik_x=['bukan_warna', 'warna'],
                  label_titik_y=['bukan_warna', 'warna'])
+plt.show()
 ```
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_66_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_59_0.png)
     
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18149632, 'peak': 57041152}
-
 
 
 
@@ -2186,6 +2060,7 @@ tf.config.experimental.get_memory_info('GPU:0')
 df_kesalahan_prediksi(label_encoder=label_encoder,
                       test_data=test_data_mnb,
                       prediksi=model_1_pred,
+                      probabilitas_prediksi=model_1_pred_prob,
                       order_ulang_header=['brand', 
                                           'kata', 
                                           'urut_kata', 
@@ -2193,182 +2068,99 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
                                           'label'])
 ```
 
-    |       | brand   | kata        |   urut_kata |   total_kata | label       | prediksi    |
-    |------:|:--------|:------------|------------:|-------------:|:------------|:------------|
-    | 55259 | STN     | AQUA        |           3 |            3 | warna       | bukan_warna |
-    |    12 | ADI     | BASKETBALL  |           5 |            6 | warna       | bukan_warna |
-    | 23355 | NIC     | 7           |          11 |           11 | warna       | bukan_warna |
-    | 56444 | WAR     | OREO        |           2 |            3 | warna       | bukan_warna |
-    | 46960 | NIK     | FTR10PURE   |           2 |            7 | warna       | bukan_warna |
-    | 13918 | ADI     | CARDBOARD   |           2 |            2 | warna       | bukan_warna |
-    |  8735 | ADI     | FULL        |           1 |            3 | bukan_warna | warna       |
-    |  6976 | ADI     | BLUTIN      |           6 |            6 | warna       | bukan_warna |
-    | 31091 | NIK     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna |
-    | 51267 | PUM     | TRACE       |           2 |            7 | bukan_warna | warna       |
-    |  5964 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna |
-    |   808 | ADI     | LEGIVY      |           6 |            6 | warna       | bukan_warna |
-    | 56083 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       |
-    | 18933 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       |
-    | 55981 | STN     | OATMEAL     |           2 |            2 | warna       | bukan_warna |
-    | 33831 | NIK     | EXPX14WHITE |           2 |            4 | warna       | bukan_warna |
-    | 48650 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       |
-    | 56746 | WAR     | PAISLEY     |           2 |            4 | warna       | bukan_warna |
-    |  1405 | ADI     | PK          |           2 |            4 | warna       | bukan_warna |
-    | 56116 | WAR     | FULL        |           1 |            6 | bukan_warna | warna       |
-    | 56086 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       |
-    | 17275 | AGL     | 5           |           5 |            6 | warna       | bukan_warna |
-    | 52109 | PUM     | GLOW        |           3 |            7 | bukan_warna | warna       |
-    | 26752 | NIK     | PEELORANGE  |           6 |            7 | warna       | bukan_warna |
-    | 55804 | STN     | VOLT        |           2 |            2 | warna       | bukan_warna |
-    | 12023 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna |
-    |  8962 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       |
-    |  1039 | ADI     | TESIME      |           6 |            6 | warna       | bukan_warna |
-    |  8759 | ADI     | ACTIVE      |           3 |            7 | warna       | bukan_warna |
-    | 52114 | PUM     | GLOW        |           3 |            8 | bukan_warna | warna       |
-    | 13740 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna |
-    | 10573 | ADI     | METAL       |           2 |            3 | warna       | bukan_warna |
-    | 56484 | WAR     | NEON        |           2 |            5 | warna       | bukan_warna |
-    | 46940 | NIK     | REACTBRIGHT |           2 |            7 | warna       | bukan_warna |
-    | 15761 | ADI     | ALUMINA     |           3 |            3 | warna       | bukan_warna |
-    | 48805 | PUM     | CORE        |           2 |            7 | bukan_warna | warna       |
-    | 16760 | ADI     | EQTBLU      |           4 |            4 | warna       | bukan_warna |
-    |  2197 | ADI     | EASGRN      |           7 |            7 | warna       | bukan_warna |
-    |  1031 | ADI     | BLUTIN      |           3 |            5 | warna       | bukan_warna |
-    |  1403 | ADI     | F17         |           4 |            4 | warna       | bukan_warna |
-    |   479 | ADI     | CCMELS      |           3 |            3 | warna       | bukan_warna |
-    |  1361 | ADI     | BLUTIN      |           5 |            7 | warna       | bukan_warna |
-    |  2592 | ADI     | ICEPUR      |           2 |            4 | warna       | bukan_warna |
-    |  7372 | ADI     | SGREEN      |           2 |            4 | warna       | bukan_warna |
-    | 10336 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna |
-    | 15466 | ADI     | SAVANNAH    |           2 |            2 | warna       | bukan_warna |
-    | 54951 | SAU     | TAN         |           2 |            3 | warna       | bukan_warna |
-    | 22780 | KIP     | SHADOW      |           2 |            4 | warna       | bukan_warna |
-    | 56226 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       |
-    | 56112 | WAR     | RED         |           1 |            7 | bukan_warna | warna       |
-    | 17198 | AGL     | YELLOW      |           2 |            5 | bukan_warna | warna       |
-    | 50395 | PUM     | PUMA        |           2 |            5 | warna       | bukan_warna |
-    | 32998 | NIK     | 23          |          10 |           11 | warna       | bukan_warna |
-    | 48075 | PTG     | ORANGE      |           2 |            3 | bukan_warna | warna       |
-    | 54953 | SAU     | BRN         |           2 |            3 | warna       | bukan_warna |
-    | 56661 | WAR     | THE         |           2 |            5 | warna       | bukan_warna |
-    |  4222 | ADI     | SESAME      |           5 |            7 | warna       | bukan_warna |
-    | 52841 | PUM     | CORE        |           1 |            7 | bukan_warna | warna       |
-    |  8968 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       |
-    |  1407 | ADI     | CARGO       |           4 |            4 | warna       | bukan_warna |
-    | 21603 | HER     | DARK        |           2 |            5 | warna       | bukan_warna |
-    |  7274 | ADI     | SESAME      |           2 |            4 | warna       | bukan_warna |
-    |  3490 | ADI     | SHOCK       |           2 |            3 | warna       | bukan_warna |
-    | 21685 | HER     | NIGHT       |           2 |            3 | warna       | bukan_warna |
-    | 14727 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna |
-    | 33814 | NIK     | EXPZ07WHITE |           2 |            3 | warna       | bukan_warna |
-    | 30639 | NIK     | 35          |           5 |           11 | bukan_warna | warna       |
-    | 21386 | HER     | BRBDSCHRY   |           2 |            3 | warna       | bukan_warna |
-    |  8965 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       |
-    | 16112 | ADI     | VAPOUR      |           2 |            3 | warna       | bukan_warna |
-    | 11545 | ADI     | ACTIVE      |           3 |            4 | warna       | bukan_warna |
-    |  4659 | ADI     | BOAQUA      |           2 |            4 | warna       | bukan_warna |
-    | 21982 | HER     | FLORAL      |           2 |            3 | warna       | bukan_warna |
-    | 21091 | HER     | 600D        |           3 |            6 | bukan_warna | warna       |
-    | 17520 | AGL     | BROWN       |           1 |            4 | bukan_warna | warna       |
-    | 10328 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna |
-    | 48153 | PTG     | DOVE        |           2 |            3 | bukan_warna | warna       |
-    | 19643 | BEA     | 35          |           2 |            3 | bukan_warna | warna       |
-    | 16288 | ADI     | BLK         |           2 |            5 | bukan_warna | warna       |
-    | 21174 | HER     | RED         |           4 |            8 | bukan_warna | warna       |
-    | 30654 | NIK     | 35          |           5 |           10 | bukan_warna | warna       |
-    | 29098 | NIK     | 8ASHEN      |           3 |            6 | warna       | bukan_warna |
-    | 53459 | PUM     | GLOW        |           1 |            5 | bukan_warna | warna       |
-    | 55759 | STN     | RASTA       |           2 |            2 | warna       | bukan_warna |
-    | 18940 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       |
-    |   656 | ADI     | BGREEN      |           7 |            7 | warna       | bukan_warna |
-    | 54972 | SAU     | VINTAGE     |           2 |            5 | bukan_warna | warna       |
-    |  6532 | ADI     | SESAME      |           6 |            7 | warna       | bukan_warna |
-    | 25371 | NIK     | 23          |           6 |            6 | warna       | bukan_warna |
-    | 21687 | HER     | DARK        |           2 |            4 | warna       | bukan_warna |
-    | 24154 | NIK     | CORE        |           2 |            6 | bukan_warna | warna       |
-    | 31572 | NIK     | LIGHTCARBON |           4 |            6 | warna       | bukan_warna |
-    | 12440 | ADI     | CORE        |           2 |            5 | bukan_warna | warna       |
-    | 56160 | WAR     | BLUE        |           1 |            5 | bukan_warna | warna       |
-    | 30630 | NIK     | 35          |           5 |           10 | bukan_warna | warna       |
-    | 21143 | HER     | STELLAR     |           2 |            2 | warna       | bukan_warna |
-    | 56200 | WAR     | WHITE       |           1 |            5 | bukan_warna | warna       |
-    |  9984 | ADI     | SESAME      |           3 |            3 | warna       | bukan_warna |
-    | 10338 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna |
-    | 29157 | NIK     | 2BLACK      |           3 |            4 | warna       | bukan_warna |
-    |   525 | ADI     | BLUTIN      |           6 |            6 | warna       | bukan_warna |
-    |  1924 | ADI     | MYSRUB      |           2 |            4 | warna       | bukan_warna |
-    | 26852 | NIK     | (GS)WHITE   |           5 |            6 | warna       | bukan_warna |
-    | 21718 | HER     | VAPOR       |           2 |            3 | warna       | bukan_warna |
-    | 56053 | WAR     | BLACK       |           1 |            5 | bukan_warna | warna       |
-    | 30648 | NIK     | 35          |           5 |           12 | bukan_warna | warna       |
-    | 19488 | BBC     | GLOW        |           1 |            7 | bukan_warna | warna       |
-    | 23500 | NIC     | TRUE        |           2 |           10 | bukan_warna | warna       |
-    |   921 | ADI     | CLAQUA      |           5 |            6 | warna       | bukan_warna |
-    | 10392 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna |
-    | 56326 | WAR     | MIX         |           2 |            4 | warna       | bukan_warna |
-    | 49966 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       |
-    |  1506 | ADI     | SIX         |           4 |            4 | warna       | bukan_warna |
-    | 16143 | ADI     | VICTORY     |           2 |            3 | warna       | bukan_warna |
-    | 13801 | ADI     | SIGNAL      |           2 |            3 | warna       | bukan_warna |
-    |  6890 | ADI     | GUM1        |           5 |            5 | warna       | bukan_warna |
-    | 21737 | HER     | RED         |           4 |            8 | bukan_warna | warna       |
-    | 17271 | AGL     | 5           |           5 |            6 | warna       | bukan_warna |
-    | 17100 | ADI     | BBANAT      |           3 |            3 | warna       | bukan_warna |
-    | 10277 | ADI     | DARK        |           2 |            3 | warna       | bukan_warna |
-    | 21141 | HER     | DKSHDW      |           2 |            3 | warna       | bukan_warna |
-    | 33817 | NIK     | EXPX14BLACK |           2 |            5 | warna       | bukan_warna |
-    | 12816 | ADI     | CREAM       |           2 |            3 | warna       | bukan_warna |
-    |  3933 | ADI     | WINTER      |           1 |            3 | bukan_warna | warna       |
-    | 47109 | NIK     | STRKWHITE   |           2 |            6 | warna       | bukan_warna |
-    | 21029 | HER     | WINDSOR     |           2 |            3 | warna       | bukan_warna |
-    | 16758 | ADI     | EQTBLU      |           2 |            4 | warna       | bukan_warna |
-    | 28078 | NIK     | SLPBLACK    |           2 |            4 | warna       | bukan_warna |
-    |   324 | ADI     | VIVGRN      |           5 |            6 | warna       | bukan_warna |
-    |  5952 | ADI     | ACTIVE      |           3 |            4 | warna       | bukan_warna |
-    | 15298 | ADI     | ROSE        |           2 |            4 | warna       | bukan_warna |
-    |  8979 | ADI     | CORE        |           2 |            6 | bukan_warna | warna       |
-    |  1449 | ADI     | FIVE        |           4 |            4 | warna       | bukan_warna |
-    |  3850 | ADI     | POWER       |           2 |            7 | bukan_warna | warna       |
-    | 28999 | NIK     | RAGEBLACK   |           2 |            4 | warna       | bukan_warna |
-    | 21644 | HER     | NIGHT       |           2 |            3 | warna       | bukan_warna |
-    | 56154 | WAR     | BLACK       |           1 |            5 | bukan_warna | warna       |
-    |   465 | ADI     | EQTBLU      |           5 |            7 | warna       | bukan_warna |
-    | 31118 | NIK     | 23          |           6 |            6 | warna       | bukan_warna |
-    | 55344 | STN     | DARKSIDE    |           2 |            6 | warna       | bukan_warna |
-    | 19807 | BEA     | &           |           7 |            9 | warna       | bukan_warna |
-    | 18937 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       |
-    | 56636 | WAR     | THE         |           2 |            4 | warna       | bukan_warna |
-    | 11703 | ADI     | LEGMAR      |           2 |            4 | warna       | bukan_warna |
-    | 11150 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna |
-    | 56251 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       |
-    |  1104 | ADI     | REAPNK      |           7 |            7 | warna       | bukan_warna |
-    | 52776 | PUM     | GLOW        |           2 |            5 | bukan_warna | warna       |
-    | 56096 | WAR     | RED         |           1 |            5 | bukan_warna | warna       |
-    | 10568 | ADI     | ORBIT       |           2 |            3 | warna       | bukan_warna |
-    |  8971 | ADI     | CORE        |           2 |            5 | bukan_warna | warna       |
-    | 34544 | NIK     | XBLACK      |           2 |            3 | warna       | bukan_warna |
-    | 56659 | WAR     | THE         |           2 |            5 | warna       | bukan_warna |
-    | 26397 | NIK     | SHOWERSOLAR |           2 |            5 | warna       | bukan_warna |
-    | 21061 | HER     | WOODLAND    |           2 |            3 | warna       | bukan_warna |
-    | 17893 | AGL     | HEATHERGREY |           2 |            2 | warna       | bukan_warna |
-    |   476 | ADI     | CCMELS      |           3 |            3 | warna       | bukan_warna |
-    | 56088 | WAR     | WHITE       |           1 |            5 | bukan_warna | warna       |
-    | 28840 | NIK     | (GS)WHITE   |           4 |            5 | warna       | bukan_warna |
-    | 10245 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna |
-    | 49969 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       |
+    |       | brand   | kata        |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
+    |------:|:--------|:------------|------------:|-------------:|:------------|:------------|:---------------|
+    | 55259 | STN     | AQUA        |           3 |            3 | warna       | bukan_warna | 0.05%          |
+    |    12 | ADI     | BASKETBALL  |           5 |            6 | warna       | bukan_warna | 7.35%          |
+    | 23355 | NIC     | 7           |          11 |           11 | warna       | bukan_warna | 0.4%           |
+    | 56444 | WAR     | OREO        |           2 |            3 | warna       | bukan_warna | 0.33%          |
+    | 46960 | NIK     | FTR10PURE   |           2 |            7 | warna       | bukan_warna | 7.35%          |
+    | 13918 | ADI     | CARDBOARD   |           2 |            2 | warna       | bukan_warna | 7.35%          |
+    |  8735 | ADI     | FULL        |           1 |            3 | bukan_warna | warna       | 90.96%         |
+    | 31091 | NIK     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna | 7.35%          |
+    | 51267 | PUM     | TRACE       |           2 |            7 | bukan_warna | warna       | 91.96%         |
+    |  5964 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna | 25.57%         |
+    | 36008 | NIK     | SIGNAL      |           2 |           11 | bukan_warna | warna       | 60.5%          |
+    |   808 | ADI     | LEGIVY      |           6 |            6 | warna       | bukan_warna | 7.35%          |
+    | 19560 | BBC     | WOODLAND    |           1 |            6 | bukan_warna | warna       | 74.04%         |
+    | 19622 | BBC     | CREAM       |           2 |            5 | bukan_warna | warna       | 67.23%         |
+    | 56083 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 89.1%          |
+    | 18933 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       | 90.96%         |
+    | 55981 | STN     | OATMEAL     |           2 |            2 | warna       | bukan_warna | 7.35%          |
+    | 33831 | NIK     | EXPX14WHITE |           2 |            4 | warna       | bukan_warna | 7.35%          |
+    | 48650 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       | 80.28%         |
+    | 56746 | WAR     | PAISLEY     |           2 |            4 | warna       | bukan_warna | 0.28%          |
+    |  1405 | ADI     | PK          |           2 |            4 | warna       | bukan_warna | 0.02%          |
+    | 56116 | WAR     | FULL        |           1 |            6 | bukan_warna | warna       | 90.96%         |
+    | 56086 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 89.1%          |
+    | 17275 | AGL     | 5           |           5 |            6 | warna       | bukan_warna | 0.63%          |
+    | 52109 | PUM     | GLOW        |           3 |            7 | bukan_warna | warna       | 89.1%          |
+    | 26752 | NIK     | PEELORANGE  |           6 |            7 | warna       | bukan_warna | 7.35%          |
+    | 55804 | STN     | VOLT        |           2 |            2 | warna       | bukan_warna | 7.35%          |
+    | 12023 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 0.95%          |
+    |  8962 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 80.28%         |
+    |  1039 | ADI     | TESIME      |           6 |            6 | warna       | bukan_warna | 7.35%          |
+    |  8759 | ADI     | ACTIVE      |           3 |            7 | warna       | bukan_warna | 43.27%         |
+    | 52114 | PUM     | GLOW        |           3 |            8 | bukan_warna | warna       | 89.1%          |
+    | 13740 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 7.35%          |
+    | 10573 | ADI     | METAL       |           2 |            3 | warna       | bukan_warna | 0.06%          |
+    | 56484 | WAR     | NEON        |           2 |            5 | warna       | bukan_warna | 0.1%           |
+    | 46940 | NIK     | REACTBRIGHT |           2 |            7 | warna       | bukan_warna | 7.35%          |
+    | 15761 | ADI     | ALUMINA     |           3 |            3 | warna       | bukan_warna | 7.35%          |
+    | 48805 | PUM     | CORE        |           2 |            7 | bukan_warna | warna       | 80.28%         |
+    |  2197 | ADI     | EASGRN      |           7 |            7 | warna       | bukan_warna | 7.35%          |
+    |  1403 | ADI     | F17         |           4 |            4 | warna       | bukan_warna | 0.47%          |
+    |  2592 | ADI     | ICEPUR      |           2 |            4 | warna       | bukan_warna | 7.35%          |
+    |  7372 | ADI     | SGREEN      |           2 |            4 | warna       | bukan_warna | 7.35%          |
+    | 10336 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 7.35%          |
+    | 15466 | ADI     | SAVANNAH    |           2 |            2 | warna       | bukan_warna | 7.35%          |
+    | 54951 | SAU     | TAN         |           2 |            3 | warna       | bukan_warna | 0.02%          |
+    | 22780 | KIP     | SHADOW      |           2 |            4 | warna       | bukan_warna | 2.94%          |
+    | 56226 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       | 99.27%         |
+    | 56112 | WAR     | RED         |           1 |            7 | bukan_warna | warna       | 99.34%         |
+    | 17198 | AGL     | YELLOW      |           2 |            5 | bukan_warna | warna       | 97.57%         |
+    | 50395 | PUM     | PUMA        |           2 |            5 | warna       | bukan_warna | 0.17%          |
+    | 32998 | NIK     | 23          |          10 |           11 | warna       | bukan_warna | 34.74%         |
+    | 48075 | PTG     | ORANGE      |           2 |            3 | bukan_warna | warna       | 99.27%         |
+    | 54953 | SAU     | BRN         |           2 |            3 | warna       | bukan_warna | 7.35%          |
+    | 19265 | BBC     | DARK        |           2 |            6 | bukan_warna | warna       | 67.7%          |
+    | 56661 | WAR     | THE         |           2 |            5 | warna       | bukan_warna | 15.38%         |
+    |  4222 | ADI     | SESAME      |           5 |            7 | warna       | bukan_warna | 38.07%         |
+    | 52841 | PUM     | CORE        |           1 |            7 | bukan_warna | warna       | 80.28%         |
+    |  8968 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 80.28%         |
+    |  1407 | ADI     | CARGO       |           4 |            4 | warna       | bukan_warna | 0.23%          |
+    |  7274 | ADI     | SESAME      |           2 |            4 | warna       | bukan_warna | 38.07%         |
+    |  3490 | ADI     | SHOCK       |           2 |            3 | warna       | bukan_warna | 0.09%          |
+    | 21685 | HER     | NIGHT       |           2 |            3 | warna       | bukan_warna | 40.44%         |
+    | 18208 | BBC     | CLEAR       |           2 |            8 | bukan_warna | warna       | 67.08%         |
+    | 14727 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 0.95%          |
+    | 33814 | NIK     | EXPZ07WHITE |           2 |            3 | warna       | bukan_warna | 7.35%          |
+    | 30639 | NIK     | 35          |           5 |           11 | bukan_warna | warna       | 79.45%         |
+    | 21386 | HER     | BRBDSCHRY   |           2 |            3 | warna       | bukan_warna | 7.35%          |
+    |  8965 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 80.28%         |
+    | 16112 | ADI     | VAPOUR      |           2 |            3 | warna       | bukan_warna | 7.35%          |
+    | 11545 | ADI     | ACTIVE      |           3 |            4 | warna       | bukan_warna | 43.27%         |
+    |  4659 | ADI     | BOAQUA      |           2 |            4 | warna       | bukan_warna | 7.35%          |
+    | 21982 | HER     | FLORAL      |           2 |            3 | warna       | bukan_warna | 0.48%          |
+    | 21091 | HER     | 600D        |           3 |            6 | bukan_warna | warna       | 99.05%         |
+    | 17520 | AGL     | BROWN       |           1 |            4 | bukan_warna | warna       | 99.45%         |
+    | 10328 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna | 43.27%         |
+    | 48153 | PTG     | DOVE        |           2 |            3 | bukan_warna | warna       | 95.45%         |
+    | 19643 | BEA     | 35          |           2 |            3 | bukan_warna | warna       | 79.45%         |
+    | 16288 | ADI     | BLK         |           2 |            5 | bukan_warna | warna       | 98.82%         |
+    | 21174 | HER     | RED         |           4 |            8 | bukan_warna | warna       | 99.34%         |
+    | 30654 | NIK     | 35          |           5 |           10 | bukan_warna | warna       | 79.45%         |
+    | 29098 | NIK     | 8ASHEN      |           3 |            6 | warna       | bukan_warna | 7.35%          |
+    | 53459 | PUM     | GLOW        |           1 |            5 | bukan_warna | warna       | 89.1%          |
+    | 55759 | STN     | RASTA       |           2 |            2 | warna       | bukan_warna | 7.35%          |
+    | 18940 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       | 90.96%         |
+    |   656 | ADI     | BGREEN      |           7 |            7 | warna       | bukan_warna | 7.35%          |
+    | 54972 | SAU     | VINTAGE     |           2 |            5 | bukan_warna | warna       | 78.0%          |
+    |  6532 | ADI     | SESAME      |           6 |            7 | warna       | bukan_warna | 38.07%         |
+    | 25371 | NIK     | 23          |           6 |            6 | warna       | bukan_warna | 34.74%         |
+    | 24154 | NIK     | CORE        |           2 |            6 | bukan_warna | warna       | 80.28%         |
+    | 31572 | NIK     | LIGHTCARBON |           4 |            6 | warna       | bukan_warna | 7.35%          |
     
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18149632, 'peak': 57041152}
-
-
 
 
 ```python
@@ -2380,19 +2172,7 @@ gc.collect()
 
 
 
-    11574
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 18146560, 'peak': 57041152}
+    14994
 
 
 
@@ -2410,29 +2190,11 @@ Universal Sentence Encoder merupakan suatu lapisan yang sudah melakukan hampir k
 
 
 ```python
-# Sama seperti model_1 jika sudah pernah ditrain dan ada model yang tersimpan
-# seharusnya bagian ini bisa diskip, namun untuk kepentingan demonstrasi pada 
-# bagian selanjutnya, kita akan tetap mendownload USE model
-# dan menghapusnya setelah demonstrasi jika model sudah ditrain dan disimpan
-# Jika tidak, biarkan tf_hub_embedding sampai model_2 selesai
-# hapus tf_hub_embedding dan model_2 pada akhir sesi model_2
-# Mengunduh pretrained USE dari tensorflow hub
-tf_hub_embedding = hub.KerasLayer('https://tfhub.dev/google/universal-sentence-encoder/4',
+# Mengunduh pretrained USE dari tensorflow hub atau model USE yang sudah didownload
+tf_hub_embedding = hub.KerasLayer('colorskim_checkpoint/use.v4/',
                                   trainable=False,
                                   name='lapisan_embedding_USE')
 ```
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 1044620544, 'peak': 1044620544}
-
-
 
 
 ```python
@@ -2445,29 +2207,17 @@ print(f'Panjang dari kata setelah embedding: {len(kata_embed_pretrain[0])}')
 ```
 
     Kata acak:
-     QUESTAR
+     BOYD
     
     Kata setelah embed dengan USE:
-    [ 0.00866413 -0.06154143  0.05114514  0.04181407  0.0199904   0.05046864
-     -0.01953758 -0.05738599  0.06517273 -0.00517753  0.00351421  0.02564281
-      0.02964722  0.06797459 -0.00300142  0.0053544  -0.00830155 -0.03211842
-      0.04801427 -0.00119406 -0.00043531  0.01120288  0.04401749 -0.01213133
-     -0.00378824  0.04055084 -0.01255467  0.02171156  0.05214996  0.01138981]
+    [ 0.01104935 -0.03197816 -0.00418905  0.01691557  0.04390273  0.05630679
+     -0.05388017 -0.06413457  0.04082758  0.00436567  0.00574849  0.06332859
+     -0.00318939 -0.05387031 -0.01070012 -0.00107764  0.03956668  0.02198536
+     -0.04347479  0.02945289  0.01730662  0.06538456  0.01217358  0.00765909
+      0.01802523 -0.01132349  0.06331084 -0.03587084 -0.027212    0.0056668 ]
     
     Panjang dari kata setelah embedding: 512
     
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 1044624384, 'peak': 1047814400}
-
-
 
 ### Membangun dan Menjalankan Training Model 2
 
@@ -2481,6 +2231,8 @@ tf.config.experimental.get_memory_info('GPU:0')
 # model dengan ukuran 2MB, maka untuk output model dari model_2 akan disimpan di remote data version
 # control dengan modul dvc atau dapat dipindahtangankan secara fisik melalui media penyimpanan
 if not os.path.isdir(f'colorskim_checkpoint/{MODEL[2]}'):
+        # set random seed
+        tf.random.set_seed(RANDOM_STATE)
         
         # Membuat model_2 menggunakan USE
         inputs = Input(shape=[], 
@@ -2514,13 +2266,19 @@ if not os.path.isdir(f'colorskim_checkpoint/{MODEL[2]}'):
                         'n_layers': len(model_2.layers)})
 
         # Fit model_2
-        hist_model_2 = model_2.fit(train_kata_dataset,
-                                epochs=EPOCHS,
-                                validation_data=test_kata_dataset,
-                                callbacks=[wandb_callback(train_kata_dataset),
-                                           model_checkpoint(model_2.name),
-                                           reduce_lr_on_plateau(),
-                                           early_stopping()])
+        model_2.fit(train_kata_dataset,
+                    epochs=EPOCHS,
+                    validation_data=test_kata_dataset,
+                    callbacks=[wandb_callback(train_kata_dataset),
+                               model_checkpoint(model_2.name),
+                               reduce_lr_on_plateau(),
+                               early_stopping()])
+        
+        # tutup logging wandb
+        wb.finish()
+        
+        # load model_2
+        model_2 = load_model(f'colorskim_checkpoint/{MODEL[2]}')
 else:
         # hapus tf_hub_embedding
         del tf_hub_embedding
@@ -2528,18 +2286,6 @@ else:
         # load model_2
         model_2 = load_model(f'colorskim_checkpoint/{MODEL[2]}')
 ```
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 1066766080, 'peak': 1066769920}
-
-
 
 
 ```python
@@ -2583,20 +2329,8 @@ plot_model(model_2, show_shapes=True)
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_81_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_68_0.png)
     
-
-
-
-
-```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 1066766080, 'peak': 1066769920}
 
 
 
@@ -2608,57 +2342,49 @@ tf.config.experimental.get_memory_info('GPU:0')
 model_2.evaluate(test_kata_dataset)
 ```
 
-    5676/5676 [==============================] - 372s 65ms/step - loss: 0.3437 - accuracy: 0.9098
+    355/355 [==============================] - 21s 52ms/step - loss: 0.1921 - accuracy: 0.9389
     
 
 
 
 
-    [0.34365278482437134, 0.9097837209701538]
+    [0.19213275611400604, 0.9388599991798401]
 
 
 
 
 ```python
-tf.config.experimental.get_memory_info('GPU:0')
+# Membuat probabilitas prediksi model_2
+model_2_pred_prob = tf.squeeze(model_2.predict(test_kata_dataset))
+model_2_pred_prob
 ```
 
 
 
 
-    {'current': 1066768640, 'peak': 1101423360}
+    <tf.Tensor: shape=(11351,), dtype=float32, numpy=
+    array([0.46290663, 0.06519245, 0.9924333 , ..., 0.1533481 , 0.01215318,
+           0.0921701 ], dtype=float32)>
 
 
 
 
 ```python
 # Membuat prediksi dengan model_2
-model_2_pred = tf.squeeze(tf.round(model_2.predict(test_kata_dataset)))
+model_2_pred = tf.round(model_2_pred_prob)
 model_2_pred[:10]
 ```
 
 
 
 
-    <tf.Tensor: shape=(10,), dtype=float32, numpy=array([1., 0., 1., 0., 1., 0., 0., 0., 1., 0.], dtype=float32)>
+    <tf.Tensor: shape=(10,), dtype=float32, numpy=array([0., 0., 1., 0., 1., 0., 0., 0., 1., 0.], dtype=float32)>
 
 
 
 
 ```python
-tf.config.experimental.get_memory_info('GPU:0')
-```
-
-
-
-
-    {'current': 1066860032, 'peak': 1101423360}
-
-
-
-
-```python
-# Menghitung metriks dari model_2_terbaik
+# Menghitung metriks dari model_2
 model_2_metrik = hitung_metrik(target=test_target,
                                prediksi=model_2_pred)
 model_2_metrik
@@ -2667,16 +2393,28 @@ model_2_metrik
 
 
 
-    {'akurasi': 0.9097837099687238,
-     'presisi': 0.9125293754584137,
-     'recall': 0.9097837099687238,
-     'f1-score': 0.9085574529378789}
+    {'akurasi': 0.9388600123337151,
+     'presisi': 0.9390214154816886,
+     'recall': 0.9388600123337151,
+     'f1-score': 0.9385958102215999}
 
 
 
 
 ```python
-# Confusion matrix dari model_2_terbaik
+# Plot residual dari model_2
+residual_plot_logr(test_target, MODEL[2], model_2_metrik['akurasi'], model_2_pred_prob)
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_74_0.png)
+    
+
+
+
+```python
+# Confusion matrix dari model_2
 plot_conf_matrix(target_label=test_target,
                  prediksi_label=model_2_pred,
                  nama_model=MODEL[2],
@@ -2686,8 +2424,15 @@ plot_conf_matrix(target_label=test_target,
 ```
 
 
+
+
+    <AxesSubplot:title={'center':'Confusion Matrix\nmodel_2_Conv1D_USE_embed\nAkurasi 93.89%'}, xlabel='Prediksi Label', ylabel='Target Label'>
+
+
+
+
     
-![png](ColorSkim_AI_files/ColorSkim_AI_89_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_75_1.png)
     
 
 
@@ -2697,6 +2442,7 @@ plot_conf_matrix(target_label=test_target,
 df_kesalahan_prediksi(label_encoder=label_encoder,
                       test_data=test_data_mnb,
                       prediksi=model_2_pred,
+                      probabilitas_prediksi=model_2_pred_prob,
                       order_ulang_header=['brand',
                                           'kata',
                                           'urut_kata',
@@ -2704,2061 +2450,707 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
                                           'label'])
 ```
 
-    |       | brand   | kata                  |   urut_kata |   total_kata | label       | prediksi    |
-    |------:|:--------|:----------------------|------------:|-------------:|:------------|:------------|
-    |  3210 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 55259 | STN     | AQUA                  |           3 |            3 | warna       | bukan_warna |
-    |  2899 | ADI     | SOBAKOV               |           1 |            4 | bukan_warna | warna       |
-    | 26661 | NIK     | BROWN                 |           9 |            9 | warna       | bukan_warna |
-    | 25079 | NIK     | FFF                   |           1 |            7 | bukan_warna | warna       |
-    | 15999 | ADI     | SPECTOO               |           2 |            4 | warna       | bukan_warna |
-    | 44392 | NIK     | PINK                  |           7 |           11 | warna       | bukan_warna |
-    |  5166 | ADI     | FEF                   |           1 |            5 | bukan_warna | warna       |
-    |  8219 | ADI     | OWHITE                |           5 |            7 | warna       | bukan_warna |
-    | 45441 | NIK     | PURPLE                |           7 |            9 | warna       | bukan_warna |
-    |  4138 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    | 39928 | NIK     | PINK                  |          10 |           12 | warna       | bukan_warna |
-    | 12192 | ADI     | WAISTBAG              |           1 |            3 | bukan_warna | warna       |
-    |    12 | ADI     | BASKETBALL            |           5 |            6 | warna       | bukan_warna |
-    | 27594 | NIK     | HYPERVENOM            |           1 |            9 | bukan_warna | warna       |
-    | 23355 | NIC     | 7                     |          11 |           11 | warna       | bukan_warna |
-    | 34040 | NIK     | SUPRFLY               |           2 |            8 | bukan_warna | warna       |
-    |  5347 | ADI     | FTWWHT                |           6 |            8 | warna       | bukan_warna |
-    | 56031 | VAP     | PINK                  |           3 |            3 | warna       | bukan_warna |
-    |  6515 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 21620 | HER     | PINE                  |           2 |            4 | warna       | bukan_warna |
-    | 39509 | NIK     | PINK                  |          10 |           14 | warna       | bukan_warna |
-    |  7564 | ADI     | OWHITE                |           3 |            5 | warna       | bukan_warna |
-    | 25404 | NIK     | NAVY                  |           8 |            9 | warna       | bukan_warna |
-    | 30968 | NIK     | PURPLE                |           9 |            9 | warna       | bukan_warna |
-    | 15182 | ADI     | FBIRD                 |           1 |            3 | bukan_warna | warna       |
-    |  4084 | ADI     | ICEPNK                |           5 |            6 | warna       | bukan_warna |
-    |  1516 | ADI     | RAWGRN                |           6 |            6 | warna       | bukan_warna |
-    | 29951 | NIK     | MERCURIALX            |           1 |           10 | bukan_warna | warna       |
-    | 40513 | NIK     | PINK                  |           8 |           11 | warna       | bukan_warna |
-    |  8407 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  5484 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 10768 | ADI     | FORTARUN              |           1 |            7 | bukan_warna | warna       |
-    | 55505 | STN     | JOVEN                 |           2 |            6 | bukan_warna | warna       |
-    | 39913 | NIK     | PINK                  |          12 |           12 | warna       | bukan_warna |
-    | 50284 | PUM     | TISHATSU              |           1 |            7 | bukan_warna | warna       |
-    |  4616 | ADI     | GREONE                |           5 |            6 | warna       | bukan_warna |
-    | 21145 | HER     | ECLIPSE               |           2 |            3 | warna       | bukan_warna |
-    |  2181 | ADI     | PURPLE                |           5 |            5 | warna       | bukan_warna |
-    | 11290 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 56008 | VAP     | 0.7L                  |           1 |            3 | bukan_warna | warna       |
-    | 24335 | NIK     | PINK                  |           7 |           10 | warna       | bukan_warna |
-    | 20470 | CAO     | 3ADR                  |           3 |            3 | bukan_warna | warna       |
-    | 30730 | NIK     | PINK                  |           7 |            8 | warna       | bukan_warna |
-    | 51332 | PUM     | LEADCAT               |           1 |            6 | bukan_warna | warna       |
-    | 27962 | NIK     | PURPLE                |           8 |            9 | warna       | bukan_warna |
-    | 36580 | NIK     | GLOW                  |          11 |           11 | warna       | bukan_warna |
-    | 43279 | NIK     | PINK                  |           8 |           12 | warna       | bukan_warna |
-    | 55857 | STN     | BROWN                 |           2 |            2 | warna       | bukan_warna |
-    |  4381 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 16759 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 41465 | NIK     | PURPLE                |           6 |            9 | warna       | bukan_warna |
-    | 10071 | ADI     | BROWN                 |           5 |            5 | warna       | bukan_warna |
-    |  1605 | ADI     | GOLDMT                |           6 |            6 | warna       | bukan_warna |
-    | 14598 | ADI     | WAISTBAG              |           1 |            2 | bukan_warna | warna       |
-    | 11061 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 56608 | WAR     | 140CM                 |           1 |            5 | bukan_warna | warna       |
-    |  8197 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  6900 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 33862 | NIK     | NAVY                  |           5 |            9 | warna       | bukan_warna |
-    |  3218 | ADI     | CONAVY                |           3 |            5 | warna       | bukan_warna |
-    |  6860 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 26327 | NIK     | PINK                  |           9 |           10 | warna       | bukan_warna |
-    | 30388 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    |  6373 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  4176 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    | 38003 | NIK     | PINK                  |           7 |            8 | warna       | bukan_warna |
-    |  9750 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    |  2896 | ADI     | CLEORA                |           2 |            4 | warna       | bukan_warna |
-    | 12201 | ADI     | UNIFO                 |           1 |            3 | bukan_warna | warna       |
-    | 16907 | ADI     | LEGINK                |           7 |            7 | warna       | bukan_warna |
-    | 56444 | WAR     | OREO                  |           2 |            3 | warna       | bukan_warna |
-    | 42406 | NIK     | GLOW                  |           9 |            9 | warna       | bukan_warna |
-    |  8131 | ADI     | SILVMT                |           4 |            6 | warna       | bukan_warna |
-    | 46390 | NIK     | PINK                  |           9 |           12 | warna       | bukan_warna |
-    | 30205 | NIK     | NAVY                  |           5 |            9 | warna       | bukan_warna |
-    |  2046 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  9347 | ADI     | FL_SPR                |           1 |            5 | bukan_warna | warna       |
-    | 20276 | CAO     | 100BB                 |           2 |            3 | bukan_warna | warna       |
-    | 17080 | ADI     | WHT                   |           6 |            6 | warna       | bukan_warna |
-    | 13176 | ADI     | MUTATOR               |           2 |            7 | bukan_warna | warna       |
-    |  4757 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  3421 | ADI     | CBROWN                |           6 |            6 | warna       | bukan_warna |
-    | 46960 | NIK     | FTR10PURE             |           2 |            7 | warna       | bukan_warna |
-    | 20310 | CAO     | 100BT                 |           2 |            4 | bukan_warna | warna       |
-    | 55868 | STN     | PINK                  |           3 |            3 | warna       | bukan_warna |
-    | 21745 | HER     | KHAKIGR               |           2 |            2 | warna       | bukan_warna |
-    |  9791 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 12007 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 50145 | PUM     | PURPLE                |          10 |           10 | warna       | bukan_warna |
-    |   780 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 30760 | NIK     | CARBON                |           9 |           10 | warna       | bukan_warna |
-    | 24919 | NIK     | YTH                   |           2 |           11 | bukan_warna | warna       |
-    | 34846 | NIK     | PINK                  |          10 |           10 | warna       | bukan_warna |
-    |  7175 | ADI     | HIRAQU                |           3 |            4 | warna       | bukan_warna |
-    |  6393 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |  7054 | ADI     | WHITIN                |           6 |            6 | warna       | bukan_warna |
-    |  1178 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 21092 | HER     | NAVY                  |           5 |            6 | warna       | bukan_warna |
-    |  9256 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |  2840 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 55487 | STN     | JOVEN                 |           2 |            6 | bukan_warna | warna       |
-    |  4054 | ADI     | TRAPNK                |           7 |            7 | warna       | bukan_warna |
-    | 45615 | NIK     | NAVY                  |           7 |            9 | warna       | bukan_warna |
-    |  1412 | ADI     | SOLRED                |           5 |            5 | warna       | bukan_warna |
-    |  9282 | ADI     | NAVY                  |           5 |            8 | warna       | bukan_warna |
-    | 12340 | ADI     | TOPLOADER             |           2 |            5 | bukan_warna | warna       |
-    |  6830 | ADI     | OWHITE                |           6 |            6 | warna       | bukan_warna |
-    | 40688 | NIK     | PINK                  |           9 |           12 | warna       | bukan_warna |
-    | 36182 | NIK     | BROWN                 |          11 |           11 | warna       | bukan_warna |
-    |  3315 | ADI     | CARBON                |           3 |            4 | warna       | bukan_warna |
-    | 20530 | CAO     | 700SK                 |           2 |            3 | bukan_warna | warna       |
-    |   325 | ADI     | BRBLUE                |           6 |            6 | warna       | bukan_warna |
-    | 34704 | NIK     | EBERNON               |           2 |            7 | bukan_warna | warna       |
-    |  5632 | ADI     | S3.1                  |           2 |            4 | bukan_warna | warna       |
-    |  1869 | ADI     | SILVMT                |           6 |            6 | warna       | bukan_warna |
-    | 41000 | NIK     | PURPLE                |          10 |           10 | warna       | bukan_warna |
-    | 13918 | ADI     | CARDBOARD             |           2 |            2 | warna       | bukan_warna |
-    | 56043 | VAP     | VAPUR                 |           1 |            3 | bukan_warna | warna       |
-    | 27450 | NIK     | GLOW                  |           7 |            9 | warna       | bukan_warna |
-    |  5260 | ADI     | SOLRED                |           7 |            8 | warna       | bukan_warna |
-    |  8073 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 16521 | ADI     | RUNWHT                |           3 |            5 | warna       | bukan_warna |
-    | 29512 | NIK     | NAVY                  |           9 |           11 | warna       | bukan_warna |
-    |  2865 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 45932 | NIK     | PINK                  |          11 |           11 | warna       | bukan_warna |
-    |  2313 | ADI     | FTWWHT                |           8 |            8 | warna       | bukan_warna |
-    | 10150 | ADI     | S3.1                  |           2 |            5 | bukan_warna | warna       |
-    | 34903 | NIK     | NAVY                  |           7 |           11 | warna       | bukan_warna |
-    |  1799 | ADI     | SOBAKOV               |           1 |            4 | bukan_warna | warna       |
-    | 54580 | REL     | 49                    |           6 |            6 | warna       | bukan_warna |
-    | 55642 | STN     | MOUSEKETEER           |           2 |            6 | bukan_warna | warna       |
-    |  6372 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 22729 | KIP     | BEIGE                 |           2 |            4 | warna       | bukan_warna |
-    | 37378 | NIK     | ACDMY                 |           2 |            6 | bukan_warna | warna       |
-    | 32120 | NIK     | OBRAX                 |           1 |           10 | bukan_warna | warna       |
-    |  5892 | ADI     | ASHSIL                |           3 |            5 | warna       | bukan_warna |
-    |  7818 | ADI     | GREONE                |           6 |            6 | warna       | bukan_warna |
-    | 54596 | REL     | 35                    |           5 |            5 | warna       | bukan_warna |
-    |  5908 | ADI     | BLUSPI                |           5 |            5 | warna       | bukan_warna |
-    | 48089 | PTG     | VERMI                 |           1 |            3 | bukan_warna | warna       |
-    |  9207 | ADI     | CONAVY                |           3 |            4 | warna       | bukan_warna |
-    |  4248 | ADI     | GREFIV                |           6 |            6 | warna       | bukan_warna |
-    | 15946 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  1749 | ADI     | DKBLUE                |           4 |            5 | warna       | bukan_warna |
-    |   681 | ADI     | GOLDMT                |           6 |            6 | warna       | bukan_warna |
-    |  2627 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 56037 | VAP     | 0.7L                  |           1 |            3 | bukan_warna | warna       |
-    |  6683 | ADI     | SILVMT                |           6 |            6 | warna       | bukan_warna |
-    |  1270 | ADI     | SHOLIM                |           4 |            4 | warna       | bukan_warna |
-    |  6345 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 27364 | NIK     | NAVY                  |           5 |            8 | warna       | bukan_warna |
-    |  5630 | ADI     | BROWN                 |           5 |            5 | warna       | bukan_warna |
-    | 56618 | WAR     | 140CM                 |           1 |            4 | bukan_warna | warna       |
-    |  8081 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |   813 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 16229 | ADI     | CLSC                  |           1 |            4 | bukan_warna | warna       |
-    |  2482 | ADI     | LEGINK                |           4 |            6 | warna       | bukan_warna |
-    |  6201 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |   518 | ADI     | SCARLE                |           5 |            6 | warna       | bukan_warna |
-    |  6682 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 56041 | VAP     | VAPUR                 |           1 |            3 | bukan_warna | warna       |
-    |  3535 | ADI     | POWRED                |           4 |            5 | warna       | bukan_warna |
-    | 51116 | PUM     | PINK                  |           5 |            7 | warna       | bukan_warna |
-    | 22744 | KIP     | TAUPE                 |           2 |            4 | warna       | bukan_warna |
-    |  8187 | ADI     | OWHITE                |           6 |            6 | warna       | bukan_warna |
-    |  1090 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 37442 | NIK     | ELMNTL                |           2 |           10 | bukan_warna | warna       |
-    | 17300 | AGL     | L750                  |           1 |            4 | bukan_warna | warna       |
-    |  2613 | ADI     | ENEBLU                |           6 |            6 | warna       | bukan_warna |
-    | 24932 | NIK     | PINK                  |           8 |           11 | warna       | bukan_warna |
-    |  5289 | ADI     | GREFIV                |           5 |            7 | warna       | bukan_warna |
-    |  9671 | ADI     | CARBON                |           4 |            4 | warna       | bukan_warna |
-    |  1619 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 21242 | HER     | WINE                  |           2 |            3 | warna       | bukan_warna |
-    | 19832 | CAO     | 591BB                 |           2 |            3 | bukan_warna | warna       |
-    | 52163 | PUM     | FTR                   |           2 |            9 | bukan_warna | warna       |
-    |  6713 | ADI     | GREONE                |           6 |            7 | warna       | bukan_warna |
-    |   774 | ADI     | TRAPNK                |           6 |            6 | warna       | bukan_warna |
-    |  1196 | ADI     | S3.1                  |           2 |            5 | bukan_warna | warna       |
-    | 18880 | BBC     | OVERDYED              |           1 |            6 | bukan_warna | warna       |
-    | 26315 | NIK     | MERCURIALX            |           1 |            9 | bukan_warna | warna       |
-    |  1572 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 56101 | WAR     | PINK                  |           2 |            5 | warna       | bukan_warna |
-    | 25788 | NIK     | GLOW                  |           7 |           11 | warna       | bukan_warna |
-    | 27017 | NIK     | NAVY                  |           6 |            7 | warna       | bukan_warna |
-    |  8109 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  6976 | ADI     | BLUTIN                |           6 |            6 | warna       | bukan_warna |
-    |  2673 | ADI     | CONAVY                |           2 |            4 | warna       | bukan_warna |
-    | 22680 | KIP     | FS64                  |           1 |            5 | bukan_warna | warna       |
-    |  7623 | ADI     | ORCTIN                |           5 |            6 | warna       | bukan_warna |
-    |  5757 | ADI     | ALTARUN               |           1 |            5 | bukan_warna | warna       |
-    | 15871 | ADI     | CARBON                |           2 |            2 | warna       | bukan_warna |
-    |  4344 | ADI     | SILVMT                |           4 |            5 | warna       | bukan_warna |
-    | 41971 | NIK     | PINK                  |          11 |           13 | warna       | bukan_warna |
-    | 53639 | PUM     | PINK                  |           7 |            7 | warna       | bukan_warna |
-    | 12104 | ADI     | GLOW                  |           5 |            5 | warna       | bukan_warna |
-    | 32951 | NIK     | HYPERVENOM            |           2 |           10 | bukan_warna | warna       |
-    | 10929 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  5151 | ADI     | GREFOU                |           6 |            6 | warna       | bukan_warna |
-    |  8428 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 43160 | NIK     | GLOW                  |          11 |           11 | warna       | bukan_warna |
-    |  5964 | ADI     | CLOUD                 |           2 |            3 | warna       | bukan_warna |
-    |  2801 | ADI     | CROYAL                |           6 |            7 | warna       | bukan_warna |
-    |  1562 | ADI     | RAWGRE                |           3 |            5 | warna       | bukan_warna |
-    | 37431 | NIK     | ELMNTL                |           2 |            8 | bukan_warna | warna       |
-    | 21248 | HER     | LILAMER               |           2 |            7 | bukan_warna | warna       |
-    | 16594 | ADI     | X9000L4               |           1 |            4 | bukan_warna | warna       |
-    |  5099 | ADI     | EQTGRN                |           5 |            5 | warna       | bukan_warna |
-    | 11472 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |   302 | ADI     | FORTAPLAY             |           1 |            6 | bukan_warna | warna       |
-    |  2168 | ADI     | DKBLUE                |           6 |            6 | warna       | bukan_warna |
-    |  2884 | ADI     | LGSOGR                |           6 |            6 | warna       | bukan_warna |
-    |  7671 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 20182 | CAO     | 5600HR                |           2 |            3 | bukan_warna | warna       |
-    |  9222 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  7285 | ADI     | FTWWHT                |           2 |            4 | warna       | bukan_warna |
-    | 22752 | KIP     | METRO                 |           2 |            4 | warna       | bukan_warna |
-    | 34540 | NIK     | NAVY                  |           5 |            8 | warna       | bukan_warna |
-    |  1708 | ADI     | GREONE                |           3 |            5 | warna       | bukan_warna |
-    |  2279 | ADI     | CBROWN                |           5 |            5 | warna       | bukan_warna |
-    |   808 | ADI     | LEGIVY                |           6 |            6 | warna       | bukan_warna |
-    | 23381 | NIC     | NAVY                  |          10 |           11 | warna       | bukan_warna |
-    |  6873 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |  6865 | ADI     | BLUSPI                |           6 |            6 | warna       | bukan_warna |
-    |  2066 | ADI     | CRYWHT                |           5 |            5 | warna       | bukan_warna |
-    |   988 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |  3254 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 15088 | ADI     | WAISTBAG              |           2 |            5 | bukan_warna | warna       |
-    | 12118 | ADI     | CONAVY                |           6 |            6 | warna       | bukan_warna |
-    |   751 | ADI     | SOLRED                |           5 |            5 | warna       | bukan_warna |
-    |  1126 | ADI     | GUM4                  |           5 |            5 | warna       | bukan_warna |
-    | 11605 | ADI     | PINK                  |           7 |            9 | warna       | bukan_warna |
-    |  8629 | ADI     | CARBON                |           4 |            4 | warna       | bukan_warna |
-    | 37005 | NIK     | ELMNTL                |           2 |            7 | bukan_warna | warna       |
-    |  6980 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  8013 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |   494 | ADI     | SOLRED                |           5 |            5 | warna       | bukan_warna |
-    |  1466 | ADI     | CARBON                |           5 |            5 | warna       | bukan_warna |
-    | 35687 | NIK     | BROWN                 |          13 |           13 | warna       | bukan_warna |
-    | 24250 | NIK     | AW77                  |           2 |            6 | bukan_warna | warna       |
-    |  1729 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 22541 | KIP     | RS53                  |           1 |            5 | bukan_warna | warna       |
-    |  1796 | ADI     | REAMAG                |           3 |            5 | warna       | bukan_warna |
-    | 33731 | NIK     | PINK                  |           8 |            9 | warna       | bukan_warna |
-    | 12189 | ADI     | PARKHOOD              |           1 |            3 | bukan_warna | warna       |
-    |  4639 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 41017 | NIK     | CARBON                |           8 |           10 | warna       | bukan_warna |
-    |  3658 | ADI     | VIVTEA                |           5 |            6 | warna       | bukan_warna |
-    |  6438 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6992 | ADI     | CARBON                |           5 |            6 | warna       | bukan_warna |
-    |   392 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6913 | ADI     | OWHITE                |           5 |            5 | warna       | bukan_warna |
-    | 26544 | NIK     | ACDMY                 |           3 |           10 | bukan_warna | warna       |
-    |  6108 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  6582 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 55064 | SOC     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    |  3906 | ADI     | REARED                |           4 |            6 | warna       | bukan_warna |
-    |  1153 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 54866 | SAU     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    | 20004 | CAO     | PURPLE                |           7 |            8 | warna       | bukan_warna |
-    |  1798 | ADI     | CLPINK                |           5 |            5 | warna       | bukan_warna |
-    | 39325 | NIK     | RUNALLDAY             |           2 |            7 | bukan_warna | warna       |
-    | 48138 | PTG     | NAVY                  |           2 |            3 | warna       | bukan_warna |
-    | 14072 | ADI     | BREAKNET              |           1 |            3 | bukan_warna | warna       |
-    | 21095 | HER     | NAVY                  |           6 |            7 | warna       | bukan_warna |
-    |  3279 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 32944 | NIK     | HYPERVENOM            |           1 |            9 | bukan_warna | warna       |
-    |  7038 | ADI     | WHITIN                |           5 |            7 | warna       | bukan_warna |
-    | 26999 | NIK     | PINK                  |          10 |           12 | warna       | bukan_warna |
-    | 15571 | ADI     | SAND                  |           2 |            2 | warna       | bukan_warna |
-    | 13811 | ADI     | OWNTHEGAME            |           1 |            3 | bukan_warna | warna       |
-    | 51324 | PUM     | BROWN                 |           5 |            6 | warna       | bukan_warna |
-    | 27162 | NIK     | GLOW                  |           8 |            9 | warna       | bukan_warna |
-    | 55981 | STN     | OATMEAL               |           2 |            2 | warna       | bukan_warna |
-    | 52228 | PUM     | LEADCAT               |           2 |            6 | bukan_warna | warna       |
-    |   540 | ADI     | REATEA                |           4 |            5 | warna       | bukan_warna |
-    |  5521 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 33831 | NIK     | EXPX14WHITE           |           2 |            4 | warna       | bukan_warna |
-    |  7555 | ADI     | WHITIN                |           4 |            5 | warna       | bukan_warna |
-    | 14594 | ADI     | PINK                  |           3 |            4 | warna       | bukan_warna |
-    | 20191 | CAO     | 5600MS                |           2 |            3 | bukan_warna | warna       |
-    |   296 | ADI     | GREONE                |           4 |            5 | warna       | bukan_warna |
-    | 40401 | NIK     | PINK                  |          10 |           11 | warna       | bukan_warna |
-    | 47036 | NIK     | PURPLE                |           4 |            5 | warna       | bukan_warna |
-    |  4988 | ADI     | SILVMT                |           6 |            6 | warna       | bukan_warna |
-    | 54157 | PUM     | FIGC                  |           1 |            7 | bukan_warna | warna       |
-    | 16644 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  1054 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |   620 | ADI     | SILVMT                |           5 |            6 | warna       | bukan_warna |
-    | 54576 | REL     | 49                    |           6 |            6 | warna       | bukan_warna |
-    | 14766 | ADI     | WAISTBAG              |           1 |            2 | bukan_warna | warna       |
-    |  1826 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  5583 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  8858 | ADI     | ONIX                  |           4 |            4 | warna       | bukan_warna |
-    | 22756 | KIP     | METRO                 |           2 |            4 | warna       | bukan_warna |
-    | 38254 | NIK     | NAVY                  |           8 |           11 | warna       | bukan_warna |
-    | 11354 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 56006 | UME     | UMBRE                 |           1 |            5 | bukan_warna | warna       |
-    |  6246 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    |  7879 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 36024 | NIK     | N110                  |           2 |           12 | bukan_warna | warna       |
-    | 40676 | NIK     | PINK                  |          10 |           10 | warna       | bukan_warna |
-    | 30815 | NIK     | PINK                  |           8 |            8 | warna       | bukan_warna |
-    | 12807 | ADI     | SAMBAROSE             |           1 |            4 | bukan_warna | warna       |
-    | 56746 | WAR     | PAISLEY               |           2 |            4 | warna       | bukan_warna |
-    |  1817 | ADI     | FTWWHT                |           2 |            4 | warna       | bukan_warna |
-    | 16729 | ADI     | SOLRED                |           5 |            6 | warna       | bukan_warna |
-    | 26324 | NIK     | MERCURIALX            |           1 |           10 | bukan_warna | warna       |
-    |  4711 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  1405 | ADI     | PK                    |           2 |            4 | warna       | bukan_warna |
-    | 17275 | AGL     | 5                     |           5 |            6 | warna       | bukan_warna |
-    | 21507 | HER     | FOREST                |           2 |            5 | warna       | bukan_warna |
-    | 54562 | REL     | 49                    |           6 |            6 | warna       | bukan_warna |
-    | 15616 | ADI     | EDGE.3                |           2 |            5 | bukan_warna | warna       |
-    |  8172 | ADI     | WHITIN                |           7 |            7 | warna       | bukan_warna |
-    |  8091 | ADI     | CLEORA                |           6 |            7 | warna       | bukan_warna |
-    |  6316 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 10046 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |   762 | ADI     | MSILVE                |           6 |            6 | warna       | bukan_warna |
-    | 32754 | NIK     | NAVY                  |           9 |           12 | warna       | bukan_warna |
-    | 35271 | NIK     | PINK                  |           9 |           13 | warna       | bukan_warna |
-    |  6536 | ADI     | LEGINK                |           5 |            7 | warna       | bukan_warna |
-    |  6001 | ADI     | SOLRED                |           6 |            7 | warna       | bukan_warna |
-    |  7272 | ADI     | GREFIV                |           4 |            4 | warna       | bukan_warna |
-    |  7336 | ADI     | FORTARUN              |           1 |            6 | bukan_warna | warna       |
-    |  5830 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 26752 | NIK     | PEELORANGE            |           6 |            7 | warna       | bukan_warna |
-    |  4070 | ADI     | LEGINK                |           8 |            8 | warna       | bukan_warna |
-    | 43531 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    |  6869 | ADI     | SOLRED                |           4 |            5 | warna       | bukan_warna |
-    |   880 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 52602 | PUM     | PINK                  |           8 |            9 | warna       | bukan_warna |
-    | 55804 | STN     | VOLT                  |           2 |            2 | warna       | bukan_warna |
-    | 38091 | NIK     | GLOW                  |           9 |            9 | warna       | bukan_warna |
-    | 54652 | REL     | PINK                  |           4 |            6 | warna       | bukan_warna |
-    |   522 | ADI     | CLIMA                 |           3 |            6 | bukan_warna | warna       |
-    |  3997 | ADI     | GREONE                |           6 |            6 | warna       | bukan_warna |
-    | 44843 | NIK     | NAVY                  |           8 |           11 | warna       | bukan_warna |
-    | 12023 | ADI     | LEGEND                |           2 |            3 | warna       | bukan_warna |
-    |  6095 | ADI     | CONAVY                |           5 |            6 | warna       | bukan_warna |
-    | 38387 | NIK     | CARBON                |          10 |           13 | warna       | bukan_warna |
-    | 10776 | ADI     | CRYSTAL               |           2 |            3 | warna       | bukan_warna |
-    | 21519 | HER     | PRPL                  |           2 |            3 | warna       | bukan_warna |
-    | 31880 | NIK     | CARBON                |           5 |            8 | warna       | bukan_warna |
-    | 32109 | NIK     | OBRAX                 |           1 |           11 | bukan_warna | warna       |
-    |  1079 | ADI     | SAMBAROSE             |           1 |            5 | bukan_warna | warna       |
-    |  7290 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |  2598 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 20708 | CAO     | 5600B                 |           2 |            3 | bukan_warna | warna       |
-    | 27568 | NIK     | HYPERVENOM            |           1 |           10 | bukan_warna | warna       |
-    |  7013 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |  2055 | ADI     | TECINK                |           5 |            6 | warna       | bukan_warna |
-    | 19794 | BEA     | BE@RBRICK             |           1 |            5 | bukan_warna | warna       |
-    |  4803 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |   891 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  1656 | ADI     | ONIX                  |           8 |            8 | warna       | bukan_warna |
-    | 46057 | NIK     | NAVY                  |           9 |           11 | warna       | bukan_warna |
-    | 14748 | ADI     | NAVY                  |           7 |            7 | warna       | bukan_warna |
-    | 51425 | PUM     | SCARLE                |           7 |            7 | warna       | bukan_warna |
-    |  6570 | ADI     | CRYWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6786 | ADI     | RAWGRE                |           5 |            7 | warna       | bukan_warna |
-    |   626 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |   850 | ADI     | SILVMT                |           3 |            4 | warna       | bukan_warna |
-    |  4289 | ADI     | SILVMT                |           6 |            6 | warna       | bukan_warna |
-    | 13531 | ADI     | NAVY                  |           7 |            7 | warna       | bukan_warna |
-    |  8185 | ADI     | OWHITE                |           4 |            6 | warna       | bukan_warna |
-    | 20418 | CAO     | 2000SU                |           2 |            3 | bukan_warna | warna       |
-    | 26015 | NIK     | WHT                   |          11 |           11 | warna       | bukan_warna |
-    |  3685 | ADI     | LEGINK                |           6 |            6 | warna       | bukan_warna |
-    |   399 | ADI     | POWRED                |           6 |            6 | warna       | bukan_warna |
-    | 21264 | HER     | FROG                  |           2 |            3 | warna       | bukan_warna |
-    | 56735 | WAR     | 140CM                 |           1 |            3 | bukan_warna | warna       |
-    |  6726 | ADI     | GREONE                |           6 |            7 | warna       | bukan_warna |
-    |  3992 | ADI     | TRACAR                |           5 |            6 | warna       | bukan_warna |
-    |  8759 | ADI     | ACTIVE                |           3 |            7 | warna       | bukan_warna |
-    | 37425 | NIK     | ELMNTL                |           2 |            7 | bukan_warna | warna       |
-    | 16048 | ADI     | PINK                  |           4 |            4 | warna       | bukan_warna |
-    | 47055 | NIK     | STRK                  |           2 |            8 | bukan_warna | warna       |
-    | 55998 | UME     | UMBRE                 |           1 |            3 | bukan_warna | warna       |
-    |   790 | ADI     | SUPPNK                |           4 |            6 | warna       | bukan_warna |
-    |  5935 | ADI     | TRACAR                |           4 |            5 | warna       | bukan_warna |
-    | 11694 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 16702 | ADI     | LEGINK                |           6 |            6 | warna       | bukan_warna |
-    |  2027 | ADI     | MSILVE                |           5 |            5 | warna       | bukan_warna |
-    | 22760 | KIP     | ARMOR                 |           2 |            4 | warna       | bukan_warna |
-    | 32507 | NIK     | METCON                |           2 |            5 | bukan_warna | warna       |
-    |   256 | ADI     | TECINK                |           4 |            6 | warna       | bukan_warna |
-    |  6510 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  4318 | ADI     | DKBLUE                |           4 |            6 | warna       | bukan_warna |
-    | 13740 | ADI     | MAROON                |           2 |            2 | warna       | bukan_warna |
-    | 10573 | ADI     | METAL                 |           2 |            3 | warna       | bukan_warna |
-    | 56484 | WAR     | NEON                  |           2 |            5 | warna       | bukan_warna |
-    |  7602 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 31743 | NIK     | CARBON                |           7 |           10 | warna       | bukan_warna |
-    | 33469 | NIK     | BROWN                 |           9 |            9 | warna       | bukan_warna |
-    |  6331 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 14254 | ADI     | NAVY                  |           5 |            9 | warna       | bukan_warna |
-    |  1919 | ADI     | QTFLEX                |           1 |            4 | bukan_warna | warna       |
-    | 13304 | ADI     | X9000L4               |           1 |            4 | bukan_warna | warna       |
-    | 56664 | WAR     | 140CM                 |           1 |            4 | bukan_warna | warna       |
-    | 24214 | NIK     | OKWAHN                |           1 |            9 | bukan_warna | warna       |
-    | 12386 | ADI     | TRF                   |           1 |            4 | bukan_warna | warna       |
-    | 26189 | NIK     | PINK                  |           9 |           10 | warna       | bukan_warna |
-    |   920 | ADI     | BYELLO                |           4 |            6 | warna       | bukan_warna |
-    | 19482 | BBC     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    | 54571 | REL     | 49                    |           8 |            8 | warna       | bukan_warna |
-    | 37945 | NIK     | PINK                  |          12 |           12 | warna       | bukan_warna |
-    | 14875 | ADI     | WAISTBAG              |           2 |            3 | bukan_warna | warna       |
-    |   269 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  3774 | ADI     | PETNIT                |           5 |            5 | warna       | bukan_warna |
-    | 11589 | ADI     | PINK                  |           8 |            8 | warna       | bukan_warna |
-    | 11431 | ADI     | CONAVY                |           3 |            3 | warna       | bukan_warna |
-    | 40860 | NIK     | NAVY                  |          10 |           10 | warna       | bukan_warna |
-    | 45302 | NIK     | GLOW                  |           9 |            9 | warna       | bukan_warna |
-    | 20270 | CAO     | D5500BB               |           2 |            3 | bukan_warna | warna       |
-    |  4155 | ADI     | MYSINK                |           4 |            5 | warna       | bukan_warna |
-    |  6513 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 45336 | NIK     | ELMNTL                |           2 |            8 | bukan_warna | warna       |
-    | 40681 | NIK     | PINK                  |          10 |           10 | warna       | bukan_warna |
-    |  2071 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  2461 | ADI     | GREONE                |           5 |            5 | warna       | bukan_warna |
-    | 11185 | ADI     | X9000L3               |           1 |            4 | bukan_warna | warna       |
-    |   331 | ADI     | HIRAQU                |           6 |            7 | warna       | bukan_warna |
-    | 28741 | NIK     | ARROWZ                |           2 |            6 | bukan_warna | warna       |
-    |  1493 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 46189 | NIK     | PINK                  |           6 |           10 | warna       | bukan_warna |
-    | 27626 | NIK     | METCON                |           2 |            7 | bukan_warna | warna       |
-    | 21043 | HER     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  7699 | ADI     | CARBON                |           7 |            7 | warna       | bukan_warna |
-    |  4331 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  6701 | ADI     | CRYWHT                |           6 |            6 | warna       | bukan_warna |
-    | 51188 | PUM     | BROWN                 |           8 |            9 | warna       | bukan_warna |
-    |  7860 | ADI     | GREONE                |           7 |            7 | warna       | bukan_warna |
-    | 29471 | NIK     | PINK                  |           6 |            9 | warna       | bukan_warna |
-    | 50514 | PUM     | PEACOAT               |           2 |            3 | warna       | bukan_warna |
-    | 54011 | PUM     | TEAMRISE              |           1 |            6 | bukan_warna | warna       |
-    |  7769 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 16630 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 17318 | AGL     | PURPLE                |           6 |            6 | warna       | bukan_warna |
-    | 13975 | ADI     | ASWEETRAIN            |           1 |            3 | bukan_warna | warna       |
-    | 13815 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 16925 | ADI     | ENEBLU                |           6 |            7 | warna       | bukan_warna |
-    | 11997 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  6039 | ADI     | GREFOU                |           4 |            6 | warna       | bukan_warna |
-    | 20369 | CAO     | CSWGYOSA              |           1 |            3 | bukan_warna | warna       |
-    | 35725 | NIK     | PINK                  |           8 |           12 | warna       | bukan_warna |
-    | 17926 | AGL     | TACOLOCAL             |           1 |            3 | bukan_warna | warna       |
-    |  3555 | ADI     | CONAVY                |           6 |            7 | warna       | bukan_warna |
-    |  9541 | ADI     | CONAVY                |           2 |            3 | warna       | bukan_warna |
-    | 21167 | HER     | FOREST                |           2 |            2 | warna       | bukan_warna |
-    | 37445 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 12017 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 11732 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    | 53679 | PUM     | PINK                  |           7 |            7 | warna       | bukan_warna |
-    | 21457 | HER     | ARROWWOOD             |           2 |            2 | warna       | bukan_warna |
-    | 42357 | NIK     | ONDECK                |           2 |            7 | bukan_warna | warna       |
-    |   836 | ADI     | CONAVY                |           5 |            6 | warna       | bukan_warna |
-    |  2850 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 29739 | NIK     | BROWN                 |           8 |            8 | warna       | bukan_warna |
-    | 29082 | NIK     | CARBON                |           5 |           10 | warna       | bukan_warna |
-    | 42835 | NIK     | NAVY                  |           9 |           12 | warna       | bukan_warna |
-    |  2621 | ADI     | LEGINK                |           3 |            5 | warna       | bukan_warna |
-    | 12005 | ADI     | RAW                   |           2 |            3 | warna       | bukan_warna |
-    |  1759 | ADI     | BRBLUE                |           3 |            5 | warna       | bukan_warna |
-    |  2308 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 11286 | ADI     | RETRORUN              |           1 |            3 | bukan_warna | warna       |
-    |  3406 | ADI     | BROWN                 |           4 |            4 | warna       | bukan_warna |
-    |   190 | ADI     | DKBLUE                |           4 |            5 | warna       | bukan_warna |
-    | 19813 | BEA     | BE@RBRICK             |           1 |            6 | bukan_warna | warna       |
-    | 20675 | CAO     | 3DR                   |           3 |            3 | bukan_warna | warna       |
-    | 30495 | NIK     | AROBILL               |           3 |           12 | bukan_warna | warna       |
-    | 10335 | ADI     | RUN60S                |           1 |            2 | bukan_warna | warna       |
-    | 46940 | NIK     | REACTBRIGHT           |           2 |            7 | warna       | bukan_warna |
-    |  2061 | ADI     | RAWGRN                |           5 |            6 | warna       | bukan_warna |
-    |  6076 | ADI     | CARBON                |           5 |            5 | warna       | bukan_warna |
-    |  8269 | ADI     | FTWWHT                |           7 |            8 | warna       | bukan_warna |
-    |  2080 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  8054 | ADI     | TRAPNK                |           7 |            7 | warna       | bukan_warna |
-    |  5402 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 15761 | ADI     | ALUMINA               |           3 |            3 | warna       | bukan_warna |
-    | 11107 | ADI     | MULTICOLOR            |           2 |            4 | bukan_warna | warna       |
-    |  4355 | ADI     | ICEPNK                |           4 |            6 | warna       | bukan_warna |
-    | 55911 | STN     | MELANGE               |           2 |            3 | warna       | bukan_warna |
-    |  5862 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 10357 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |  8292 | ADI     | CLEORA                |           6 |            8 | warna       | bukan_warna |
-    |  2698 | ADI     | CARBON                |           6 |            6 | warna       | bukan_warna |
-    |  1159 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 12263 | ADI     | CLSC                  |           1 |            4 | bukan_warna | warna       |
-    | 16660 | ADI     | FTWWHT                |           6 |            8 | warna       | bukan_warna |
-    | 26231 | NIK     | PINK                  |           7 |            9 | warna       | bukan_warna |
-    | 15600 | ADI     | SPEEDFLOW.3           |           2 |            5 | bukan_warna | warna       |
-    | 19926 | CAO     | 2B1DR                 |           3 |            3 | bukan_warna | warna       |
-    |   536 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  1066 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  1134 | ADI     | GREONE                |           2 |            4 | warna       | bukan_warna |
-    | 54184 | PUM     | FIGC                  |           1 |            7 | bukan_warna | warna       |
-    |  2828 | ADI     | SOBAKOV               |           1 |            4 | bukan_warna | warna       |
-    |  5793 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 12666 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |   969 | ADI     | SHOYEL                |           6 |            7 | warna       | bukan_warna |
-    | 10249 | ADI     | GLOW                  |           2 |            3 | warna       | bukan_warna |
-    | 42963 | NIK     | PINK                  |           5 |            9 | warna       | bukan_warna |
-    |  4132 | ADI     | LEGINK                |           6 |            7 | warna       | bukan_warna |
-    | 45362 | NIK     | BROWN                 |           6 |           10 | warna       | bukan_warna |
-    | 54527 | REL     | 49                    |           7 |            7 | warna       | bukan_warna |
-    |  2784 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 50317 | PUM     | INTERFLEX             |           1 |            5 | bukan_warna | warna       |
-    |   558 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |  2074 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 36635 | NIK     | PURPLE                |           9 |            9 | warna       | bukan_warna |
-    |  1930 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 21469 | HER     | IVY                   |           2 |            5 | warna       | bukan_warna |
-    | 10134 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  1031 | ADI     | BLUTIN                |           3 |            5 | warna       | bukan_warna |
-    |  7915 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 41253 | NIK     | PINK                  |           7 |           10 | warna       | bukan_warna |
-    | 46493 | NIK     | PINK                  |           7 |           11 | warna       | bukan_warna |
-    | 52162 | PUM     | LEADCAT               |           1 |            9 | bukan_warna | warna       |
-    | 30229 | NIK     | LUNARCHARGE           |           2 |            8 | bukan_warna | warna       |
-    | 36821 | NIK     | NAVY                  |           5 |            7 | warna       | bukan_warna |
-    |  1276 | ADI     | GREONE                |           6 |            6 | warna       | bukan_warna |
-    | 14131 | ADI     | X9000L4               |           1 |            5 | bukan_warna | warna       |
-    | 30705 | NIK     | CARBON                |           9 |           10 | warna       | bukan_warna |
-    | 56002 | UME     | UMBRE                 |           1 |            3 | bukan_warna | warna       |
-    | 10424 | ADI     | CORE                  |           2 |            7 | warna       | bukan_warna |
-    |  7764 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  5372 | ADI     | CARBON                |           6 |            6 | warna       | bukan_warna |
-    | 11241 | ADI     | S.RDY                 |           2 |            5 | bukan_warna | warna       |
-    | 52652 | PUM     | GLOW                  |           4 |            6 | warna       | bukan_warna |
-    |  7565 | ADI     | VAPGRE                |           5 |            5 | warna       | bukan_warna |
-    | 13824 | ADI     | SENSE.3               |           2 |            5 | bukan_warna | warna       |
-    | 46841 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    | 54557 | REL     | 49                    |           6 |            6 | warna       | bukan_warna |
-    |   519 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 10029 | ADI     | ASH                   |           3 |            4 | warna       | bukan_warna |
-    |  1655 | ADI     | SILVMT                |           7 |            8 | warna       | bukan_warna |
-    |   479 | ADI     | CCMELS                |           3 |            3 | warna       | bukan_warna |
-    |  2338 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  2883 | ADI     | SILVMT                |           5 |            6 | warna       | bukan_warna |
-    |  1361 | ADI     | BLUTIN                |           5 |            7 | warna       | bukan_warna |
-    | 16247 | ADI     | MULTICOLOR            |           2 |            2 | bukan_warna | warna       |
-    | 20155 | CAO     | 5600BBMA              |           2 |            3 | bukan_warna | warna       |
-    |  4035 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 21042 | HER     | 600D                  |           2 |            4 | warna       | bukan_warna |
-    |  3659 | ADI     | SILVMT                |           6 |            6 | warna       | bukan_warna |
-    | 29426 | NIK     | PINK                  |           8 |            8 | warna       | bukan_warna |
-    | 35206 | NIK     | BROWN                 |          12 |           12 | warna       | bukan_warna |
-    | 44628 | NIK     | NAVY                  |           7 |            9 | warna       | bukan_warna |
-    |  2575 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 56521 | WAR     | PINK                  |           3 |            3 | warna       | bukan_warna |
-    | 22789 | KIP     | BROWN                 |           3 |            4 | warna       | bukan_warna |
-    |  5488 | ADI     | CBROWN                |           4 |            6 | warna       | bukan_warna |
-    |  2592 | ADI     | ICEPUR                |           2 |            4 | warna       | bukan_warna |
-    |  5265 | ADI     | CONAVY                |           4 |            6 | warna       | bukan_warna |
-    |  7372 | ADI     | SGREEN                |           2 |            4 | warna       | bukan_warna |
-    | 13706 | ADI     | SPEEDFLOW.3           |           2 |            5 | bukan_warna | warna       |
-    | 56715 | WAR     | MINT                  |           2 |            5 | warna       | bukan_warna |
-    | 27571 | NIK     | HYPERVENOM            |           1 |           10 | bukan_warna | warna       |
-    |  1697 | ADI     | CONAVY                |           4 |            4 | warna       | bukan_warna |
-    |  9989 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |   824 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 27515 | NIK     | PINK                  |           6 |            9 | warna       | bukan_warna |
-    |  8701 | ADI     | CONAVY                |           4 |            5 | warna       | bukan_warna |
-    | 15937 | ADI     | FUSIO                 |           2 |            4 | bukan_warna | warna       |
-    |  2552 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 25205 | NIK     | HYPERVENOM            |           1 |            9 | bukan_warna | warna       |
-    |   319 | ADI     | CLEMIN                |           6 |            6 | warna       | bukan_warna |
-    |  8451 | ADI     | ASH                   |           3 |            5 | warna       | bukan_warna |
-    | 30620 | NIK     | PINK                  |          10 |           12 | warna       | bukan_warna |
-    | 20727 | CAO     | S6900MC               |           2 |            3 | bukan_warna | warna       |
-    | 10336 | ADI     | MAROON                |           2 |            2 | warna       | bukan_warna |
-    | 50705 | PUM     | TSUGI                 |           1 |            6 | bukan_warna | warna       |
-    | 16826 | ADI     | FORTAPLAY             |           1 |            6 | bukan_warna | warna       |
-    | 55080 | SOC     | SNIPPLE               |           1 |            5 | bukan_warna | warna       |
-    |  4418 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 13012 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 30510 | NIK     | AROBILL               |           3 |           13 | bukan_warna | warna       |
-    | 15466 | ADI     | SAVANNAH              |           2 |            2 | warna       | bukan_warna |
-    | 54951 | SAU     | TAN                   |           2 |            3 | warna       | bukan_warna |
-    | 22780 | KIP     | SHADOW                |           2 |            4 | warna       | bukan_warna |
-    |  8171 | ADI     | ASHSIL                |           6 |            7 | warna       | bukan_warna |
-    | 15766 | ADI     | CHALK                 |           2 |            3 | warna       | bukan_warna |
-    | 41161 | NIK     | PINK                  |           8 |            9 | warna       | bukan_warna |
-    |  1914 | ADI     | DKBLUE                |           3 |            5 | warna       | bukan_warna |
-    | 14592 | ADI     | WAISTBAG              |           1 |            4 | bukan_warna | warna       |
-    | 56226 | WAR     | ORANGE                |           2 |            5 | bukan_warna | warna       |
-    | 20660 | CAO     | 200RD                 |           2 |            3 | bukan_warna | warna       |
-    |  7638 | ADI     | QTFLEX                |           2 |            6 | bukan_warna | warna       |
-    | 56112 | WAR     | RED                   |           1 |            7 | bukan_warna | warna       |
-    | 16801 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  4808 | ADI     | SHOBLU                |           6 |            8 | warna       | bukan_warna |
-    | 50982 | PUM     | TSUGI                 |           1 |            9 | bukan_warna | warna       |
-    |  9134 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    |  7286 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |  7748 | ADI     | LTPINK                |           5 |            6 | warna       | bukan_warna |
-    |  4385 | ADI     | GREFIV                |           4 |            5 | warna       | bukan_warna |
-    |  4600 | ADI     | GREONE                |           4 |            6 | warna       | bukan_warna |
-    | 39962 | NIK     | PINK                  |           9 |           11 | warna       | bukan_warna |
-    |  6642 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 32645 | NIK     | BROWN                 |           5 |            9 | warna       | bukan_warna |
-    |  1728 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |  1071 | ADI     | FTWR                  |           4 |            5 | warna       | bukan_warna |
-    |  3245 | ADI     | GREFIV                |           6 |            6 | warna       | bukan_warna |
-    | 56014 | VAP     | 0.7L                  |           1 |            5 | bukan_warna | warna       |
-    | 10359 | ADI     | FORTARUN              |           1 |            5 | bukan_warna | warna       |
-    | 35720 | NIK     | PINK                  |          12 |           12 | warna       | bukan_warna |
-    | 29432 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 11491 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 28249 | NIK     | GLOW                  |          10 |           12 | warna       | bukan_warna |
-    |  7677 | ADI     | CRYWHT                |           6 |            7 | warna       | bukan_warna |
-    | 56649 | WAR     | 140CM                 |           1 |            4 | bukan_warna | warna       |
-    |  7988 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 14005 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    | 43477 | NIK     | PINK                  |           7 |            9 | warna       | bukan_warna |
-    |  1063 | ADI     | SAMBAROSE             |           1 |            5 | bukan_warna | warna       |
-    | 14073 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 12260 | ADI     | CLSC                  |           1 |            4 | bukan_warna | warna       |
-    | 17198 | AGL     | YELLOW                |           2 |            5 | bukan_warna | warna       |
-    | 11359 | ADI     | C40                   |           2 |            4 | bukan_warna | warna       |
-    |  4108 | ADI     | SOLRED                |           6 |            8 | warna       | bukan_warna |
-    | 20466 | CAO     | 2110ET                |           2 |            3 | bukan_warna | warna       |
-    | 11293 | ADI     | PINK                  |           2 |            3 | warna       | bukan_warna |
-    | 16824 | ADI     | ICEPNK                |           5 |            6 | warna       | bukan_warna |
-    | 43632 | NIK     | PINK                  |           9 |           12 | warna       | bukan_warna |
-    | 50395 | PUM     | PUMA                  |           2 |            5 | warna       | bukan_warna |
-    |  6090 | ADI     | GREFIV                |           5 |            6 | warna       | bukan_warna |
-    | 34700 | NIK     | EBERNON               |           2 |            5 | bukan_warna | warna       |
-    |  7745 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 32998 | NIK     | 23                    |          10 |           11 | warna       | bukan_warna |
-    |  6907 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  1686 | ADI     | ORCTIN                |           5 |            6 | warna       | bukan_warna |
-    | 20168 | CAO     | 8DR                   |           3 |            3 | bukan_warna | warna       |
-    |  7978 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  1257 | ADI     | PROPHERE              |           1 |            4 | bukan_warna | warna       |
-    | 31343 | NIK     | BROWN                 |          10 |           10 | warna       | bukan_warna |
-    |   895 | ADI     | CONFED                |           1 |            6 | bukan_warna | warna       |
-    |  2861 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 12714 | ADI     | CTY                   |           2 |            4 | bukan_warna | warna       |
-    | 48075 | PTG     | ORANGE                |           2 |            3 | bukan_warna | warna       |
-    | 20988 | HER     | NAVY                  |           4 |            5 | warna       | bukan_warna |
-    |  8818 | ADI     | CONEXT19              |           1 |            3 | bukan_warna | warna       |
-    |  3965 | ADI     | CONAVY                |           4 |            5 | warna       | bukan_warna |
-    |  5718 | ADI     | ALTARUN               |           1 |            7 | bukan_warna | warna       |
-    | 28969 | NIK     | CARBON                |           8 |           10 | warna       | bukan_warna |
-    | 20987 | HER     | 600D                  |           2 |            5 | warna       | bukan_warna |
-    |  2834 | ADI     | SHOPNK                |           6 |            7 | warna       | bukan_warna |
-    | 25550 | NIK     | MERCURIALX            |           1 |           12 | bukan_warna | warna       |
-    |  2307 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  6603 | ADI     | FTWWHT                |           8 |            8 | warna       | bukan_warna |
-    | 22828 | KIP     | VANILLA               |           2 |            4 | warna       | bukan_warna |
-    | 12025 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  9534 | ADI     | CONAVY                |           2 |            2 | warna       | bukan_warna |
-    |  4237 | ADI     | GREFIV                |           5 |            5 | warna       | bukan_warna |
-    |  9537 | ADI     | CONAVY                |           3 |            3 | warna       | bukan_warna |
-    | 19829 | CAO     | AW5914ADR             |           2 |            3 | bukan_warna | warna       |
-    | 54953 | SAU     | BRN                   |           2 |            3 | warna       | bukan_warna |
-    |  1135 | ADI     | GREONE                |           3 |            4 | warna       | bukan_warna |
-    |  1810 | ADI     | REAMAG                |           3 |            5 | warna       | bukan_warna |
-    | 38103 | NIK     | PINK                  |           7 |           11 | warna       | bukan_warna |
-    | 42240 | NIK     | BROWN                 |          10 |           10 | warna       | bukan_warna |
-    | 33926 | NIK     | PINK                  |           8 |            8 | warna       | bukan_warna |
-    |  2581 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 45351 | NIK     | NAVY                  |           9 |           10 | warna       | bukan_warna |
-    | 56661 | WAR     | THE                   |           2 |            5 | warna       | bukan_warna |
-    | 46828 | NIK     | BROWN                 |           7 |           10 | warna       | bukan_warna |
-    |  4411 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  3866 | ADI     | REARED                |           4 |            5 | warna       | bukan_warna |
-    |  1751 | ADI     | FORTARUN              |           1 |            7 | bukan_warna | warna       |
-    |  1609 | ADI     | CBURGU                |           4 |            5 | warna       | bukan_warna |
-    | 21032 | HER     | NAVY                  |           3 |            6 | warna       | bukan_warna |
-    |  2047 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  7864 | ADI     | CARBON                |           4 |            6 | warna       | bukan_warna |
-    |  8313 | ADI     | OWHITE                |           5 |            7 | warna       | bukan_warna |
-    |  4222 | ADI     | SESAME                |           5 |            7 | warna       | bukan_warna |
-    |  5715 | ADI     | PROPHERE              |           1 |            4 | bukan_warna | warna       |
-    | 29687 | NIK     | BROWN                 |           8 |            8 | warna       | bukan_warna |
-    | 10996 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 32901 | NIK     | HYPERVENOM            |           1 |           10 | bukan_warna | warna       |
-    | 19810 | BEA     | BE@RBRICK             |           1 |            6 | bukan_warna | warna       |
-    |  9636 | ADI     | INF                   |           2 |            3 | bukan_warna | warna       |
-    |  8622 | ADI     | LEGINK                |           7 |            7 | warna       | bukan_warna |
-    |  6806 | ADI     | CARBON                |           6 |            8 | warna       | bukan_warna |
-    |  5324 | ADI     | FTWWHT                |           7 |            8 | warna       | bukan_warna |
-    | 54017 | PUM     | FIGC                  |           1 |            6 | bukan_warna | warna       |
-    |  7049 | ADI     | CARBON                |           5 |            6 | warna       | bukan_warna |
-    |  3677 | ADI     | REARED                |           5 |            7 | warna       | bukan_warna |
-    |  3314 | ADI     | FTWWHT                |           2 |            4 | warna       | bukan_warna |
-    | 23451 | NIC     | NAVY                  |          10 |           14 | warna       | bukan_warna |
-    | 56022 | VAP     | 0.7L                  |           1 |            4 | bukan_warna | warna       |
-    |  5509 | ADI     | SCARLE                |           5 |            7 | warna       | bukan_warna |
-    | 46128 | NIK     | BROWN                 |           8 |           10 | warna       | bukan_warna |
-    | 52579 | PUM     | PINK                  |           5 |            8 | warna       | bukan_warna |
-    | 42952 | NIK     | PINK                  |           5 |            9 | warna       | bukan_warna |
-    |   725 | ADI     | CLEORA                |           6 |            7 | warna       | bukan_warna |
-    | 13687 | ADI     | X9000L4               |           1 |            3 | bukan_warna | warna       |
-    | 52297 | PUM     | PURPLE                |           4 |            7 | warna       | bukan_warna |
-    | 22374 | KIP     | F17                   |           2 |            4 | bukan_warna | warna       |
-    | 15047 | ADI     | WAISTBAG              |           1 |            2 | bukan_warna | warna       |
-    |  6346 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    |  1115 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 23997 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 14544 | ADI     | WHT                   |           3 |            3 | warna       | bukan_warna |
-    | 27059 | NIK     | MAGISTAX              |           1 |            8 | bukan_warna | warna       |
-    | 16588 | ADI     | X9000L4               |           1 |            4 | bukan_warna | warna       |
-    |  2569 | ADI     | OWHITE                |           4 |            6 | warna       | bukan_warna |
-    | 42549 | NIK     | PINK                  |           7 |            8 | warna       | bukan_warna |
-    | 56000 | UME     | UMBRE                 |           1 |            3 | bukan_warna | warna       |
-    |  6760 | ADI     | TRACAR                |           4 |            4 | warna       | bukan_warna |
-    | 24924 | NIK     | YTH                   |           2 |            9 | bukan_warna | warna       |
-    |  5500 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  1407 | ADI     | CARGO                 |           4 |            4 | warna       | bukan_warna |
-    |  6566 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  2001 | ADI     | NGTCAR                |           4 |            6 | warna       | bukan_warna |
-    | 52039 | PUM     | PURPLE                |           5 |            7 | warna       | bukan_warna |
-    | 12481 | ADI     | UNIFO                 |           1 |            3 | bukan_warna | warna       |
-    | 27134 | NIK     | OBRA                  |           2 |           10 | bukan_warna | warna       |
-    |  1206 | ADI     | S3.1                  |           2 |            5 | bukan_warna | warna       |
-    | 28657 | NIK     | RUNALLDAY             |           2 |            6 | bukan_warna | warna       |
-    |  3694 | ADI     | LEGINK                |           5 |            5 | warna       | bukan_warna |
-    | 51354 | PUM     | PURPLE                |           6 |            7 | warna       | bukan_warna |
-    |  8359 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 21603 | HER     | DARK                  |           2 |            5 | warna       | bukan_warna |
-    |  7274 | ADI     | SESAME                |           2 |            4 | warna       | bukan_warna |
-    |  4699 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  4879 | ADI     | HIRERE                |           4 |            6 | warna       | bukan_warna |
-    | 49263 | PUM     | GAVETTO               |           1 |            9 | bukan_warna | warna       |
-    | 26239 | NIK     | MERCURIALX            |           2 |           10 | bukan_warna | warna       |
-    |  7870 | ADI     | VAPGRE                |           7 |            7 | warna       | bukan_warna |
-    | 36627 | NIK     | NAVY                  |           5 |            8 | warna       | bukan_warna |
-    |  6586 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 55463 | STN     | JOVEN                 |           2 |            4 | bukan_warna | warna       |
-    | 43556 | NIK     | PINK                  |          10 |           12 | warna       | bukan_warna |
-    | 46663 | NIK     | ASUNK                 |           1 |            8 | bukan_warna | warna       |
-    | 21604 | HER     | BROWN                 |           5 |            5 | warna       | bukan_warna |
-    | 19524 | BBC     | BLEACHED              |           1 |            6 | bukan_warna | warna       |
-    | 42311 | NIK     | PURPLE                |           7 |           11 | warna       | bukan_warna |
-    | 46829 | NIK     | BROWN                 |           9 |           10 | warna       | bukan_warna |
-    | 25646 | NIK     | PINK                  |           7 |           11 | warna       | bukan_warna |
-    | 13069 | ADI     | BROWN                 |           4 |            4 | warna       | bukan_warna |
-    |  6399 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 54661 | REL     | 35                    |           5 |            5 | warna       | bukan_warna |
-    | 10576 | ADI     | SAND                  |           2 |            2 | warna       | bukan_warna |
-    |  3490 | ADI     | SHOCK                 |           2 |            3 | warna       | bukan_warna |
-    | 30736 | NIK     | PURPLE                |           6 |            8 | warna       | bukan_warna |
-    |  9936 | ADI     | MAGMUR                |           1 |            6 | bukan_warna | warna       |
-    | 21085 | HER     | POLY                  |           2 |            5 | warna       | bukan_warna |
-    | 10316 | ADI     | OWNTHEGAME            |           1 |            3 | bukan_warna | warna       |
-    |  5879 | ADI     | NOBMAR                |           5 |            6 | warna       | bukan_warna |
-    |  1563 | ADI     | RAWGRE                |           4 |            5 | warna       | bukan_warna |
-    | 21685 | HER     | NIGHT                 |           2 |            3 | warna       | bukan_warna |
-    | 16626 | ADI     | OWHITE                |           7 |            7 | warna       | bukan_warna |
-    |   800 | ADI     | CONAVY                |           3 |            5 | warna       | bukan_warna |
-    | 45342 | NIK     | ELMNTL                |           2 |           10 | bukan_warna | warna       |
-    | 21037 | HER     | 600D                  |           2 |            4 | warna       | bukan_warna |
-    |   857 | ADI     | FTWWHT                |           2 |            4 | warna       | bukan_warna |
-    |  6195 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  7052 | ADI     | CRYWHT                |           4 |            6 | warna       | bukan_warna |
-    | 23757 | NIK     | BROWN                 |          10 |           10 | warna       | bukan_warna |
-    | 24983 | NIK     | MERCURIALX            |           2 |           12 | bukan_warna | warna       |
-    |  4815 | ADI     | GREFIV                |           6 |            6 | warna       | bukan_warna |
-    |  5818 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  7740 | ADI     | RAWGRE                |           6 |            6 | warna       | bukan_warna |
-    | 30907 | NIK     | BROWN                 |          11 |           12 | warna       | bukan_warna |
-    | 11704 | ADI     | FTWWHT                |           4 |            4 | warna       | bukan_warna |
-    | 54031 | PUM     | BORUSSE               |           2 |            7 | bukan_warna | warna       |
-    | 10910 | ADI     | MUTATOR               |           2 |            7 | bukan_warna | warna       |
-    |  8523 | ADI     | CBURGU                |           5 |            5 | warna       | bukan_warna |
-    |  5159 | ADI     | SHOEBAG               |           2 |            4 | bukan_warna | warna       |
-    |  2438 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  6852 | ADI     | PROPHERE              |           1 |            5 | bukan_warna | warna       |
-    | 15190 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  2866 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 14069 | ADI     | SAMBAROSE             |           1 |            4 | bukan_warna | warna       |
-    |  8479 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 54612 | REL     | 35                    |           7 |            7 | warna       | bukan_warna |
-    | 27193 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    | 28689 | NIK     | GLOW                  |           9 |           11 | warna       | bukan_warna |
-    | 12923 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 20513 | CAO     | 3ADR                  |           3 |            3 | bukan_warna | warna       |
-    |  6772 | ADI     | OWHITE                |           7 |            7 | warna       | bukan_warna |
-    | 14727 | ADI     | LEGEND                |           2 |            3 | warna       | bukan_warna |
-    |  6770 | ADI     | CBROWN                |           5 |            7 | warna       | bukan_warna |
-    |  1899 | ADI     | HIRAQU                |           3 |            5 | warna       | bukan_warna |
-    |  4254 | ADI     | CONAVY                |           6 |            6 | warna       | bukan_warna |
-    |  7958 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  1900 | ADI     | HIRAQU                |           4 |            5 | warna       | bukan_warna |
-    | 22378 | KIP     | F17                   |           2 |            4 | bukan_warna | warna       |
-    | 33814 | NIK     | EXPZ07WHITE           |           2 |            3 | warna       | bukan_warna |
-    |  1022 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  7805 | ADI     | CARBON                |           4 |            6 | warna       | bukan_warna |
-    | 20055 | CAO     | 560CF                 |           2 |            3 | bukan_warna | warna       |
-    |  6551 | ADI     | FTWWHT                |           7 |            9 | warna       | bukan_warna |
-    |  2207 | ADI     | TURBO                 |           6 |            6 | warna       | bukan_warna |
-    | 21386 | HER     | BRBDSCHRY             |           2 |            3 | warna       | bukan_warna |
-    |  2424 | ADI     | TURBO                 |           7 |            7 | warna       | bukan_warna |
-    |  5505 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 12835 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |  1216 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  7389 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 17813 | AGL     | AGLXYXHONU            |           1 |            2 | bukan_warna | warna       |
-    | 46731 | NIK     | CARBON                |           5 |           10 | warna       | bukan_warna |
-    |  6474 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  2448 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  1862 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  5295 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  5204 | ADI     | TRAPNK                |           5 |            6 | warna       | bukan_warna |
-    |  7371 | ADI     | PROPHERE              |           1 |            4 | bukan_warna | warna       |
-    | 11314 | ADI     | MUTATOR               |           2 |            6 | bukan_warna | warna       |
-    | 10320 | ADI     | CORE                  |           2 |            7 | warna       | bukan_warna |
-    |  3183 | ADI     | MYSINK                |           7 |            7 | warna       | bukan_warna |
-    | 28665 | NIK     | RUNALLDAY             |           2 |            5 | bukan_warna | warna       |
-    | 35213 | NIK     | GLOW                  |          10 |           10 | warna       | bukan_warna |
-    |  5170 | ADI     | FEF                   |           1 |            5 | bukan_warna | warna       |
-    | 16112 | ADI     | VAPOUR                |           2 |            3 | warna       | bukan_warna |
-    | 50313 | PUM     | INTERFLEX             |           1 |            6 | bukan_warna | warna       |
-    |  4572 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  1911 | ADI     | GREFIV                |           6 |            6 | warna       | bukan_warna |
-    | 13184 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    | 11545 | ADI     | ACTIVE                |           3 |            4 | warna       | bukan_warna |
-    |  9705 | ADI     | ASH                   |           3 |            5 | warna       | bukan_warna |
-    | 43926 | NIK     | NAVY                  |           8 |            8 | warna       | bukan_warna |
-    |  4659 | ADI     | BOAQUA                |           2 |            4 | warna       | bukan_warna |
-    | 38771 | NIK     | BROWN                 |          10 |           10 | warna       | bukan_warna |
-    | 41345 | NIK     | PURPLE                |          12 |           12 | warna       | bukan_warna |
-    | 54733 | REL     | 49                    |           7 |            8 | warna       | bukan_warna |
-    |  2588 | ADI     | CONAVY                |           2 |            4 | warna       | bukan_warna |
-    |  1725 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  5329 | ADI     | SOLRED                |           6 |            8 | warna       | bukan_warna |
-    |  4867 | ADI     | LEGINK                |           5 |            5 | warna       | bukan_warna |
-    |  6884 | ADI     | GREFOU                |           4 |            5 | warna       | bukan_warna |
-    |  4083 | ADI     | ICEPNK                |           4 |            6 | warna       | bukan_warna |
-    |  2357 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |   674 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 22824 | KIP     | VANILLA               |           2 |            4 | warna       | bukan_warna |
-    |   273 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 46230 | NIK     | NAVY                  |           7 |            9 | warna       | bukan_warna |
-    |   577 | ADI     | HIRAQU                |           6 |            6 | warna       | bukan_warna |
-    | 21106 | HER     | POLY                  |           2 |            4 | warna       | bukan_warna |
-    | 48162 | PTG     | GREEN                 |           2 |            3 | bukan_warna | warna       |
-    |  6086 | ADI     | HIRERE                |           6 |            6 | warna       | bukan_warna |
-    |  5236 | ADI     | C40                   |           1 |            8 | bukan_warna | warna       |
-    |   408 | ADI     | ANTH                  |           2 |            8 | bukan_warna | warna       |
-    | 21755 | HER     | KHAKIGR               |           2 |            2 | warna       | bukan_warna |
-    |   731 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 46947 | NIK     | STRK                  |           2 |            7 | bukan_warna | warna       |
-    | 21982 | HER     | FLORAL                |           2 |            3 | warna       | bukan_warna |
-    |  2268 | ADI     | MYSINK                |           6 |            7 | warna       | bukan_warna |
-    | 42234 | NIK     | NAVY                  |           6 |           10 | warna       | bukan_warna |
-    | 24523 | NIK     | ANTHRACITE            |           3 |            5 | warna       | bukan_warna |
-    |   778 | ADI     | SCARLE                |           4 |            6 | warna       | bukan_warna |
-    | 17938 | AND     | BROWN                 |           4 |            4 | warna       | bukan_warna |
-    | 11697 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 54636 | REL     | 35                    |           6 |            6 | warna       | bukan_warna |
-    |  2653 | ADI     | FTWWHT                |           4 |            4 | warna       | bukan_warna |
-    |  2910 | ADI     | ONIX                  |           4 |            5 | warna       | bukan_warna |
-    |  3701 | ADI     | CROYAL                |           5 |            5 | warna       | bukan_warna |
-    | 50320 | PUM     | INTERFLEX             |           1 |            5 | bukan_warna | warna       |
-    | 51120 | PUM     | TSUGI                 |           1 |            4 | bukan_warna | warna       |
-    |   236 | ADI     | WHITIN                |           7 |            7 | warna       | bukan_warna |
-    | 23016 | KIP     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    |  2909 | ADI     | CARBON                |           3 |            5 | warna       | bukan_warna |
-    | 16935 | ADI     | LEGINK                |           7 |            7 | warna       | bukan_warna |
-    |  4020 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  1186 | ADI     | S3.1                  |           2 |            5 | bukan_warna | warna       |
-    |  6845 | ADI     | OWHITE                |           6 |            7 | warna       | bukan_warna |
-    | 52023 | PUM     | ANZARUN               |           1 |            6 | bukan_warna | warna       |
-    | 21517 | HER     | SNW                   |           2 |            3 | warna       | bukan_warna |
-    | 22725 | KIP     | FS68                  |           1 |            4 | bukan_warna | warna       |
-    | 21170 | HER     | 1751                  |           5 |            7 | bukan_warna | warna       |
-    | 12117 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  2479 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  6943 | ADI     | HIRERE                |           4 |            6 | warna       | bukan_warna |
-    | 39041 | NIK     | PINK                  |           8 |           11 | warna       | bukan_warna |
-    | 47169 | NIK     | STRK                  |           2 |            8 | bukan_warna | warna       |
-    |  1830 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 12683 | ADI     | NAVY                  |           3 |            3 | warna       | bukan_warna |
-    |  6514 | ADI     | GREONE                |           4 |            5 | warna       | bukan_warna |
-    | 13709 | ADI     | SPEEDFLOW.3           |           2 |            5 | bukan_warna | warna       |
-    | 32639 | NIK     | BROWN                 |           9 |            9 | warna       | bukan_warna |
-    |   588 | ADI     | CARBON                |           5 |            6 | warna       | bukan_warna |
-    |   777 | ADI     | INF                   |           3 |            6 | bukan_warna | warna       |
-    | 48114 | PTG     | NAVY                  |           8 |            8 | warna       | bukan_warna |
-    | 40901 | NIK     | GLOW                  |          11 |           11 | warna       | bukan_warna |
-    | 14243 | ADI     | CORE                  |           2 |            7 | warna       | bukan_warna |
-    |   275 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 20256 | CAO     | 8DR                   |           3 |            4 | bukan_warna | warna       |
-    | 18825 | BBC     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |  1264 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 35587 | NIK     | PINK                  |          10 |           11 | warna       | bukan_warna |
-    | 39749 | NIK     | ATSUMA                |           2 |            8 | bukan_warna | warna       |
-    |  9908 | ADI     | FUTUREPACER           |           1 |            3 | bukan_warna | warna       |
-    |  1239 | ADI     | S3.1                  |           2 |            5 | bukan_warna | warna       |
-    |  7116 | ADI     | POWRED                |           5 |            5 | warna       | bukan_warna |
-    | 10328 | ADI     | ACTIVE                |           2 |            3 | warna       | bukan_warna |
-    |  4573 | ADI     | GREONE                |           7 |            7 | warna       | bukan_warna |
-    | 44562 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 15225 | ADI     | NAVY                  |           6 |            6 | warna       | bukan_warna |
-    | 37802 | NIK     | PINK                  |           7 |           12 | warna       | bukan_warna |
-    | 54549 | REL     | 49                    |           8 |            8 | warna       | bukan_warna |
-    | 27543 | NIK     | MERCURIALX            |           1 |           11 | bukan_warna | warna       |
-    | 46696 | NIK     | PURPLE                |          10 |           10 | warna       | bukan_warna |
-    |  3316 | ADI     | BLUSPI                |           4 |            4 | warna       | bukan_warna |
-    | 33002 | NIK     | NAVY                  |          10 |           11 | warna       | bukan_warna |
-    | 51532 | PUM     | PINK                  |           7 |            7 | warna       | bukan_warna |
-    |  5902 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  1152 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 48475 | PUM     | EVOSPEED              |           1 |            8 | bukan_warna | warna       |
-    |   263 | ADI     | BLUSPI                |           5 |            5 | warna       | bukan_warna |
-    |   244 | ADI     | CARBON                |           3 |            4 | warna       | bukan_warna |
-    |  8771 | ADI     | CONEXT19              |           1 |            3 | bukan_warna | warna       |
-    | 16288 | ADI     | BLK                   |           2 |            5 | bukan_warna | warna       |
-    | 13114 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    | 22701 | KIP     | FS66                  |           1 |            5 | bukan_warna | warna       |
-    | 21174 | HER     | RED                   |           4 |            8 | bukan_warna | warna       |
-    |  5607 | ADI     | SUPPNK                |           4 |            6 | warna       | bukan_warna |
-    |  5285 | ADI     | BLUSPI                |           5 |            5 | warna       | bukan_warna |
-    |  5608 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  5471 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  7761 | ADI     | FTWWHT                |           4 |            4 | warna       | bukan_warna |
-    | 35941 | NIK     | GLOW                  |           9 |            9 | warna       | bukan_warna |
-    | 17081 | ADI     | ADISOCK               |           1 |            4 | bukan_warna | warna       |
-    |  9755 | ADI     | PINK                  |           4 |            5 | warna       | bukan_warna |
-    |  3993 | ADI     | GREONE                |           6 |            6 | warna       | bukan_warna |
-    |  4283 | ADI     | SCARLE                |           6 |            6 | warna       | bukan_warna |
-    | 11176 | ADI     | X9000L3               |           1 |            4 | bukan_warna | warna       |
-    | 40776 | NIK     | BROWN                 |          11 |           11 | warna       | bukan_warna |
-    | 21034 | HER     | 600D                  |           2 |            5 | warna       | bukan_warna |
-    |  1471 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 13299 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  1715 | ADI     | OWHITE                |           5 |            5 | warna       | bukan_warna |
-    | 29098 | NIK     | 8ASHEN                |           3 |            6 | warna       | bukan_warna |
-    | 40232 | NIK     | GLOW                  |           7 |           11 | warna       | bukan_warna |
-    | 54901 | SAU     | LOWPRO                |           2 |            4 | bukan_warna | warna       |
-    | 44227 | NIK     | PURPLE                |           7 |            9 | warna       | bukan_warna |
-    | 39284 | NIK     | PURPLE                |           8 |            8 | warna       | bukan_warna |
-    | 16035 | ADI     | OWNTHEGAME            |           1 |            4 | bukan_warna | warna       |
-    |  8669 | ADI     | CARBON                |           4 |            5 | warna       | bukan_warna |
-    |  6470 | ADI     | SILVMT                |           7 |            7 | warna       | bukan_warna |
-    |  6764 | ADI     | CARBON                |           5 |            7 | warna       | bukan_warna |
-    |  1527 | ADI     | CARBON                |           5 |            6 | warna       | bukan_warna |
-    |  7910 | ADI     | GREONE                |           5 |            6 | warna       | bukan_warna |
-    | 55984 | UME     | UMBRE                 |           1 |            5 | bukan_warna | warna       |
-    |  2531 | ADI     | SILVMT                |           5 |            5 | warna       | bukan_warna |
-    |  4389 | ADI     | GREONE                |           3 |            5 | warna       | bukan_warna |
-    | 31116 | NIK     | ANTHRACITE            |           3 |            6 | warna       | bukan_warna |
-    | 35227 | NIK     | PURPLE                |           5 |            8 | warna       | bukan_warna |
-    | 31261 | NIK     | VARSITY               |           2 |            6 | warna       | bukan_warna |
-    | 18808 | BBC     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    |  9246 | ADI     | 2PP                   |           3 |            5 | bukan_warna | warna       |
-    | 27576 | NIK     | HYPERVENOM            |           1 |            9 | bukan_warna | warna       |
-    | 55555 | STN     | LOGOMAN               |           2 |            5 | bukan_warna | warna       |
-    |  4620 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  1663 | ADI     | SILVMT                |           7 |            8 | warna       | bukan_warna |
-    | 21384 | HER     | ASH                   |           2 |            3 | warna       | bukan_warna |
-    | 32114 | NIK     | OBRAX                 |           1 |           10 | bukan_warna | warna       |
-    |  3783 | ADI     | EQTGRN                |           4 |            6 | warna       | bukan_warna |
-    | 54724 | REL     | 35                    |           5 |            6 | warna       | bukan_warna |
-    |  1514 | ADI     | GREONE                |           4 |            6 | warna       | bukan_warna |
-    |  2403 | ADI     | OWHITE                |           8 |            8 | warna       | bukan_warna |
-    | 55759 | STN     | RASTA                 |           2 |            2 | warna       | bukan_warna |
-    | 51322 | PUM     | LEADCAT               |           1 |            6 | bukan_warna | warna       |
-    | 41607 | NIK     | PINK                  |           9 |           10 | warna       | bukan_warna |
-    |   535 | ADI     | MGSOGR                |           4 |            5 | warna       | bukan_warna |
-    |  2267 | ADI     | MYSINK                |           5 |            7 | warna       | bukan_warna |
-    |  3843 | ADI     | PETNIT                |           4 |            6 | warna       | bukan_warna |
-    |  9519 | ADI     | FL_SPR                |           1 |            6 | bukan_warna | warna       |
-    |  1020 | ADI     | S3.1                  |           2 |            5 | bukan_warna | warna       |
-    | 13308 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 13296 | ADI     | X9000L4               |           1 |            3 | bukan_warna | warna       |
-    |  4141 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  3088 | ADI     | OWHITE                |           6 |            7 | warna       | bukan_warna |
-    |  3715 | ADI     | GREFIV                |           6 |            6 | warna       | bukan_warna |
-    | 16153 | ADI     | WAISTBAG              |           1 |            3 | bukan_warna | warna       |
-    |  7816 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 16063 | ADI     | PRIMEBLUE             |           2 |            4 | warna       | bukan_warna |
-    |  2227 | ADI     | MYSINK                |           4 |            6 | warna       | bukan_warna |
-    |   656 | ADI     | BGREEN                |           7 |            7 | warna       | bukan_warna |
-    |  1386 | ADI     | PROPHERE              |           1 |            4 | bukan_warna | warna       |
-    |   873 | ADI     | VAPGRE                |           4 |            6 | warna       | bukan_warna |
-    |  5248 | ADI     | CORBLU                |           4 |            6 | warna       | bukan_warna |
-    | 14406 | ADI     | MICROPACER_R1         |           1 |            3 | bukan_warna | warna       |
-    | 32893 | NIK     | HYPERVENOM            |           1 |           13 | bukan_warna | warna       |
-    | 21428 | HER     | ASH                   |           2 |            3 | warna       | bukan_warna |
-    | 42214 | NIK     | NAVY                  |           7 |            9 | warna       | bukan_warna |
-    |  2773 | ADI     | FTWWHT                |           8 |            8 | warna       | bukan_warna |
-    |   235 | ADI     | ASHSIL                |           6 |            7 | warna       | bukan_warna |
-    | 50951 | PUM     | TSUGI                 |           1 |            6 | bukan_warna | warna       |
-    | 24199 | NIK     | BROWN                 |           5 |            6 | warna       | bukan_warna |
-    |  3977 | ADI     | CLONIX                |           8 |            8 | warna       | bukan_warna |
-    | 41886 | NIK     | PINK                  |          11 |           12 | warna       | bukan_warna |
-    | 23752 | NIK     | NAVY                  |           6 |           10 | warna       | bukan_warna |
-    |  6532 | ADI     | SESAME                |           6 |            7 | warna       | bukan_warna |
-    | 19936 | CAO     | PINK                  |           3 |            3 | warna       | bukan_warna |
-    | 38724 | NIK     | PURPLE                |           7 |           10 | warna       | bukan_warna |
-    |  6870 | ADI     | BLUBIR                |           5 |            5 | warna       | bukan_warna |
-    | 32913 | NIK     | HYPERVENOM            |           1 |            8 | bukan_warna | warna       |
-    | 25371 | NIK     | 23                    |           6 |            6 | warna       | bukan_warna |
-    | 13895 | ADI     | FORTARUN              |           1 |            7 | bukan_warna | warna       |
-    | 21687 | HER     | DARK                  |           2 |            4 | warna       | bukan_warna |
-    | 22291 | KIP     | BROWN                 |           3 |            4 | warna       | bukan_warna |
-    |  3981 | ADI     | GREFIV                |           5 |            6 | warna       | bukan_warna |
-    | 22804 | KIP     | POWDER                |           2 |            4 | warna       | bukan_warna |
-    | 35787 | NIK     | VARSITY               |           2 |           10 | warna       | bukan_warna |
-    | 15445 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 25943 | NIK     | ESSENTIALIST          |           2 |            7 | bukan_warna | warna       |
-    |  1673 | ADI     | SHOPNK                |           4 |            6 | warna       | bukan_warna |
-    | 39788 | NIK     | PINK                  |           9 |           11 | warna       | bukan_warna |
-    |  3487 | ADI     | FUTUREPACER           |           1 |            4 | bukan_warna | warna       |
-    | 47988 | PSB     | PERSIB                |           2 |            4 | bukan_warna | warna       |
-    |  5873 | ADI     | ASHSIL                |           5 |            7 | warna       | bukan_warna |
-    | 46834 | NIK     | PINK                  |          10 |           11 | warna       | bukan_warna |
-    | 27044 | NIK     | MAGISTAX              |           1 |            8 | bukan_warna | warna       |
-    |  6665 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 22176 | KIP     | BROWN                 |           3 |            4 | warna       | bukan_warna |
-    | 30182 | NIK     | NAVY                  |           5 |            9 | warna       | bukan_warna |
-    |  8776 | ADI     | CONEXT19              |           1 |            4 | bukan_warna | warna       |
-    | 10083 | ADI     | NAVY                  |           3 |            3 | warna       | bukan_warna |
-    | 43561 | NIK     | PINK                  |           9 |           11 | warna       | bukan_warna |
-    |  1664 | ADI     | ONIX                  |           8 |            8 | warna       | bukan_warna |
-    | 12728 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 21051 | HER     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  6422 | ADI     | FORTAPLAY             |           1 |            6 | bukan_warna | warna       |
-    |  7370 | ADI     | SHOYEL                |           5 |            5 | warna       | bukan_warna |
-    |  5576 | ADI     | RAWGRE                |           4 |            6 | warna       | bukan_warna |
-    | 22787 | KIP     | FS73                  |           1 |            4 | bukan_warna | warna       |
-    |  3844 | ADI     | PETNIT                |           5 |            6 | warna       | bukan_warna |
-    | 16701 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6935 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |   886 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  7952 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 15727 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 19929 | CAO     | 150PG                 |           2 |            3 | bukan_warna | warna       |
-    | 31572 | NIK     | LIGHTCARBON           |           4 |            6 | warna       | bukan_warna |
-    |  1921 | ADI     | RAWGRN                |           3 |            4 | warna       | bukan_warna |
-    |   652 | ADI     | STLT                  |           3 |            7 | bukan_warna | warna       |
-    |  8894 | ADI     | ONIX                  |           6 |            8 | warna       | bukan_warna |
-    |  7170 | ADI     | SHOYEL                |           3 |            5 | warna       | bukan_warna |
-    | 30506 | NIK     | AROBILL               |           3 |           10 | bukan_warna | warna       |
-    |  1017 | ADI     | NTGREY                |           4 |            5 | warna       | bukan_warna |
-    | 37383 | NIK     | ACDMY                 |           2 |            8 | bukan_warna | warna       |
-    | 10099 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    | 13380 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 10199 | ADI     | GLOW                  |           3 |            4 | warna       | bukan_warna |
-    | 56691 | WAR     | 140CM                 |           1 |            5 | bukan_warna | warna       |
-    | 44816 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 18406 | BBC     | NAVY                  |           6 |            7 | warna       | bukan_warna |
-    |  1121 | ADI     | GUM4                  |           5 |            5 | warna       | bukan_warna |
-    |  7760 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 13682 | ADI     | PINK                  |           6 |            6 | warna       | bukan_warna |
-    |  7968 | ADI     | TRAPNK                |           6 |            6 | warna       | bukan_warna |
-    | 21009 | HER     | NAVY                  |           3 |            3 | warna       | bukan_warna |
-    | 10969 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 19290 | BBC     | BB04C                 |           2 |            5 | bukan_warna | warna       |
-    |  6445 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6615 | ADI     | CARBON                |           3 |            5 | warna       | bukan_warna |
-    | 42664 | NIK     | GLOW                  |           8 |            8 | warna       | bukan_warna |
-    | 45088 | NIK     | PINK                  |           8 |           11 | warna       | bukan_warna |
-    | 55105 | SOC     | NAVY                  |           3 |            5 | warna       | bukan_warna |
-    | 16032 | ADI     | OWNTHEGAME            |           1 |            4 | bukan_warna | warna       |
-    |  1685 | ADI     | ORCTIN                |           4 |            6 | warna       | bukan_warna |
-    | 52223 | PUM     | LEADCAT               |           2 |            6 | bukan_warna | warna       |
-    | 25309 | NIK     | NAVY                  |           6 |            9 | warna       | bukan_warna |
-    |  7632 | ADI     | QTFLEX                |           2 |            6 | bukan_warna | warna       |
-    |   274 | ADI     | SILVMT                |           5 |            6 | warna       | bukan_warna |
-    | 56160 | WAR     | BLUE                  |           1 |            5 | bukan_warna | warna       |
-    | 55838 | STN     | YSIDRO                |           1 |            2 | bukan_warna | warna       |
-    | 48059 | PTG     | NAVY                  |           3 |            3 | warna       | bukan_warna |
-    |  8348 | ADI     | GOLDMT                |           8 |            8 | warna       | bukan_warna |
-    |  5990 | ADI     | SOLRED                |           6 |            7 | warna       | bukan_warna |
-    |  1735 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 15448 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 16730 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    |  1001 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 20327 | CAO     | BROWN                 |           4 |            4 | warna       | bukan_warna |
-    | 10155 | ADI     | SAMBAROSE             |           1 |            4 | bukan_warna | warna       |
-    |  1989 | ADI     | ONIX                  |           5 |            5 | warna       | bukan_warna |
-    |  1533 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  5656 | ADI     | GUM3                  |           6 |            6 | warna       | bukan_warna |
-    | 17653 | AGL     | CYLONE                |           1 |            5 | bukan_warna | warna       |
-    | 12333 | ADI     | WAISTBAG              |           1 |            3 | bukan_warna | warna       |
-    |  5689 | ADI     | PURPLE                |           5 |            5 | warna       | bukan_warna |
-    |  4738 | ADI     | CARBON                |           5 |            6 | warna       | bukan_warna |
-    | 52175 | PUM     | FTR                   |           2 |            8 | bukan_warna | warna       |
-    | 39421 | NIK     | GLOW                  |           9 |            9 | warna       | bukan_warna |
-    |  8281 | ADI     | FTWWHT                |           7 |            8 | warna       | bukan_warna |
-    |  6085 | ADI     | CARBON                |           5 |            6 | warna       | bukan_warna |
-    | 56675 | WAR     | 140CM                 |           1 |            3 | bukan_warna | warna       |
-    | 53550 | PUM     | PINK                  |           6 |            6 | warna       | bukan_warna |
-    |  7113 | ADI     | FBL                   |           2 |            5 | bukan_warna | warna       |
-    |  4516 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  7120 | ADI     | GREONE                |           5 |            6 | warna       | bukan_warna |
-    | 22740 | KIP     | TAUPE                 |           2 |            4 | warna       | bukan_warna |
-    | 14589 | ADI     | WAISTBAG              |           1 |            3 | bukan_warna | warna       |
-    |  3136 | ADI     | OWHITE                |           4 |            6 | warna       | bukan_warna |
-    | 21637 | HER     | ARROWWOODX            |           2 |            2 | warna       | bukan_warna |
-    | 10086 | ADI     | PINK                  |           4 |            4 | warna       | bukan_warna |
-    |  1623 | ADI     | CBURGU                |           3 |            5 | warna       | bukan_warna |
-    |   993 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 21143 | HER     | STELLAR               |           2 |            2 | warna       | bukan_warna |
-    | 11248 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 12319 | ADI     | 2PP                   |           3 |            4 | bukan_warna | warna       |
-    |  2278 | ADI     | SILVMT                |           4 |            5 | warna       | bukan_warna |
-    | 22553 | KIP     | RS53                  |           1 |            5 | bukan_warna | warna       |
-    | 28219 | NIK     | FFF                   |           1 |            7 | bukan_warna | warna       |
-    |  6759 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |  5655 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  1247 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  4483 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  4351 | ADI     | GUM3                  |           6 |            6 | warna       | bukan_warna |
-    |  2721 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 29305 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 56200 | WAR     | WHITE                 |           1 |            5 | bukan_warna | warna       |
-    |  1776 | ADI     | GOLDMT                |           5 |            6 | warna       | bukan_warna |
-    |  2434 | ADI     | CBROWN                |           5 |            6 | warna       | bukan_warna |
-    |  2895 | ADI     | SOBAKOV               |           1 |            4 | bukan_warna | warna       |
-    | 16670 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 26933 | NIK     | ORDEN                 |           2 |            9 | bukan_warna | warna       |
-    |  8090 | ADI     | CLEORA                |           5 |            7 | warna       | bukan_warna |
-    |  2202 | ADI     | OWHITE                |           7 |            7 | warna       | bukan_warna |
-    |  6851 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  5312 | ADI     | SOLRED                |           5 |            7 | warna       | bukan_warna |
-    | 21077 | HER     | TARPAULIN             |           2 |            4 | warna       | bukan_warna |
-    |  6545 | ADI     | FTWWHT                |           6 |            8 | warna       | bukan_warna |
-    |  1283 | ADI     | PROPHERE              |           1 |            4 | bukan_warna | warna       |
-    |  1198 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |   634 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 13397 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 27146 | NIK     | OBRA                  |           2 |            9 | bukan_warna | warna       |
-    | 32890 | NIK     | HYPERVENOM            |           2 |           10 | bukan_warna | warna       |
-    | 40036 | NIK     | LGC                   |           2 |            7 | bukan_warna | warna       |
-    | 32579 | NIK     | PURPLE                |           8 |            8 | warna       | bukan_warna |
-    |  9909 | ADI     | SILVER                |           2 |            3 | warna       | bukan_warna |
-    |  7138 | ADI     | SOLRED                |           5 |            6 | warna       | bukan_warna |
-    |  2216 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 46703 | NIK     | PINK                  |           8 |           11 | warna       | bukan_warna |
-    | 22800 | KIP     | WALNUT                |           2 |            4 | warna       | bukan_warna |
-    | 12116 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  3200 | ADI     | CONAVY                |           4 |            5 | warna       | bukan_warna |
-    | 46700 | NIK     | PURPLE                |          11 |           11 | warna       | bukan_warna |
-    |  9984 | ADI     | SESAME                |           3 |            3 | warna       | bukan_warna |
-    | 10338 | ADI     | ACTIVE                |           2 |            3 | warna       | bukan_warna |
-    | 19463 | BBC     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 12931 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  7275 | ADI     | TRACAR                |           3 |            4 | warna       | bukan_warna |
-    |  6552 | ADI     | FTWWHT                |           8 |            9 | warna       | bukan_warna |
-    |  7932 | ADI     | DKBLUE                |           3 |            5 | warna       | bukan_warna |
-    |  9113 | ADI     | PURPLE                |           3 |            3 | warna       | bukan_warna |
-    |  2604 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 14236 | ADI     | BLACK1                |           3 |            5 | warna       | bukan_warna |
-    | 21097 | HER     | CTTN                  |           2 |            5 | bukan_warna | warna       |
-    | 45494 | NIK     | BROWN                 |           7 |           12 | warna       | bukan_warna |
-    | 22865 | KIP     | XS20                  |           1 |            3 | bukan_warna | warna       |
-    | 27555 | NIK     | MERCURIALX            |           1 |            9 | bukan_warna | warna       |
-    |  1599 | ADI     | GOLDMT                |           6 |            6 | warna       | bukan_warna |
-    | 47607 | NIK     | YTH                   |           1 |            9 | bukan_warna | warna       |
-    | 48608 | PUM     | PURPLE                |           5 |            5 | warna       | bukan_warna |
-    |  5920 | ADI     | SCARLE                |           4 |            5 | warna       | bukan_warna |
-    |  1836 | ADI     | DKBLUE                |           5 |            5 | warna       | bukan_warna |
-    | 55558 | STN     | LOGOMAN               |           2 |            5 | bukan_warna | warna       |
-    | 17046 | ADI     | ENEBLU                |           6 |            6 | warna       | bukan_warna |
-    | 40078 | NIK     | PINK                  |           5 |            8 | warna       | bukan_warna |
-    | 56677 | WAR     | 140CM                 |           1 |            3 | bukan_warna | warna       |
-    | 56749 | WAR     | VINTAGE               |           2 |            3 | warna       | bukan_warna |
-    |  8076 | ADI     | ASHSIL                |           4 |            6 | warna       | bukan_warna |
-    |  6311 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 15943 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 29690 | NIK     | ASSERSION             |           3 |            7 | bukan_warna | warna       |
-    | 21511 | HER     | SNW                   |           2 |            3 | warna       | bukan_warna |
-    |  2872 | ADI     | SCARLE                |           5 |            6 | warna       | bukan_warna |
-    |  1259 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |   735 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 10351 | ADI     | GLOW                  |           2 |            3 | warna       | bukan_warna |
-    |  4536 | ADI     | OWHITE                |           4 |            6 | warna       | bukan_warna |
-    |  8489 | ADI     | WHT                   |           3 |            5 | warna       | bukan_warna |
-    | 44738 | NIK     | PINK                  |           7 |           10 | warna       | bukan_warna |
-    |  5844 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  8659 | ADI     | CARBON                |           4 |            5 | warna       | bukan_warna |
-    | 21240 | HER     | PCT                   |           2 |            3 | warna       | bukan_warna |
-    | 15996 | ADI     | SPECTOO               |           2 |            4 | warna       | bukan_warna |
-    | 53156 | PUM     | PINK                  |           5 |            6 | warna       | bukan_warna |
-    |  5533 | ADI     | CARBON                |           5 |            6 | warna       | bukan_warna |
-    |  5868 | ADI     | CARBON                |           2 |            4 | warna       | bukan_warna |
-    | 39870 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 55629 | STN     | NAVY                  |           2 |            2 | warna       | bukan_warna |
-    |  1967 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  8035 | ADI     | CLEORA                |           6 |            7 | warna       | bukan_warna |
-    |  1374 | ADI     | GLOW                  |           4 |            5 | warna       | bukan_warna |
-    | 37838 | NIK     | AMBER                 |           3 |            4 | warna       | bukan_warna |
-    |  7783 | ADI     | WHITIN                |           5 |            6 | warna       | bukan_warna |
-    | 25081 | NIK     | NAVY                  |           4 |            7 | warna       | bukan_warna |
-    |  6576 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  8443 | ADI     | S3.1                  |           2 |            5 | bukan_warna | warna       |
-    |  4304 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6084 | ADI     | CARBON                |           4 |            6 | warna       | bukan_warna |
-    |  1877 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 55726 | STN     | THUNDERHEAD           |           1 |            2 | bukan_warna | warna       |
-    | 31026 | NIK     | TESSEN                |           2 |            8 | bukan_warna | warna       |
-    | 15863 | ADI     | MNVN                  |           2 |            3 | bukan_warna | warna       |
-    | 39064 | NIK     | PURPLE                |          11 |           11 | warna       | bukan_warna |
-    | 42814 | NIK     | GLOW                  |           8 |           11 | warna       | bukan_warna |
-    | 21594 | HER     | ASH                   |           2 |            3 | warna       | bukan_warna |
-    |  2687 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 21259 | HER     | (21L)                 |           3 |            3 | bukan_warna | warna       |
-    | 44147 | NIK     | GLOW                  |           9 |           10 | warna       | bukan_warna |
-    |   745 | ADI     | CLEMIN                |           4 |            5 | warna       | bukan_warna |
-    | 16689 | ADI     | LEGINK                |           6 |            6 | warna       | bukan_warna |
-    | 36979 | NIK     | NAVY                  |           6 |            9 | warna       | bukan_warna |
-    | 20506 | CAO     | 700BMC                |           2 |            3 | bukan_warna | warna       |
-    |   525 | ADI     | BLUTIN                |           6 |            6 | warna       | bukan_warna |
-    | 41254 | NIK     | PINK                  |           9 |           10 | warna       | bukan_warna |
-    | 43555 | NIK     | PINK                  |           8 |           12 | warna       | bukan_warna |
-    | 23414 | NIC     | NAVY                  |           6 |            9 | warna       | bukan_warna |
-    |  4785 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 42317 | NIK     | PINK                  |           7 |           11 | warna       | bukan_warna |
-    |  5445 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 44845 | NIK     | PURPLE                |          11 |           11 | warna       | bukan_warna |
-    |   279 | ADI     | SOLRED                |           4 |            6 | warna       | bukan_warna |
-    |  2684 | ADI     | GREFOU                |           5 |            5 | warna       | bukan_warna |
-    |  3302 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 53928 | PUM     | NAVY                  |           5 |            6 | warna       | bukan_warna |
-    |  8690 | ADI     | MYSINK                |           4 |            6 | warna       | bukan_warna |
-    | 15791 | ADI     | PINK                  |           4 |            4 | warna       | bukan_warna |
-    | 11128 | ADI     | GHOSTED.3             |           2 |            6 | bukan_warna | warna       |
-    | 20283 | CAO     | 3DR                   |           3 |            4 | bukan_warna | warna       |
-    | 41056 | NIK     | NAVY                  |           8 |            8 | warna       | bukan_warna |
-    | 16902 | ADI     | ENEBLU                |           6 |            7 | warna       | bukan_warna |
-    |  1635 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 24047 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    | 54536 | REL     | 49                    |           6 |            6 | warna       | bukan_warna |
-    | 37032 | NIK     | NAVY                  |           8 |           10 | warna       | bukan_warna |
-    | 52220 | PUM     | LEADCAT               |           2 |            7 | bukan_warna | warna       |
-    |   740 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |  1884 | ADI     | TECINK                |           4 |            6 | warna       | bukan_warna |
-    | 54832 | SAU     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  6647 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  1924 | ADI     | MYSRUB                |           2 |            4 | warna       | bukan_warna |
-    | 13394 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |   498 | ADI     | SOLRED                |           4 |            4 | warna       | bukan_warna |
-    | 25906 | NIK     | WHT                   |           9 |           11 | warna       | bukan_warna |
-    |  9616 | ADI     | PINK                  |           4 |            5 | warna       | bukan_warna |
-    |   718 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |  1957 | ADI     | SCARLE                |           6 |            6 | warna       | bukan_warna |
-    |  3260 | ADI     | TRACAR                |           6 |            6 | warna       | bukan_warna |
-    | 47125 | NIK     | PURPLE                |           7 |            8 | warna       | bukan_warna |
-    |  7517 | ADI     | SOLRED                |           5 |            6 | warna       | bukan_warna |
-    |  4004 | ADI     | MYSINK                |           4 |            6 | warna       | bukan_warna |
-    | 55603 | STN     | NAVY                  |           4 |            7 | warna       | bukan_warna |
-    | 30619 | NIK     | PINK                  |           8 |           12 | warna       | bukan_warna |
-    | 20052 | CAO     | 560CF                 |           2 |            3 | bukan_warna | warna       |
-    | 51204 | PUM     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |  3281 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 16929 | ADI     | SOLRED                |           6 |            7 | warna       | bukan_warna |
-    | 18915 | BBC     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  7947 | ADI     | CLEORA                |           5 |            6 | warna       | bukan_warna |
-    |  4281 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 48151 | PTG     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    | 19713 | BEA     | MANEKINEKO            |           2 |            5 | bukan_warna | warna       |
-    |  2611 | ADI     | LEGINK                |           4 |            6 | warna       | bukan_warna |
-    | 30187 | NIK     | PINK                  |           4 |            8 | warna       | bukan_warna |
-    |  8364 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 24210 | NIK     | OKWAHN                |           1 |            8 | bukan_warna | warna       |
-    | 11552 | ADI     | ONIX                  |           4 |            4 | warna       | bukan_warna |
-    | 38654 | NIK     | PURPLE                |          10 |           10 | warna       | bukan_warna |
-    | 11919 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 38474 | NIK     | BROWN                 |          10 |           10 | warna       | bukan_warna |
-    | 55101 | SOC     | NAVY                  |           4 |            6 | warna       | bukan_warna |
-    |  5494 | ADI     | GREONE                |           4 |            6 | warna       | bukan_warna |
-    | 16655 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    |  2820 | ADI     | CARBON                |           3 |            5 | warna       | bukan_warna |
-    |  4525 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 56705 | WAR     | BROWN                 |           2 |            4 | warna       | bukan_warna |
-    |  1703 | ADI     | FTWWHT                |           2 |            4 | warna       | bukan_warna |
-    | 14283 | ADI     | FTWWHT                |           4 |            4 | warna       | bukan_warna |
-    | 26166 | NIK     | PINK                  |           6 |           11 | warna       | bukan_warna |
-    | 12615 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    |   250 | ADI     | GREFIV                |           5 |            7 | warna       | bukan_warna |
-    |  2339 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 48915 | PUM     | EVOPLUS               |           1 |            5 | bukan_warna | warna       |
-    |  1834 | ADI     | DKBLUE                |           3 |            5 | warna       | bukan_warna |
-    | 21718 | HER     | VAPOR                 |           2 |            3 | warna       | bukan_warna |
-    | 10098 | ADI     | GLOW                  |           4 |            5 | warna       | bukan_warna |
-    | 27493 | NIK     | PINK                  |          11 |           12 | warna       | bukan_warna |
-    |  6259 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    |  8029 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  2366 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 37266 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 33730 | NIK     | ACMI                  |           3 |            9 | bukan_warna | warna       |
-    | 16742 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    | 29925 | NIK     | MERCURIALX            |           2 |           11 | bukan_warna | warna       |
-    |  2232 | ADI     | CONAVY                |           4 |            6 | warna       | bukan_warna |
-    |  1470 | ADI     | ICEPNK                |           4 |            6 | warna       | bukan_warna |
-    | 52791 | PUM     | PINK                  |           9 |            9 | warna       | bukan_warna |
-    | 21279 | HER     | 1771                  |           5 |            7 | bukan_warna | warna       |
-    | 15733 | ADI     | GLOW                  |           3 |            4 | warna       | bukan_warna |
-    | 55028 | SAU     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    | 56053 | WAR     | BLACK                 |           1 |            5 | bukan_warna | warna       |
-    | 32917 | NIK     | HYPERVENOM            |           1 |           11 | bukan_warna | warna       |
-    | 38521 | NIK     | NAVY                  |           6 |           10 | warna       | bukan_warna |
-    | 46174 | NIK     | NAVY                  |          10 |           10 | warna       | bukan_warna |
-    |  6817 | ADI     | CBROWN                |           5 |            6 | warna       | bukan_warna |
-    | 11944 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 29430 | NIK     | PINK                  |           6 |           10 | warna       | bukan_warna |
-    |  1748 | ADI     | DKBLUE                |           3 |            5 | warna       | bukan_warna |
-    |  6292 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 45350 | NIK     | NAVY                  |           7 |           10 | warna       | bukan_warna |
-    |  3229 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |   639 | ADI     | OWHITE                |           5 |            5 | warna       | bukan_warna |
-    |  4769 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 22410 | KIP     | BRIGHT                |           2 |            4 | warna       | bukan_warna |
-    | 20404 | CAO     | 3ADR                  |           3 |            3 | bukan_warna | warna       |
-    |   333 | ADI     | FORTARUN              |           1 |            7 | bukan_warna | warna       |
-    | 17089 | ADI     | ADISOCK               |           1 |            4 | bukan_warna | warna       |
-    |   921 | ADI     | CLAQUA                |           5 |            6 | warna       | bukan_warna |
-    |  2167 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  4776 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  2240 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 10392 | ADI     | CLOUD                 |           2 |            3 | warna       | bukan_warna |
-    |  1895 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 44566 | NIK     | PINK                  |           7 |            9 | warna       | bukan_warna |
-    |  4030 | ADI     | GREFOU                |           6 |            6 | warna       | bukan_warna |
-    | 19828 | CAO     | CSWGYOSA              |           1 |            3 | bukan_warna | warna       |
-    | 56326 | WAR     | MIX                   |           2 |            4 | warna       | bukan_warna |
-    | 51422 | PUM     | TSUGI                 |           1 |            7 | bukan_warna | warna       |
-    | 12955 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |  5348 | ADI     | ENEBLU                |           7 |            8 | warna       | bukan_warna |
-    | 22663 | KIP     | MINT                  |           2 |            4 | warna       | bukan_warna |
-    | 13901 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    | 54422 | PUM     | WHT                   |           7 |            9 | warna       | bukan_warna |
-    |  8062 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  3054 | ADI     | OWHITE                |           5 |            6 | warna       | bukan_warna |
-    | 34145 | NIK     | PURPLE                |           8 |           10 | warna       | bukan_warna |
-    | 43709 | NIK     | PINK                  |           7 |           10 | warna       | bukan_warna |
-    | 46824 | NIK     | NAVY                  |          11 |           11 | warna       | bukan_warna |
-    | 41051 | NIK     | BROWN                 |           8 |           10 | warna       | bukan_warna |
-    |  3129 | ADI     | OWHITE                |           6 |            7 | warna       | bukan_warna |
-    |  1819 | ADI     | GOLDMT                |           4 |            4 | warna       | bukan_warna |
-    | 16745 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  5906 | ADI     | RAWGRE                |           3 |            5 | warna       | bukan_warna |
-    |  4708 | ADI     | GREFIV                |           5 |            5 | warna       | bukan_warna |
-    | 16697 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  2730 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 13208 | ADI     | GHOSTED.3             |           2 |            6 | bukan_warna | warna       |
-    | 16389 | ADI     | TRCK                  |           2 |            4 | bukan_warna | warna       |
-    | 41969 | NIK     | GLOW                  |           8 |           13 | warna       | bukan_warna |
-    | 55374 | STN     | BARDER                |           2 |            7 | bukan_warna | warna       |
-    |  8147 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 13688 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |  8170 | ADI     | ASHSIL                |           5 |            7 | warna       | bukan_warna |
-    | 31031 | NIK     | TESSEN                |           2 |            8 | bukan_warna | warna       |
-    | 21065 | HER     | TARPAULIN             |           2 |            4 | warna       | bukan_warna |
-    |  6938 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 39164 | NIK     | NAVY                  |          10 |           10 | warna       | bukan_warna |
-    | 20005 | CAO     | PINK                  |           8 |            8 | warna       | bukan_warna |
-    |  7395 | ADI     | GUM3                  |           5 |            5 | warna       | bukan_warna |
-    |  9287 | ADI     | NAVY                  |           7 |            8 | warna       | bukan_warna |
-    | 12900 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |  1506 | ADI     | SIX                   |           4 |            4 | warna       | bukan_warna |
-    | 12050 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 56688 | WAR     | 140CM                 |           1 |            3 | bukan_warna | warna       |
-    | 21513 | HER     | WINTER                |           2 |            3 | warna       | bukan_warna |
-    | 14694 | ADI     | TRF                   |           2 |            6 | bukan_warna | warna       |
-    |  8413 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 13728 | ADI     | FUSIO                 |           2 |            4 | bukan_warna | warna       |
-    | 23936 | NIK     | NAVY                  |           4 |            5 | warna       | bukan_warna |
-    |  2221 | ADI     | ALTARUN               |           1 |            5 | bukan_warna | warna       |
-    | 27540 | NIK     | MERCURIALX            |           1 |           11 | bukan_warna | warna       |
-    |  4902 | ADI     | CONAVY                |           6 |            7 | warna       | bukan_warna |
-    | 16648 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 16688 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 16143 | ADI     | VICTORY               |           2 |            3 | warna       | bukan_warna |
-    | 56610 | WAR     | 140CM                 |           1 |            4 | bukan_warna | warna       |
-    | 34711 | NIK     | NAVY                  |           6 |            9 | warna       | bukan_warna |
-    | 10272 | ADI     | PINK                  |           3 |            3 | warna       | bukan_warna |
-    | 52304 | PUM     | LEADCAT               |           1 |            7 | bukan_warna | warna       |
-    | 52812 | PUM     | BROWN                 |           5 |            7 | warna       | bukan_warna |
-    |  1160 | ADI     | SHOPNK                |           6 |            6 | warna       | bukan_warna |
-    | 11516 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    | 55142 | SOC     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    | 10162 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  1465 | ADI     | SHOPNK                |           4 |            5 | warna       | bukan_warna |
-    |  5476 | ADI     | TRAPNK                |           4 |            6 | warna       | bukan_warna |
-    | 48081 | PTG     | NAVY                  |           2 |            3 | warna       | bukan_warna |
-    | 17815 | AGL     | AGLXYXHONU            |           1 |            3 | bukan_warna | warna       |
-    |  8668 | ADI     | RAWGRE                |           3 |            5 | warna       | bukan_warna |
-    |  1537 | ADI     | CONAVY                |           4 |            5 | warna       | bukan_warna |
-    |  9269 | ADI     | PARKHOOD              |           1 |            6 | bukan_warna | warna       |
-    |  8097 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 55091 | SOC     | NAVY                  |           3 |            5 | warna       | bukan_warna |
-    |  7245 | ADI     | NGTCAR                |           4 |            5 | warna       | bukan_warna |
-    |  6509 | ADI     | VAPGRE                |           4 |            5 | warna       | bukan_warna |
-    |  6802 | ADI     | VAPGRE                |           7 |            8 | warna       | bukan_warna |
-    | 12161 | ADI     | UNIFO                 |           1 |            3 | bukan_warna | warna       |
-    | 47126 | NIK     | PURPLE                |           8 |            8 | warna       | bukan_warna |
-    |   714 | ADI     | FTWWHT                |           7 |            8 | warna       | bukan_warna |
-    | 13801 | ADI     | SIGNAL                |           2 |            3 | warna       | bukan_warna |
-    | 54324 | PUM     | ESS+                  |           1 |            7 | bukan_warna | warna       |
-    |  6890 | ADI     | GUM1                  |           5 |            5 | warna       | bukan_warna |
-    |  4664 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 22438 | KIP     | TRUE                  |           2 |            4 | warna       | bukan_warna |
-    |   837 | ADI     | CONAVY                |           6 |            6 | warna       | bukan_warna |
-    |  1569 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 21737 | HER     | RED                   |           4 |            8 | bukan_warna | warna       |
-    | 14459 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 19908 | CAO     | 8DR                   |           3 |            3 | bukan_warna | warna       |
-    | 34981 | NIK     | NAVY                  |           7 |           11 | warna       | bukan_warna |
-    | 54981 | SAU     | NAVY                  |           4 |            5 | warna       | bukan_warna |
-    | 56710 | WAR     | 140CM                 |           1 |            3 | bukan_warna | warna       |
-    |  7598 | ADI     | CRYWHT                |           6 |            6 | warna       | bukan_warna |
-    | 13802 | ADI     | PINK                  |           3 |            3 | warna       | bukan_warna |
-    | 40815 | NIK     | PINK                  |          11 |           11 | warna       | bukan_warna |
-    | 23372 | NIC     | PURPLE                |           8 |           12 | warna       | bukan_warna |
-    |  1769 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  7297 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 37009 | NIK     | ELMNTL                |           2 |            8 | bukan_warna | warna       |
-    |  6607 | ADI     | CRYWHT                |           7 |            8 | warna       | bukan_warna |
-    |  3466 | ADI     | PROPHERE              |           1 |            3 | bukan_warna | warna       |
-    |  7004 | ADI     | CONAVY                |           5 |            6 | warna       | bukan_warna |
-    | 10128 | ADI     | PINK                  |           4 |            4 | warna       | bukan_warna |
-    |  3622 | ADI     | LEGINK                |           4 |            4 | warna       | bukan_warna |
-    |  7354 | ADI     | PINK                  |           9 |           11 | warna       | bukan_warna |
-    |   239 | ADI     | RAWGRE                |           3 |            5 | warna       | bukan_warna |
-    |  5243 | ADI     | SUPPNK                |           4 |            6 | warna       | bukan_warna |
-    |  6652 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 42988 | NIK     | PINK                  |           8 |           12 | warna       | bukan_warna |
-    |  3741 | ADI     | SCARLE                |           5 |            5 | warna       | bukan_warna |
-    |  7993 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 12035 | ADI     | PINK                  |           5 |           10 | warna       | bukan_warna |
-    | 52191 | PUM     | PURPLE                |           7 |           10 | warna       | bukan_warna |
-    | 47218 | NIK     | STRK                  |           2 |            7 | bukan_warna | warna       |
-    |   760 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 44556 | NIK     | NAVY                  |           6 |           10 | warna       | bukan_warna |
-    |  5614 | ADI     | GREONE                |           7 |            7 | warna       | bukan_warna |
-    |  2415 | ADI     | TURBO                 |           5 |            7 | warna       | bukan_warna |
-    | 11430 | ADI     | TRKPNT                |           2 |            3 | bukan_warna | warna       |
-    | 22705 | KIP     | FS66                  |           1 |            5 | bukan_warna | warna       |
-    | 29947 | NIK     | MERCURIALX            |           1 |           10 | bukan_warna | warna       |
-    | 12676 | ADI     | MAGMUR                |           1 |            5 | bukan_warna | warna       |
-    | 48137 | PTG     | VERMI                 |           1 |            3 | bukan_warna | warna       |
-    | 17271 | AGL     | 5                     |           5 |            6 | warna       | bukan_warna |
-    | 31744 | NIK     | CARBON                |           9 |           10 | warna       | bukan_warna |
-    | 50062 | PUM     | NETFIT                |           2 |            5 | bukan_warna | warna       |
-    |  3066 | ADI     | OWHITE                |           6 |            7 | warna       | bukan_warna |
-    |  7824 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 24040 | NIK     | PINK                  |          11 |           11 | warna       | bukan_warna |
-    |  1915 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  7730 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |   330 | ADI     | MYSINK                |           5 |            7 | warna       | bukan_warna |
-    | 28914 | NIK     | NAVY                  |           6 |           10 | warna       | bukan_warna |
-    |  5396 | ADI     | CONAVY                |           6 |            6 | warna       | bukan_warna |
-    | 21045 | HER     | NAVY                  |           2 |            2 | warna       | bukan_warna |
-    | 27602 | NIK     | HYPERVENOM            |           1 |            9 | bukan_warna | warna       |
-    | 25680 | NIK     | PINK                  |           6 |            9 | warna       | bukan_warna |
-    | 17100 | ADI     | BBANAT                |           3 |            3 | warna       | bukan_warna |
-    |  5748 | ADI     | LTPINK                |           3 |            5 | warna       | bukan_warna |
-    | 10277 | ADI     | DARK                  |           2 |            3 | warna       | bukan_warna |
-    | 10463 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 37265 | NIK     | PINK                  |           6 |           10 | warna       | bukan_warna |
-    |  9771 | ADI     | PINK                  |           3 |            4 | warna       | bukan_warna |
-    |  1992 | ADI     | GUM4                  |           5 |            5 | warna       | bukan_warna |
-    |  8084 | ADI     | ASHSIL                |           4 |            6 | warna       | bukan_warna |
-    | 54641 | REL     | 35                    |           6 |            6 | warna       | bukan_warna |
-    | 52437 | PUM     | GLOW                  |           9 |            9 | warna       | bukan_warna |
-    | 32935 | NIK     | HYPERVENOM            |           1 |           11 | bukan_warna | warna       |
-    | 21414 | HER     | 1771                  |           6 |            8 | bukan_warna | warna       |
-    | 43610 | NIK     | KD14                  |           1 |            8 | bukan_warna | warna       |
-    |  5496 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |   853 | ADI     | TECSTE                |           2 |            4 | warna       | bukan_warna |
-    | 30121 | NIK     | BROWN                 |           6 |            9 | warna       | bukan_warna |
-    | 40057 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    |  3940 | ADI     | VIVTEA                |           5 |            6 | warna       | bukan_warna |
-    |    27 | ADI     | ADISSAGE              |           1 |            4 | bukan_warna | warna       |
-    |   786 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 39448 | NIK     | NAVY                  |           9 |            9 | warna       | bukan_warna |
-    |  8274 | ADI     | CLEORA                |           6 |            8 | warna       | bukan_warna |
-    |  6688 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 36997 | NIK     | ELMNTL                |           2 |            7 | bukan_warna | warna       |
-    |  4601 | ADI     | GREONE                |           5 |            6 | warna       | bukan_warna |
-    |  1415 | ADI     | STLT                  |           3 |            7 | bukan_warna | warna       |
-    | 16940 | ADI     | LEGINK                |           7 |            7 | warna       | bukan_warna |
-    |  1445 | ADI     | CLPINK                |           5 |            5 | warna       | bukan_warna |
-    | 46352 | NIK     | NAVY                  |          10 |           12 | warna       | bukan_warna |
-    | 22726 | KIP     | BEIGE                 |           2 |            4 | warna       | bukan_warna |
-    | 32100 | NIK     | OBRA                  |           1 |           11 | bukan_warna | warna       |
-    |  2354 | ADI     | GOLDMT                |           4 |            4 | warna       | bukan_warna |
-    |   854 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 12347 | ADI     | WAISTBAG              |           2 |            3 | bukan_warna | warna       |
-    | 15778 | ADI     | CLIMA                 |           2 |            5 | bukan_warna | warna       |
-    | 54935 | SAU     | NAVY                  |           4 |            5 | warna       | bukan_warna |
-    | 22709 | KIP     | FS66                  |           1 |            5 | bukan_warna | warna       |
-    | 18735 | BBC     | ASTORNAUT             |           3 |            7 | bukan_warna | warna       |
-    |   307 | ADI     | OWHITE                |           6 |            6 | warna       | bukan_warna |
-    | 12816 | ADI     | CREAM                 |           2 |            3 | warna       | bukan_warna |
-    | 17145 | AGL     | PINK                  |           4 |            4 | warna       | bukan_warna |
-    |  7105 | ADI     | CLEORA                |           4 |            5 | warna       | bukan_warna |
-    | 41524 | NIK     | GLOW                  |          12 |           12 | warna       | bukan_warna |
-    |  5280 | ADI     | ENEINK                |           6 |            6 | warna       | bukan_warna |
-    | 32125 | NIK     | OBRA                  |           2 |           12 | bukan_warna | warna       |
-    |  5371 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 28417 | NIK     | N17                   |           1 |           11 | bukan_warna | warna       |
-    | 13827 | ADI     | SENSE.3               |           2 |            4 | bukan_warna | warna       |
-    |  8498 | ADI     | RAW                   |           2 |            3 | warna       | bukan_warna |
-    | 55380 | STN     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    | 22868 | KIP     | XS20                  |           1 |            3 | bukan_warna | warna       |
-    | 42540 | NIK     | PINK                  |           9 |            9 | warna       | bukan_warna |
-    | 10998 | ADI     | X9000L3               |           1 |            4 | bukan_warna | warna       |
-    |   229 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 41390 | NIK     | PINK                  |           9 |           11 | warna       | bukan_warna |
-    |   959 | ADI     | CORGRN                |           4 |            4 | warna       | bukan_warna |
-    |  4537 | ADI     | OWHITE                |           5 |            6 | warna       | bukan_warna |
-    | 34415 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 36929 | NIK     | NAVY                  |           6 |            8 | warna       | bukan_warna |
-    |  5495 | ADI     | SILVMT                |           5 |            6 | warna       | bukan_warna |
-    | 10595 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |  2166 | ADI     | DKBLUE                |           4 |            6 | warna       | bukan_warna |
-    | 10131 | ADI     | GLOW                  |           3 |            4 | warna       | bukan_warna |
-    | 51522 | PUM     | PINK                  |           7 |            7 | warna       | bukan_warna |
-    | 22683 | KIP     | FS64                  |           1 |            5 | bukan_warna | warna       |
-    | 51766 | PUM     | HYPERTECH             |           2 |            6 | bukan_warna | warna       |
-    |   649 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 17711 | AGL     | BROWN                 |           3 |            3 | warna       | bukan_warna |
-    |  4305 | ADI     | SESOPK                |           6 |            6 | warna       | bukan_warna |
-    |  7881 | ADI     | CONAVY                |           7 |            7 | warna       | bukan_warna |
-    | 14741 | ADI     | PINK                  |           6 |            6 | warna       | bukan_warna |
-    |  9006 | ADI     | H90                   |           1 |            5 | bukan_warna | warna       |
-    | 51182 | PUM     | BROWN                 |           8 |            9 | warna       | bukan_warna |
-    | 17243 | AGL     | ADIOSAGLXY            |           1 |            4 | bukan_warna | warna       |
-    |  4571 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  4357 | ADI     | GUM3                  |           6 |            6 | warna       | bukan_warna |
-    | 21029 | HER     | WINDSOR               |           2 |            3 | warna       | bukan_warna |
-    |  6485 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  2603 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  3306 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 13818 | ADI     | SENSE.3               |           2 |            5 | bukan_warna | warna       |
-    | 51302 | PUM     | TSUGI                 |           1 |            7 | bukan_warna | warna       |
-    | 47048 | NIK     | PURPLE                |           5 |            6 | warna       | bukan_warna |
-    |  4712 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 23031 | NEW     | PINK                  |           4 |            5 | warna       | bukan_warna |
-    | 29992 | NIK     | NAVY                  |           7 |            8 | warna       | bukan_warna |
-    | 52170 | PUM     | LEADCAT               |           1 |            8 | bukan_warna | warna       |
-    | 54604 | REL     | 49                    |           7 |            7 | warna       | bukan_warna |
-    | 38675 | NIK     | PURPLE                |           9 |           10 | warna       | bukan_warna |
-    | 28078 | NIK     | SLPBLACK              |           2 |            4 | warna       | bukan_warna |
-    | 54515 | REL     | 49                    |           6 |            6 | warna       | bukan_warna |
-    |  2388 | ADI     | CONAVY                |           3 |            5 | warna       | bukan_warna |
-    |  6754 | ADI     | PETNIT                |           2 |            4 | warna       | bukan_warna |
-    |  3189 | ADI     | CONAVY                |           3 |            5 | warna       | bukan_warna |
-    |  6547 | ADI     | HIRERE                |           8 |            8 | warna       | bukan_warna |
-    | 51257 | PUM     | PURPLE                |           6 |            7 | warna       | bukan_warna |
-    |  6484 | ADI     | POWRED                |           5 |            6 | warna       | bukan_warna |
-    |   975 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  5276 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 51459 | PUM     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    |  1165 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  3726 | ADI     | NGTCAR                |           5 |            5 | warna       | bukan_warna |
-    | 16862 | ADI     | SOLRED                |           5 |            6 | warna       | bukan_warna |
-    |   291 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6367 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 24035 | NIK     | PINK                  |           5 |            7 | warna       | bukan_warna |
-    |  1538 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 10372 | ADI     | SENSEBOUNCE           |           1 |            6 | bukan_warna | warna       |
-    | 26904 | NIK     | LUNARGLIDE            |           2 |            6 | bukan_warna | warna       |
-    | 19558 | BBC     | NAVY                  |           5 |            6 | warna       | bukan_warna |
-    | 45073 | NIK     | PINK                  |           9 |            9 | warna       | bukan_warna |
-    |  8506 | ADI     | S3.1                  |           2 |            4 | bukan_warna | warna       |
-    |  1814 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |  8676 | ADI     | CONAVY                |           3 |            3 | warna       | bukan_warna |
-    | 16671 | ADI     | LEGINK                |           6 |            6 | warna       | bukan_warna |
-    |  8434 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  2437 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 17040 | ADI     | MYSBLU                |           4 |            6 | warna       | bukan_warna |
-    | 56121 | WAR     | PURPLE                |           4 |            5 | warna       | bukan_warna |
-    |  2065 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 19259 | BBC     | NAVY                  |           5 |            6 | warna       | bukan_warna |
-    | 12045 | ADI     | PINK                  |           3 |            4 | warna       | bukan_warna |
-    | 29439 | NIK     | PINK                  |           8 |           11 | warna       | bukan_warna |
-    | 30745 | NIK     | PINK                  |           7 |            8 | warna       | bukan_warna |
-    | 12558 | ADI     | UNIFO                 |           1 |            5 | bukan_warna | warna       |
-    | 16716 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 21238 | HER     | BDL                   |           2 |            3 | warna       | bukan_warna |
-    | 14289 | ADI     | SILVMT                |           3 |            4 | warna       | bukan_warna |
-    |   324 | ADI     | VIVGRN                |           5 |            6 | warna       | bukan_warna |
-    | 51421 | PUM     | VIKKY                 |           2 |            7 | bukan_warna | warna       |
-    |  5173 | ADI     | POWRED                |           4 |            5 | warna       | bukan_warna |
-    |    30 | ADI     | RUNWHT                |           4 |            4 | warna       | bukan_warna |
-    |  2212 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  1000 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 26077 | NIK     | GLOW                  |           9 |           11 | warna       | bukan_warna |
-    |  1692 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 30879 | NIK     | GLOW                  |          10 |           12 | warna       | bukan_warna |
-    | 26295 | NIK     | MERCURIALX            |           1 |           10 | bukan_warna | warna       |
-    |  1558 | ADI     | PALE                  |           3 |            4 | warna       | bukan_warna |
-    | 29841 | NIK     | NAVY                  |           7 |           10 | warna       | bukan_warna |
-    |  7684 | ADI     | SILVMT                |           6 |            7 | warna       | bukan_warna |
-    |  6732 | ADI     | VAPGRE                |           2 |            4 | warna       | bukan_warna |
-    |  8151 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  7739 | ADI     | CONAVY                |           5 |            6 | warna       | bukan_warna |
-    | 22418 | KIP     | BRIGHT                |           2 |            4 | warna       | bukan_warna |
-    | 47434 | NIK     | NAVY                  |           6 |            7 | warna       | bukan_warna |
-    |  7111 | ADI     | LEGINK                |           5 |            5 | warna       | bukan_warna |
-    | 20630 | CAO     | 800UC                 |           2 |            3 | bukan_warna | warna       |
-    | 26794 | NIK     | CARBON                |           5 |            9 | warna       | bukan_warna |
-    |  5354 | ADI     | LEGINK                |           7 |            8 | warna       | bukan_warna |
-    |  7150 | ADI     | SOLRED                |           6 |            7 | warna       | bukan_warna |
-    |  1288 | ADI     | S3.1                  |           2 |            6 | bukan_warna | warna       |
-    | 39729 | NIK     | AMIXA                 |           3 |            5 | bukan_warna | warna       |
-    | 37549 | NIK     | PURPLE                |           7 |           10 | warna       | bukan_warna |
-    |  2346 | ADI     | LGSOGR                |           2 |            4 | warna       | bukan_warna |
-    | 19614 | BBC     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 37056 | NIK     | ACDMY                 |           2 |            6 | bukan_warna | warna       |
-    | 33224 | NIK     | PURPLE                |          10 |           11 | warna       | bukan_warna |
-    | 15258 | ADI     | MULTICOLOR            |           2 |            2 | bukan_warna | warna       |
-    |  7790 | ADI     | GREFOU                |           6 |            6 | warna       | bukan_warna |
-    |  5858 | ADI     | AQUALETTE             |           1 |            5 | bukan_warna | warna       |
-    | 16910 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  1363 | ADI     | HIRERE                |           7 |            7 | warna       | bukan_warna |
-    |  6497 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  5952 | ADI     | ACTIVE                |           3 |            4 | warna       | bukan_warna |
-    |   583 | ADI     | GREFIV                |           6 |            6 | warna       | bukan_warna |
-    | 45450 | NIK     | NAVY                  |           8 |            9 | warna       | bukan_warna |
-    | 15298 | ADI     | ROSE                  |           2 |            4 | warna       | bukan_warna |
-    |  4652 | ADI     | LEGINK                |           2 |            4 | warna       | bukan_warna |
-    | 24913 | NIK     | FFF                   |           1 |            9 | bukan_warna | warna       |
-    |  5771 | ADI     | ALTARUN               |           1 |            9 | bukan_warna | warna       |
-    | 15033 | ADI     | WAISTBAG              |           2 |            3 | bukan_warna | warna       |
-    | 50194 | PUM     | PURPLE                |           9 |            9 | warna       | bukan_warna |
-    | 27913 | NIK     | PINK                  |          10 |           12 | warna       | bukan_warna |
-    | 12903 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  6834 | ADI     | OWHITE                |           6 |            6 | warna       | bukan_warna |
-    |  7532 | ADI     | OWHITE                |           5 |            7 | warna       | bukan_warna |
-    | 41987 | NIK     | NAVY                  |           9 |            9 | warna       | bukan_warna |
-    | 52518 | PUM     | PINK                  |           6 |            9 | warna       | bukan_warna |
-    |   861 | ADI     | FTWWHT                |           2 |            4 | warna       | bukan_warna |
-    |  1568 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 31173 | NIK     | NAVY                  |           4 |            7 | warna       | bukan_warna |
-    | 26333 | NIK     | MERCURIALX            |           1 |            8 | bukan_warna | warna       |
-    | 41450 | NIK     | PINK                  |           7 |           12 | warna       | bukan_warna |
-    |  8530 | ADI     | WAISTBAG              |           1 |            4 | bukan_warna | warna       |
-    | 28357 | NIK     | FPF                   |           1 |           10 | bukan_warna | warna       |
-    |  2293 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  2129 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  8042 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    | 21024 | HER     | NAVY                  |           2 |            2 | warna       | bukan_warna |
-    | 14307 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  7547 | ADI     | SOBAKOV               |           1 |            4 | bukan_warna | warna       |
-    | 44898 | NIK     | PURPLE                |           9 |           10 | warna       | bukan_warna |
-    | 39365 | NIK     | PURPLE                |           9 |           11 | warna       | bukan_warna |
-    |  3823 | ADI     | CONAVY                |           5 |            6 | warna       | bukan_warna |
-    |  1449 | ADI     | FIVE                  |           4 |            4 | warna       | bukan_warna |
-    |  7714 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6917 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 28999 | NIK     | RAGEBLACK             |           2 |            4 | warna       | bukan_warna |
-    | 22793 | KIP     | BROWN                 |           3 |            4 | warna       | bukan_warna |
-    | 14413 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 13206 | ADI     | PINK                  |           6 |            6 | warna       | bukan_warna |
-    | 10983 | ADI     | STREETMIGHTY          |           1 |            3 | bukan_warna | warna       |
-    | 15043 | ADI     | NAVY                  |           6 |            6 | warna       | bukan_warna |
-    | 39734 | NIK     | AMIXA                 |           3 |            9 | bukan_warna | warna       |
-    |  8209 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 44393 | NIK     | PINK                  |           9 |           11 | warna       | bukan_warna |
-    |  9028 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    |  5874 | ADI     | CARBON                |           6 |            7 | warna       | bukan_warna |
-    |  6332 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    | 36552 | NIK     | PURPLE                |          12 |           12 | warna       | bukan_warna |
-    |  1805 | ADI     | MYSINK                |           3 |            5 | warna       | bukan_warna |
-    | 21478 | HER     | DEEP                  |           2 |            3 | warna       | bukan_warna |
-    | 12493 | ADI     | FEF                   |           1 |            5 | bukan_warna | warna       |
-    |  4985 | ADI     | GOLDMT                |           6 |            6 | warna       | bukan_warna |
-    | 48908 | PUM     | EVOPLUS               |           1 |            5 | bukan_warna | warna       |
-    |  6102 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 21021 | HER     | 600D                  |           2 |            4 | warna       | bukan_warna |
-    |  4596 | ADI     | DKBLUE                |           5 |            6 | warna       | bukan_warna |
-    |  5749 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 12330 | ADI     | TOPLOADER             |           1 |            3 | bukan_warna | warna       |
-    | 30750 | NIK     | PURPLE                |           6 |            8 | warna       | bukan_warna |
-    |  8085 | ADI     | ASHSIL                |           5 |            6 | warna       | bukan_warna |
-    | 21644 | HER     | NIGHT                 |           2 |            3 | warna       | bukan_warna |
-    |  1226 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 10819 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |   201 | ADI     | TRASCA                |           4 |            6 | warna       | bukan_warna |
-    |  4025 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 21698 | HER     | BARK                  |           3 |            3 | warna       | bukan_warna |
-    | 10993 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    |  1048 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  8707 | ADI     | NGTMET                |           5 |            5 | warna       | bukan_warna |
-    | 22312 | KIP     | PINK                  |           3 |            4 | warna       | bukan_warna |
-    |  2042 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  4186 | ADI     | MYSINK                |           5 |            6 | warna       | bukan_warna |
-    | 22445 | KIP     | RS45                  |           1 |            5 | bukan_warna | warna       |
-    | 11427 | ADI     | TRKPNT                |           2 |            3 | bukan_warna | warna       |
-    | 56154 | WAR     | BLACK                 |           1 |            5 | bukan_warna | warna       |
-    |  7225 | ADI     | CARBON                |           3 |            3 | warna       | bukan_warna |
-    | 43530 | NIK     | PINK                  |           6 |           10 | warna       | bukan_warna |
-    |  7597 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 26436 | NIK     | PINK                  |           5 |            7 | warna       | bukan_warna |
-    |  3386 | ADI     | TRUE                  |           2 |            3 | warna       | bukan_warna |
-    | 31118 | NIK     | 23                    |           6 |            6 | warna       | bukan_warna |
-    | 56637 | WAR     | 140CM                 |           1 |            6 | bukan_warna | warna       |
-    | 56062 | WAR     | GREEN                 |           2 |            7 | bukan_warna | warna       |
-    | 19899 | CAO     | 2CDR                  |           3 |            3 | bukan_warna | warna       |
-    |  8186 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  8036 | ADI     | TRAPNK                |           7 |            7 | warna       | bukan_warna |
-    | 31693 | NIK     | PURPLE                |          10 |           10 | warna       | bukan_warna |
-    |  5806 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 30126 | NIK     | NAVY                  |           6 |           10 | warna       | bukan_warna |
-    | 10823 | ADI     | PURPLE                |           5 |            5 | warna       | bukan_warna |
-    |  2449 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 55344 | STN     | DARKSIDE              |           2 |            6 | warna       | bukan_warna |
-    |  2558 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 39929 | NIK     | PINK                  |          12 |           12 | warna       | bukan_warna |
-    |  3301 | ADI     | CONAVY                |           4 |            6 | warna       | bukan_warna |
-    |  1021 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |  8248 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    | 14339 | ADI     | SENSEBOUNCE           |           1 |            6 | bukan_warna | warna       |
-    |  3310 | ADI     | PETNIT                |           4 |            6 | warna       | bukan_warna |
-    | 34620 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    | 55049 | SOC     | SNIPPLE               |           1 |            6 | bukan_warna | warna       |
-    |  3775 | ADI     | FEF                   |           1 |            5 | bukan_warna | warna       |
-    | 51890 | PUM     | LEADCAT               |           1 |            6 | bukan_warna | warna       |
-    | 25782 | NIK     | PINK                  |           8 |           10 | warna       | bukan_warna |
-    | 56531 | WAR     | PINK                  |           2 |            4 | warna       | bukan_warna |
-    |   680 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 44871 | NIK     | PURPLE                |           5 |            8 | warna       | bukan_warna |
-    |  1881 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  1487 | ADI     | CORE                  |           3 |            4 | warna       | bukan_warna |
-    | 50795 | PUM     | IGNITELIMITLESSNETFIT |           1 |            6 | bukan_warna | warna       |
-    |  1896 | ADI     | HIRERE                |           6 |            6 | warna       | bukan_warna |
-    | 18973 | BBC     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    |  7381 | ADI     | SHOYEL                |           4 |            4 | warna       | bukan_warna |
-    | 28670 | NIK     | NAVY                  |           4 |            8 | warna       | bukan_warna |
-    |  2811 | ADI     | LEGINK                |           4 |            5 | warna       | bukan_warna |
-    |  4444 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 16921 | ADI     | LEGINK                |           6 |            6 | warna       | bukan_warna |
-    | 35660 | NIK     | GLOW                  |          11 |           11 | warna       | bukan_warna |
-    | 39628 | NIK     | PURPLE                |           8 |            8 | warna       | bukan_warna |
-    |  1542 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  7406 | ADI     | GUM3                  |           6 |            6 | warna       | bukan_warna |
-    |  3271 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 39803 | NIK     | PURPLE                |           6 |            6 | warna       | bukan_warna |
-    | 44169 | NIK     | PINK                  |          11 |           11 | warna       | bukan_warna |
-    | 20705 | CAO     | 5600B                 |           2 |            3 | bukan_warna | warna       |
-    | 55401 | STN     | NAVY                  |           6 |            7 | warna       | bukan_warna |
-    | 16736 | ADI     | LEGINK                |           7 |            7 | warna       | bukan_warna |
-    |  4001 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  6463 | ADI     | HIRERE                |           4 |            6 | warna       | bukan_warna |
-    | 14695 | ADI     | NAVY                  |           6 |            6 | warna       | bukan_warna |
-    | 19807 | BEA     | &                     |           7 |            9 | warna       | bukan_warna |
-    | 12723 | ADI     | SUPPLIER              |           2 |            3 | warna       | bukan_warna |
-    | 14806 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    | 13563 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 10193 | ADI     | GLOW                  |           4 |            5 | warna       | bukan_warna |
-    |  7298 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  5033 | ADI     | DKBLUE                |           4 |            5 | warna       | bukan_warna |
-    | 21327 | HER     | DEEP                  |           2 |            3 | warna       | bukan_warna |
-    |  8128 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 34490 | NIK     | PINK                  |           9 |           10 | warna       | bukan_warna |
-    |  8377 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 10465 | ADI     | MUTATOR               |           2 |            6 | bukan_warna | warna       |
-    | 37559 | NIK     | NAVY                  |           7 |            9 | warna       | bukan_warna |
-    | 29907 | NIK     | PURPLE                |          10 |           10 | warna       | bukan_warna |
-    | 47949 | ODD     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |   553 | ADI     | CBROWN                |           4 |            6 | warna       | bukan_warna |
-    |  1182 | ADI     | CLEORA                |           3 |            5 | warna       | bukan_warna |
-    | 14390 | ADI     | CONAVY                |           5 |            5 | warna       | bukan_warna |
-    |  3709 | ADI     | LEGINK                |           5 |            6 | warna       | bukan_warna |
-    |  2790 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  8663 | ADI     | DKBLUE                |           3 |            5 | warna       | bukan_warna |
-    | 10330 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 51426 | PUM     | TSUGI                 |           1 |            7 | bukan_warna | warna       |
-    | 13093 | ADI     | RETROSET              |           1 |            4 | bukan_warna | warna       |
-    |  6580 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 32525 | NIK     | CARBON                |           8 |            9 | warna       | bukan_warna |
-    | 16399 | ADI     | BROWN                 |           6 |            6 | warna       | bukan_warna |
-    |  4487 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    | 18841 | BBC     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 13374 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 16838 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 40605 | NIK     | PINK                  |           9 |            9 | warna       | bukan_warna |
-    |  4521 | ADI     | GUM3                  |           5 |            5 | warna       | bukan_warna |
-    | 56636 | WAR     | THE                   |           2 |            4 | warna       | bukan_warna |
-    | 27556 | NIK     | PROXIMO               |           2 |            9 | bukan_warna | warna       |
-    |  1861 | ADI     | ONIX                  |           4 |            6 | warna       | bukan_warna |
-    | 11703 | ADI     | LEGMAR                |           2 |            4 | warna       | bukan_warna |
-    | 47210 | NIK     | PURPLE                |           8 |            8 | warna       | bukan_warna |
-    |   688 | ADI     | FTWWHT                |           7 |            8 | warna       | bukan_warna |
-    | 17097 | ADI     | WHT                   |           4 |            4 | warna       | bukan_warna |
-    |  2839 | ADI     | LEGINK                |           6 |            7 | warna       | bukan_warna |
-    |  6981 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  3181 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  4495 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 15557 | ADI     | SENSE.3               |           2 |            6 | bukan_warna | warna       |
-    | 54850 | SAU     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |   985 | ADI     | CRYWHT                |           5 |            5 | warna       | bukan_warna |
-    | 26909 | NIK     | LUNARGLIDE            |           2 |            9 | bukan_warna | warna       |
-    |  3286 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 39744 | NIK     | ATSUMA                |           2 |            5 | bukan_warna | warna       |
-    |   261 | ADI     | TECINK                |           3 |            5 | warna       | bukan_warna |
-    |  5325 | ADI     | LEGINK                |           8 |            8 | warna       | bukan_warna |
-    | 23426 | NIC     | PINK                  |          12 |           14 | warna       | bukan_warna |
-    | 26312 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    |  6849 | ADI     | REATEA                |           3 |            5 | warna       | bukan_warna |
-    |  5308 | ADI     | LEGINK                |           7 |            7 | warna       | bukan_warna |
-    | 26804 | NIK     | CARBON                |           7 |           10 | warna       | bukan_warna |
-    |   281 | ADI     | BLUBIR                |           6 |            6 | warna       | bukan_warna |
-    | 20104 | CAO     | 3DR                   |           3 |            3 | bukan_warna | warna       |
-    | 39775 | NIK     | PINK                  |          10 |           12 | warna       | bukan_warna |
-    | 13203 | ADI     | GHOSTED.3             |           2 |            6 | bukan_warna | warna       |
-    |  4090 | ADI     | SOLRED                |           7 |            7 | warna       | bukan_warna |
-    | 15519 | ADI     | PURPLE                |           6 |            6 | warna       | bukan_warna |
-    | 15209 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    | 11150 | ADI     | LEGEND                |           2 |            3 | warna       | bukan_warna |
-    | 56251 | WAR     | ORANGE                |           2 |            5 | bukan_warna | warna       |
-    |  4553 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 25823 | NIK     | PURPLE                |           6 |           10 | warna       | bukan_warna |
-    | 14738 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    | 55018 | SAU     | BROWN                 |           5 |            5 | warna       | bukan_warna |
-    | 36989 | NIK     | ELMNTL                |           2 |            9 | bukan_warna | warna       |
-    | 31543 | NIK     | PURPLE                |          10 |           10 | warna       | bukan_warna |
-    |  1404 | ADI     | NMD_TS1               |           1 |            4 | bukan_warna | warna       |
-    |  2835 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 41233 | NIK     | GLOW                  |          10 |           12 | warna       | bukan_warna |
-    |  1536 | ADI     | CONAVY                |           3 |            5 | warna       | bukan_warna |
-    |  1104 | ADI     | REAPNK                |           7 |            7 | warna       | bukan_warna |
-    |   875 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  8221 | ADI     | OWHITE                |           7 |            7 | warna       | bukan_warna |
-    |  9821 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 15396 | ADI     | 2PP                   |           3 |            4 | bukan_warna | warna       |
-    | 40213 | NIK     | PINK                  |           5 |            9 | warna       | bukan_warna |
-    |   942 | ADI     | REARED                |           6 |            6 | warna       | bukan_warna |
-    | 13562 | ADI     | BREAKNET              |           1 |            3 | bukan_warna | warna       |
-    | 20984 | HER     | 600D                  |           2 |            4 | warna       | bukan_warna |
-    |  2245 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    | 38625 | NIK     | PINK                  |           9 |           10 | warna       | bukan_warna |
-    | 33311 | NIK     | BROWN                 |           7 |           11 | warna       | bukan_warna |
-    |  6885 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 46252 | NIK     | PINK                  |           8 |            8 | warna       | bukan_warna |
-    |   608 | ADI     | LEGINK                |           6 |            6 | warna       | bukan_warna |
-    | 32897 | NIK     | HYPERVENOM            |           1 |           11 | bukan_warna | warna       |
-    |  2743 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  6944 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 14730 | ADI     | NAVY                  |           5 |            5 | warna       | bukan_warna |
-    | 29679 | NIK     | ASSERSION             |           3 |            7 | bukan_warna | warna       |
-    | 56096 | WAR     | RED                   |           1 |            5 | bukan_warna | warna       |
-    |  1952 | ADI     | CLONIX                |           5 |            5 | warna       | bukan_warna |
-    | 55150 | SOC     | BROWN                 |           5 |            6 | warna       | bukan_warna |
-    | 10568 | ADI     | ORBIT                 |           2 |            3 | warna       | bukan_warna |
-    | 52040 | PUM     | PINK                  |           7 |            7 | warna       | bukan_warna |
-    | 45671 | NIK     | PURPLE                |           8 |           11 | warna       | bukan_warna |
-    | 38760 | NIK     | BROWN                 |           9 |            9 | warna       | bukan_warna |
-    |  5383 | ADI     | ROCKADIA              |           1 |            6 | bukan_warna | warna       |
-    | 56478 | WAR     | MINT                  |           2 |            5 | warna       | bukan_warna |
-    | 29384 | NIK     | NAVY                  |           9 |            9 | warna       | bukan_warna |
-    | 13227 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  1444 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  4310 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |  3007 | ADI     | OWHITE                |           4 |            6 | warna       | bukan_warna |
-    | 20421 | CAO     | 2000SU                |           2 |            3 | bukan_warna | warna       |
-    | 27758 | NIK     | PURPLE                |          11 |           11 | warna       | bukan_warna |
-    | 12078 | ADI     | SENSEBOUNCE           |           1 |            7 | bukan_warna | warna       |
-    | 41351 | NIK     | STRK                  |           2 |            6 | bukan_warna | warna       |
-    | 56659 | WAR     | THE                   |           2 |            5 | warna       | bukan_warna |
-    | 51388 | PUM     | LEADCAT               |           1 |            7 | bukan_warna | warna       |
-    | 44189 | NIK     | GLOW                  |          10 |           10 | warna       | bukan_warna |
-    |  7768 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 16720 | ADI     | ONIX                  |           5 |            6 | warna       | bukan_warna |
-    | 44877 | NIK     | STRK                  |           2 |            7 | bukan_warna | warna       |
-    | 26397 | NIK     | SHOWERSOLAR           |           2 |            5 | warna       | bukan_warna |
-    | 16898 | ADI     | LEGINK                |           6 |            6 | warna       | bukan_warna |
-    |  9532 | ADI     | TRIPUR                |           2 |            2 | warna       | bukan_warna |
-    | 16939 | ADI     | LEGINK                |           6 |            7 | warna       | bukan_warna |
-    | 52167 | PUM     | FTR                   |           2 |            6 | bukan_warna | warna       |
-    | 21061 | HER     | WOODLAND              |           2 |            3 | warna       | bukan_warna |
-    |  1430 | ADI     | CLEORA                |           5 |            5 | warna       | bukan_warna |
-    |  1286 | ADI     | SHOLIM                |           4 |            4 | warna       | bukan_warna |
-    | 22594 | KIP     | SUNLIGHT              |           2 |            4 | warna       | bukan_warna |
-    |  3320 | ADI     | CARBON                |           4 |            5 | warna       | bukan_warna |
-    |   744 | ADI     | CLEMIN                |           3 |            5 | warna       | bukan_warna |
-    | 17296 | AGL     | L750                  |           1 |            5 | bukan_warna | warna       |
-    | 38065 | NIK     | PINK                  |           8 |            9 | warna       | bukan_warna |
-    |   755 | ADI     | ENEINK                |           4 |            5 | warna       | bukan_warna |
-    | 51121 | PUM     | NETFIT                |           2 |            4 | bukan_warna | warna       |
-    | 55850 | STN     | NAVY                  |           3 |            3 | warna       | bukan_warna |
-    |   970 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    | 21071 | HER     | 600D                  |           2 |            5 | warna       | bukan_warna |
-    |  1693 | ADI     | ORCTIN                |           6 |            6 | warna       | bukan_warna |
-    |  1628 | ADI     | CONAVY                |           3 |            5 | warna       | bukan_warna |
-    | 22309 | KIP     | PINK                  |           3 |            4 | warna       | bukan_warna |
-    | 11465 | ADI     | PINK                  |           4 |            4 | warna       | bukan_warna |
-    | 37643 | NIK     | NAVY                  |           7 |            9 | warna       | bukan_warna |
-    |  1203 | ADI     | VAPGRN                |           4 |            5 | warna       | bukan_warna |
-    |  1548 | ADI     | SHOPNK                |           5 |            6 | warna       | bukan_warna |
-    | 11283 | ADI     | RETRORUN              |           1 |            3 | bukan_warna | warna       |
-    | 28669 | NIK     | RUNALLDAY             |           2 |            8 | bukan_warna | warna       |
-    |  7134 | ADI     | SOLRED                |           6 |            7 | warna       | bukan_warna |
-    |  7486 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
-    |  8402 | ADI     | SILVMT                |           4 |            6 | warna       | bukan_warna |
-    |  2302 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    | 21461 | HER     | ARROWWOOD             |           2 |            2 | warna       | bukan_warna |
-    | 56685 | WAR     | 140CM                 |           1 |            3 | bukan_warna | warna       |
-    | 23012 | KIP     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    | 16541 | ADI     | COLLEGIATE            |           2 |            3 | warna       | bukan_warna |
-    | 17041 | ADI     | MYSBLU                |           5 |            6 | warna       | bukan_warna |
-    |  6822 | ADI     | CARBON                |           4 |            6 | warna       | bukan_warna |
-    |   565 | ADI     | SOLRED                |           5 |            5 | warna       | bukan_warna |
-    | 51886 | PUM     | LEADCAT               |           1 |            7 | bukan_warna | warna       |
-    | 29544 | NIK     | PINK                  |          11 |           11 | warna       | bukan_warna |
-    | 15990 | ADI     | PRIMEBLUE             |           2 |            4 | warna       | bukan_warna |
-    |  1133 | ADI     | PROPHERE              |           1 |            4 | bukan_warna | warna       |
-    |  7911 | ADI     | CARBON                |           6 |            6 | warna       | bukan_warna |
-    |  8239 | ADI     | FTWWHT                |           7 |            7 | warna       | bukan_warna |
-    |  5861 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  7554 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    |  3531 | ADI     | ONIX                  |           5 |            6 | warna       | bukan_warna |
-    |  7183 | ADI     | SOLRED                |           4 |            4 | warna       | bukan_warna |
-    | 28112 | NIK     | CELSO                 |           2 |            6 | bukan_warna | warna       |
-    |  4630 | ADI     | SOLRED                |           5 |            5 | warna       | bukan_warna |
-    |  7201 | ADI     | SOLRED                |           4 |            5 | warna       | bukan_warna |
-    |  1132 | ADI     | GUM4                  |           6 |            6 | warna       | bukan_warna |
-    |  6824 | ADI     | OWHITE                |           6 |            6 | warna       | bukan_warna |
-    |   847 | ADI     | CONAVY                |           5 |            5 | warna       | bukan_warna |
-    |  7404 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |   662 | ADI     | BLUSPI                |           6 |            7 | warna       | bukan_warna |
-    |  4303 | ADI     | FTWWHT                |           4 |            6 | warna       | bukan_warna |
-    |   476 | ADI     | CCMELS                |           3 |            3 | warna       | bukan_warna |
-    |  1564 | ADI     | OWHITE                |           5 |            5 | warna       | bukan_warna |
-    |   655 | ADI     | NOBGRN                |           6 |            7 | warna       | bukan_warna |
-    |  9613 | ADI     | ASH                   |           3 |            5 | warna       | bukan_warna |
-    |  7390 | ADI     | GUM3                  |           5 |            5 | warna       | bukan_warna |
-    | 22791 | KIP     | FS73                  |           1 |            4 | bukan_warna | warna       |
-    | 11636 | ADI     | AERO                  |           3 |            9 | warna       | bukan_warna |
-    |  7736 | ADI     | BLUSPI                |           6 |            6 | warna       | bukan_warna |
-    |  1250 | ADI     | VAPGRE                |           2 |            4 | warna       | bukan_warna |
-    |  7306 | ADI     | FTWWHT                |           2 |            4 | warna       | bukan_warna |
-    | 24667 | NIK     | CARBON                |           5 |            8 | warna       | bukan_warna |
-    | 16024 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    |  1461 | ADI     | CRYWHT                |           5 |            5 | warna       | bukan_warna |
-    |  4546 | ADI     | GREFIV                |           5 |            6 | warna       | bukan_warna |
-    | 15548 | ADI     | NAVY                  |           4 |            4 | warna       | bukan_warna |
-    |  4367 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 10381 | ADI     | FTWWHT                |           3 |            4 | warna       | bukan_warna |
-    | 50326 | PUM     | INTERFLEX             |           1 |            5 | bukan_warna | warna       |
-    | 56088 | WAR     | WHITE                 |           1 |            5 | bukan_warna | warna       |
-    |  1207 | ADI     | TRACAR                |           3 |            5 | warna       | bukan_warna |
-    | 24254 | NIK     | AW77                  |           2 |            8 | bukan_warna | warna       |
-    |  7546 | ADI     | RAW                   |           2 |            3 | warna       | bukan_warna |
-    | 21446 | HER     | 1771                  |           5 |            7 | bukan_warna | warna       |
-    | 10352 | ADI     | PINK                  |           3 |            3 | warna       | bukan_warna |
-    | 15385 | ADI     | WAISTBAG              |           1 |            3 | bukan_warna | warna       |
-    |  6630 | ADI     | SOLRED                |           4 |            4 | warna       | bukan_warna |
-    | 29349 | NIK     | PINK                  |          10 |           10 | warna       | bukan_warna |
-    | 25140 | NIK     | NAVY                  |           6 |            8 | warna       | bukan_warna |
-    | 52111 | PUM     | PURPLE                |           7 |            7 | warna       | bukan_warna |
-    |  1459 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 37152 | NIK     | PINK                  |          10 |           10 | warna       | bukan_warna |
-    | 16676 | ADI     | SOLRED                |           6 |            6 | warna       | bukan_warna |
-    | 40041 | NIK     | AJ11                  |           3 |            7 | bukan_warna | warna       |
-    |  1265 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 37173 | NIK     | PINK                  |           7 |           12 | warna       | bukan_warna |
-    |  5006 | ADI     | CBURGU                |           4 |            4 | warna       | bukan_warna |
-    |  7114 | ADI     | REARED                |           3 |            5 | warna       | bukan_warna |
-    | 13695 | ADI     | X9000L4               |           1 |            5 | bukan_warna | warna       |
-    |  2460 | ADI     | CRYWHT                |           4 |            5 | warna       | bukan_warna |
-    |  6932 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    | 26283 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    |  2876 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 16839 | ADI     | FTWWHT                |           6 |            7 | warna       | bukan_warna |
-    |  6417 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  1710 | ADI     | AERBLU                |           5 |            5 | warna       | bukan_warna |
-    |  3616 | ADI     | LEGINK                |           4 |            5 | warna       | bukan_warna |
-    |  2200 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    |  9160 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |  2150 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    | 17344 | AGL     | PURPLE                |           6 |            6 | warna       | bukan_warna |
-    | 16806 | ADI     | TRACAR                |           4 |            6 | warna       | bukan_warna |
-    | 56579 | WAR     | SALMON                |           2 |            2 | warna       | bukan_warna |
-    |  6461 | ADI     | FORTARUN              |           1 |            6 | bukan_warna | warna       |
-    | 14506 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 13830 | ADI     | SENSE.3               |           2 |            5 | bukan_warna | warna       |
-    | 45077 | NIK     | PURPLE                |           8 |            8 | warna       | bukan_warna |
-    |   570 | ADI     | SILVMT                |           5 |            6 | warna       | bukan_warna |
-    |  9861 | ADI     | CARBON                |           3 |            3 | warna       | bukan_warna |
-    |  1614 | ADI     | CONAVY                |           4 |            5 | warna       | bukan_warna |
-    |   922 | ADI     | ENEBLU                |           6 |            6 | warna       | bukan_warna |
-    | 24910 | NIK     | FFF                   |           1 |            9 | bukan_warna | warna       |
-    |  8243 | ADI     | CLEORA                |           6 |            7 | warna       | bukan_warna |
-    |  4023 | ADI     | FTWWHT                |           3 |            5 | warna       | bukan_warna |
-    | 16821 | ADI     | FORTAPLAY             |           1 |            6 | bukan_warna | warna       |
-    | 30772 | NIK     | CARBON                |           8 |            9 | warna       | bukan_warna |
-    |  6880 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  3833 | ADI     | PETNIT                |           5 |            7 | warna       | bukan_warna |
-    | 14286 | ADI     | FTWWHT                |           4 |            4 | warna       | bukan_warna |
-    | 41054 | NIK     | NAVY                  |           5 |            8 | warna       | bukan_warna |
-    | 41840 | NIK     | NAVY                  |           9 |           10 | warna       | bukan_warna |
-    |   600 | ADI     | CARBON                |           4 |            6 | warna       | bukan_warna |
-    | 11621 | ADI     | PURPLE                |           8 |            8 | warna       | bukan_warna |
-    | 30389 | NIK     | PINK                  |           8 |            8 | warna       | bukan_warna |
-    |  4787 | ADI     | FTWWHT                |           5 |            5 | warna       | bukan_warna |
-    |  7039 | ADI     | GUM3                  |           7 |            7 | warna       | bukan_warna |
-    |  7885 | ADI     | NAVY                  |           6 |           11 | warna       | bukan_warna |
-    | 45367 | NIK     | PINK                  |           6 |            8 | warna       | bukan_warna |
-    | 48918 | PUM     | EVOPLUS               |           1 |            5 | bukan_warna | warna       |
-    | 35237 | NIK     | PURPLE                |           5 |            8 | warna       | bukan_warna |
-    | 51374 | PUM     | PURPLE                |           6 |            7 | warna       | bukan_warna |
-    |  7573 | ADI     | CARBON                |           3 |            5 | warna       | bukan_warna |
-    | 45473 | NIK     | NAVY                  |           7 |            9 | warna       | bukan_warna |
-    |   989 | ADI     | FTWWHT                |           4 |            4 | warna       | bukan_warna |
-    | 51827 | PUM     | PURPLE                |           6 |            7 | warna       | bukan_warna |
-    |  4581 | ADI     | CRYWHT                |           3 |            5 | warna       | bukan_warna |
-    |  6677 | ADI     | FTWWHT                |           5 |            6 | warna       | bukan_warna |
-    |  7827 | ADI     | CONAVY                |           3 |            5 | warna       | bukan_warna |
-    |  3305 | ADI     | SUPPNK                |           4 |            6 | warna       | bukan_warna |
-    | 10245 | ADI     | ACTIVE                |           2 |            3 | warna       | bukan_warna |
-    |  4029 | ADI     | GREONE                |           5 |            6 | warna       | bukan_warna |
-    | 21218 | HER     | 1771                  |           6 |            8 | bukan_warna | warna       |
-    | 51406 | PUM     | TSUGI                 |           1 |            9 | bukan_warna | warna       |
-    | 39273 | NIK     | PURPLE                |           7 |           10 | warna       | bukan_warna |
-    | 38075 | NIK     | PINK                  |           7 |           10 | warna       | bukan_warna |
-    |  3625 | ADI     | LEGINK                |           3 |            5 | warna       | bukan_warna |
-    |  5284 | ADI     | CARBON                |           4 |            5 | warna       | bukan_warna |
-    |  7933 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  7935 | ADI     | PROPHERE              |           1 |            4 | bukan_warna | warna       |
-    | 27700 | NIK     | NAVY                  |           8 |            8 | warna       | bukan_warna |
-    | 38478 | NIK     | BROWN                 |          10 |           10 | warna       | bukan_warna |
-    |  1456 | ADI     | CLEORA                |           7 |            7 | warna       | bukan_warna |
-    | 44911 | NIK     | NAVY                  |           8 |           10 | warna       | bukan_warna |
-    | 52176 | PUM     | PINK                  |           5 |            8 | warna       | bukan_warna |
-    | 41847 | NIK     | PINK                  |           7 |           10 | warna       | bukan_warna |
-    | 10984 | ADI     | FTWR                  |           2 |            3 | warna       | bukan_warna |
-    | 13330 | ADI     | MUTATOR               |           2 |            7 | bukan_warna | warna       |
-    |  5898 | ADI     | ASHSIL                |           5 |            5 | warna       | bukan_warna |
-    | 32907 | NIK     | HYPERVENOM            |           1 |            9 | bukan_warna | warna       |
-    | 53776 | PUM     | ASPHALT               |           3 |            5 | warna       | bukan_warna |
-    | 48236 | PUM     | PINK                  |           7 |            7 | warna       | bukan_warna |
-    | 31265 | NIK     | VARSITY               |           2 |            6 | warna       | bukan_warna |
-    | 52922 | PUM     | GLOW                  |           6 |            7 | warna       | bukan_warna |
-    | 28007 | NIK     | PINK                  |           6 |           10 | warna       | bukan_warna |
-    | 10314 | ADI     | CORE                  |           2 |            3 | warna       | bukan_warna |
-    | 14311 | ADI     | PINK                  |           5 |            5 | warna       | bukan_warna |
-    |  4820 | ADI     | FTWWHT                |           5 |            7 | warna       | bukan_warna |
-    | 16643 | ADI     | FTWWHT                |           4 |            5 | warna       | bukan_warna |
-    |  6868 | ADI     | SOLRED                |           3 |            5 | warna       | bukan_warna |
-    | 54747 | SAU     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    | 55118 | SOC     | NAVY                  |           3 |            4 | warna       | bukan_warna |
-    | 41523 | NIK     | PINK                  |          10 |           12 | warna       | bukan_warna |
-    | 13891 | ADI     | FORTARUN              |           1 |            6 | bukan_warna | warna       |
-    | 22788 | KIP     | WALNUT                |           2 |            4 | warna       | bukan_warna |
-    |  4680 | ADI     | FTWWHT                |           6 |            6 | warna       | bukan_warna |
+    |       | brand   | kata          |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
+    |------:|:--------|:--------------|------------:|-------------:|:------------|:------------|:---------------|
+    | 16829 | ADI     | SESOYE        |           5 |            6 | warna       | bukan_warna | 46.29%         |
+    | 28490 | NIK     | TIEMPO        |           1 |            8 | bukan_warna | warna       | 74.9%          |
+    | 55259 | STN     | AQUA          |           3 |            3 | warna       | bukan_warna | 2.84%          |
+    | 47519 | NIK     | 3PPK          |           2 |            9 | bukan_warna | warna       | 53.58%         |
+    |  2899 | ADI     | SOBAKOV       |           1 |            4 | bukan_warna | warna       | 76.76%         |
+    | 26661 | NIK     | BROWN         |           9 |            9 | warna       | bukan_warna | 39.65%         |
+    | 14773 | ADI     | TIRO          |           1 |            3 | bukan_warna | warna       | 58.89%         |
+    | 47562 | NIK     | 3PPK          |           2 |           10 | bukan_warna | warna       | 53.58%         |
+    | 15999 | ADI     | SPECTOO       |           2 |            4 | warna       | bukan_warna | 14.74%         |
+    |  2639 | ADI     | CWHITE        |           5 |            5 | warna       | bukan_warna | 34.19%         |
+    |  5166 | ADI     | FEF           |           1 |            5 | bukan_warna | warna       | 50.67%         |
+    |  8219 | ADI     | OWHITE        |           5 |            7 | warna       | bukan_warna | 22.71%         |
+    |    12 | ADI     | BASKETBALL    |           5 |            6 | warna       | bukan_warna | 9.97%          |
+    | 27594 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
+    | 23355 | NIC     | 7             |          11 |           11 | warna       | bukan_warna | 7.83%          |
+    | 34040 | NIK     | SUPRFLY       |           2 |            8 | bukan_warna | warna       | 93.28%         |
+    | 21620 | HER     | PINE          |           2 |            4 | warna       | bukan_warna | 6.69%          |
+    |  7564 | ADI     | OWHITE        |           3 |            5 | warna       | bukan_warna | 22.71%         |
+    | 25404 | NIK     | NAVY          |           8 |            9 | warna       | bukan_warna | 8.11%          |
+    | 15182 | ADI     | FBIRD         |           1 |            3 | bukan_warna | warna       | 64.54%         |
+    |  4084 | ADI     | ICEPNK        |           5 |            6 | warna       | bukan_warna | 36.66%         |
+    | 29951 | NIK     | MERCURIALX    |           1 |           10 | bukan_warna | warna       | 64.81%         |
+    | 10768 | ADI     | FORTARUN      |           1 |            7 | bukan_warna | warna       | 63.57%         |
+    | 55505 | STN     | JOVEN         |           2 |            6 | bukan_warna | warna       | 86.25%         |
+    | 50284 | PUM     | TISHATSU      |           1 |            7 | bukan_warna | warna       | 73.17%         |
+    | 12291 | ADI     | STARLANCER    |           1 |            4 | bukan_warna | warna       | 66.83%         |
+    | 21145 | HER     | ECLIPSE       |           2 |            3 | warna       | bukan_warna | 0.64%          |
+    | 56008 | VAP     | 0.7L          |           1 |            3 | bukan_warna | warna       | 50.0%          |
+    | 20470 | CAO     | 3ADR          |           3 |            3 | bukan_warna | warna       | 71.37%         |
+    | 20664 | CAO     | GBD8002DRNS   |           1 |            1 | bukan_warna | warna       | 70.19%         |
+    | 36580 | NIK     | GLOW          |          11 |           11 | warna       | bukan_warna | 17.97%         |
+    | 55857 | STN     | BROWN         |           2 |            2 | warna       | bukan_warna | 39.65%         |
+    | 10071 | ADI     | BROWN         |           5 |            5 | warna       | bukan_warna | 39.65%         |
+    |  1605 | ADI     | GOLDMT        |           6 |            6 | warna       | bukan_warna | 23.74%         |
+    |   457 | ADI     | TC1P          |           4 |            7 | bukan_warna | warna       | 52.46%         |
+    |  1706 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
+    | 11061 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 33862 | NIK     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
+    |  3218 | ADI     | CONAVY        |           3 |            5 | warna       | bukan_warna | 18.74%         |
+    | 48060 | PTG     | VINKA         |           1 |            3 | bukan_warna | warna       | 51.67%         |
+    |  9750 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+    |  2896 | ADI     | CLEORA        |           2 |            4 | warna       | bukan_warna | 15.4%          |
+    | 56444 | WAR     | OREO          |           2 |            3 | warna       | bukan_warna | 5.74%          |
+    | 42406 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
+    | 30205 | NIK     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
+    | 17080 | ADI     | WHT           |           6 |            6 | warna       | bukan_warna | 20.68%         |
+    |  1741 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
+    | 13176 | ADI     | MUTATOR       |           2 |            7 | bukan_warna | warna       | 82.25%         |
+    |  3421 | ADI     | CBROWN        |           6 |            6 | warna       | bukan_warna | 19.14%         |
+    | 46960 | NIK     | FTR10PURE     |           2 |            7 | warna       | bukan_warna | 27.53%         |
+    | 20310 | CAO     | 100BT         |           2 |            4 | bukan_warna | warna       | 74.83%         |
+    |  9791 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 12007 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 30760 | NIK     | CARBON        |           9 |           10 | warna       | bukan_warna | 1.97%          |
+    |  3962 | ADI     | TIRO          |           1 |            5 | bukan_warna | warna       | 58.89%         |
+    | 24919 | NIK     | YTH           |           2 |           11 | bukan_warna | warna       | 69.09%         |
+    |  7175 | ADI     | HIRAQU        |           3 |            4 | warna       | bukan_warna | 42.26%         |
+    |  1334 | ADI     | SUBGRN        |           8 |            8 | warna       | bukan_warna | 33.45%         |
+    | 21092 | HER     | NAVY          |           5 |            6 | warna       | bukan_warna | 8.11%          |
+    | 55487 | STN     | JOVEN         |           2 |            6 | bukan_warna | warna       | 86.25%         |
+    |  4054 | ADI     | TRAPNK        |           7 |            7 | warna       | bukan_warna | 48.93%         |
+    | 45615 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
+    |  9282 | ADI     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
+    | 12340 | ADI     | TOPLOADER     |           2 |            5 | bukan_warna | warna       | 64.02%         |
+    |  6830 | ADI     | OWHITE        |           6 |            6 | warna       | bukan_warna | 22.71%         |
+    | 36182 | NIK     | BROWN         |          11 |           11 | warna       | bukan_warna | 39.65%         |
+    |  3315 | ADI     | CARBON        |           3 |            4 | warna       | bukan_warna | 1.97%          |
+    | 24527 | NIK     | GENICCO       |           2 |            8 | bukan_warna | warna       | 52.37%         |
+    | 20530 | CAO     | 700SK         |           2 |            3 | bukan_warna | warna       | 97.71%         |
+    | 48125 | PTG     | TANNE         |           1 |            3 | bukan_warna | warna       | 78.4%          |
+    |  2014 | ADI     | TIRO          |           1 |            5 | bukan_warna | warna       | 58.89%         |
+    |   325 | ADI     | BRBLUE        |           6 |            6 | warna       | bukan_warna | 34.32%         |
+    | 34704 | NIK     | EBERNON       |           2 |            7 | bukan_warna | warna       | 68.67%         |
+    | 13918 | ADI     | CARDBOARD     |           2 |            2 | warna       | bukan_warna | 4.66%          |
+    | 56043 | VAP     | VAPUR         |           1 |            3 | bukan_warna | warna       | 60.88%         |
+    | 27450 | NIK     | GLOW          |           7 |            9 | warna       | bukan_warna | 17.97%         |
+    | 16994 | ADI     | MGREYH        |           4 |            4 | warna       | bukan_warna | 40.59%         |
+    | 12737 | ADI     | LACELESS      |           2 |            4 | bukan_warna | warna       | 52.25%         |
+    | 16521 | ADI     | RUNWHT        |           3 |            5 | warna       | bukan_warna | 46.17%         |
+    | 29512 | NIK     | NAVY          |           9 |           11 | warna       | bukan_warna | 8.11%          |
+    | 34903 | NIK     | NAVY          |           7 |           11 | warna       | bukan_warna | 8.11%          |
+    |  1799 | ADI     | SOBAKOV       |           1 |            4 | bukan_warna | warna       | 76.76%         |
+    | 54580 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
+    | 55642 | STN     | MOUSEKETEER   |           2 |            6 | bukan_warna | warna       | 89.19%         |
+    | 22729 | KIP     | BEIGE         |           2 |            4 | warna       | bukan_warna | 12.74%         |
+    | 37378 | NIK     | ACDMY         |           2 |            6 | bukan_warna | warna       | 74.72%         |
+    | 32120 | NIK     | OBRAX         |           1 |           10 | bukan_warna | warna       | 80.22%         |
+    |  5892 | ADI     | ASHSIL        |           3 |            5 | warna       | bukan_warna | 24.08%         |
+    | 22453 | KIP     | RS46          |           1 |            5 | bukan_warna | warna       | 71.93%         |
+    | 54596 | REL     | 35            |           5 |            5 | warna       | bukan_warna | 4.4%           |
+    |  5908 | ADI     | BLUSPI        |           5 |            5 | warna       | bukan_warna | 2.56%          |
+    | 27060 | NIK     | ONDA          |           2 |            8 | bukan_warna | warna       | 73.03%         |
+    | 20326 | CAO     | 5ADR          |           3 |            4 | bukan_warna | warna       | 58.48%         |
+    | 48089 | PTG     | VERMI         |           1 |            3 | bukan_warna | warna       | 56.81%         |
+    |  9207 | ADI     | CONAVY        |           3 |            4 | warna       | bukan_warna | 18.74%         |
+    |  4248 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
+    | 15946 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 27050 | NIK     | ONDA          |           2 |            8 | bukan_warna | warna       | 73.03%         |
+    |  1749 | ADI     | DKBLUE        |           4 |            5 | warna       | bukan_warna | 13.2%          |
+    |   681 | ADI     | GOLDMT        |           6 |            6 | warna       | bukan_warna | 23.74%         |
+    |  6952 | ADI     | DEERUPT       |           1 |            6 | bukan_warna | warna       | 77.13%         |
+    | 56037 | VAP     | 0.7L          |           1 |            3 | bukan_warna | warna       | 50.0%          |
+    |  1270 | ADI     | SHOLIM        |           4 |            4 | warna       | bukan_warna | 23.63%         |
+    |  3544 | ADI     | GYMSACK       |           1 |            3 | bukan_warna | warna       | 84.56%         |
+    | 27364 | NIK     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
+    |  5630 | ADI     | BROWN         |           5 |            5 | warna       | bukan_warna | 39.65%         |
+    | 16229 | ADI     | CLSC          |           1 |            4 | bukan_warna | warna       | 75.23%         |
+    |   518 | ADI     | SCARLE        |           5 |            6 | warna       | bukan_warna | 28.57%         |
+    | 56041 | VAP     | VAPUR         |           1 |            3 | bukan_warna | warna       | 60.88%         |
+    |  3535 | ADI     | POWRED        |           4 |            5 | warna       | bukan_warna | 10.18%         |
+    | 22744 | KIP     | TAUPE         |           2 |            4 | warna       | bukan_warna | 10.94%         |
+    |  8187 | ADI     | OWHITE        |           6 |            6 | warna       | bukan_warna | 22.71%         |
+    | 37442 | NIK     | ELMNTL        |           2 |           10 | bukan_warna | warna       | 76.67%         |
+    | 20491 | CAO     | 1BDR          |           3 |            3 | bukan_warna | warna       | 62.83%         |
+    | 17300 | AGL     | L750          |           1 |            4 | bukan_warna | warna       | 64.14%         |
+    |  2613 | ADI     | ENEBLU        |           6 |            6 | warna       | bukan_warna | 27.69%         |
+    |  5289 | ADI     | GREFIV        |           5 |            7 | warna       | bukan_warna | 10.86%         |
+    |  9201 | ADI     | GYMSACK       |           1 |            4 | bukan_warna | warna       | 84.56%         |
+    |  9671 | ADI     | CARBON        |           4 |            4 | warna       | bukan_warna | 1.97%          |
+    | 21242 | HER     | WINE          |           2 |            3 | warna       | bukan_warna | 3.68%          |
+    | 52163 | PUM     | FTR           |           2 |            9 | bukan_warna | warna       | 67.71%         |
+    |   774 | ADI     | TRAPNK        |           6 |            6 | warna       | bukan_warna | 48.93%         |
+    | 18880 | BBC     | OVERDYED      |           1 |            6 | bukan_warna | warna       | 83.76%         |
+    | 26315 | NIK     | MERCURIALX    |           1 |            9 | bukan_warna | warna       | 64.81%         |
+    | 25788 | NIK     | GLOW          |           7 |           11 | warna       | bukan_warna | 17.97%         |
+    | 27017 | NIK     | NAVY          |           6 |            7 | warna       | bukan_warna | 8.11%          |
+    |  2673 | ADI     | CONAVY        |           2 |            4 | warna       | bukan_warna | 18.74%         |
+    | 22680 | KIP     | FS64          |           1 |            5 | bukan_warna | warna       | 77.84%         |
+    |  7623 | ADI     | ORCTIN        |           5 |            6 | warna       | bukan_warna | 21.4%          |
+    |  5757 | ADI     | ALTARUN       |           1 |            5 | bukan_warna | warna       | 88.32%         |
+    | 15871 | ADI     | CARBON        |           2 |            2 | warna       | bukan_warna | 1.97%          |
+    | 12104 | ADI     | GLOW          |           5 |            5 | warna       | bukan_warna | 17.97%         |
+    | 32951 | NIK     | HYPERVENOM    |           2 |           10 | bukan_warna | warna       | 94.85%         |
+    | 10929 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    |  5151 | ADI     | GREFOU        |           6 |            6 | warna       | bukan_warna | 11.85%         |
+    | 43160 | NIK     | GLOW          |          11 |           11 | warna       | bukan_warna | 17.97%         |
+    |  5964 | ADI     | CLOUD         |           2 |            3 | warna       | bukan_warna | 1.68%          |
+    |  2801 | ADI     | CROYAL        |           6 |            7 | warna       | bukan_warna | 39.06%         |
+    | 10233 | ADI     | BYW           |           2 |            5 | bukan_warna | warna       | 57.86%         |
+    |  1562 | ADI     | RAWGRE        |           3 |            5 | warna       | bukan_warna | 27.69%         |
+    | 37431 | NIK     | ELMNTL        |           2 |            8 | bukan_warna | warna       | 76.67%         |
+    | 21248 | HER     | LILAMER       |           2 |            7 | bukan_warna | warna       | 76.38%         |
+    | 16594 | ADI     | X9000L4       |           1 |            4 | bukan_warna | warna       | 72.17%         |
+    |  5099 | ADI     | EQTGRN        |           5 |            5 | warna       | bukan_warna | 6.68%          |
+    |  2168 | ADI     | DKBLUE        |           6 |            6 | warna       | bukan_warna | 13.2%          |
+    |  2884 | ADI     | LGSOGR        |           6 |            6 | warna       | bukan_warna | 16.81%         |
+    | 20182 | CAO     | 5600HR        |           2 |            3 | bukan_warna | warna       | 70.09%         |
+    |  9222 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
+    | 22752 | KIP     | METRO         |           2 |            4 | warna       | bukan_warna | 2.3%           |
+    |  6898 | ADI     | CWHITE        |           5 |            7 | warna       | bukan_warna | 34.19%         |
+    |  6439 | ADI     | ALTASWIM      |           1 |            5 | bukan_warna | warna       | 60.68%         |
+    | 34540 | NIK     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
+    |  2279 | ADI     | CBROWN        |           5 |            5 | warna       | bukan_warna | 19.14%         |
+    | 23381 | NIC     | NAVY          |          10 |           11 | warna       | bukan_warna | 8.11%          |
+    |  6865 | ADI     | BLUSPI        |           6 |            6 | warna       | bukan_warna | 2.56%          |
+    |  2066 | ADI     | CRYWHT        |           5 |            5 | warna       | bukan_warna | 15.21%         |
+    | 12118 | ADI     | CONAVY        |           6 |            6 | warna       | bukan_warna | 18.74%         |
+    |  1126 | ADI     | GUM4          |           5 |            5 | warna       | bukan_warna | 34.82%         |
+    |  8629 | ADI     | CARBON        |           4 |            4 | warna       | bukan_warna | 1.97%          |
+    | 37005 | NIK     | ELMNTL        |           2 |            7 | bukan_warna | warna       | 76.67%         |
+    |  1466 | ADI     | CARBON        |           5 |            5 | warna       | bukan_warna | 1.97%          |
+    | 35687 | NIK     | BROWN         |          13 |           13 | warna       | bukan_warna | 39.65%         |
+    |  1796 | ADI     | REAMAG        |           3 |            5 | warna       | bukan_warna | 9.48%          |
+    | 12189 | ADI     | PARKHOOD      |           1 |            3 | bukan_warna | warna       | 80.63%         |
+    | 41017 | NIK     | CARBON        |           8 |           10 | warna       | bukan_warna | 1.97%          |
+    |  3658 | ADI     | VIVTEA        |           5 |            6 | warna       | bukan_warna | 26.08%         |
+    |  6992 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
+    |  9197 | ADI     | ANK           |           2 |            4 | bukan_warna | warna       | 90.51%         |
+    |  6913 | ADI     | OWHITE        |           5 |            5 | warna       | bukan_warna | 22.71%         |
+    | 26544 | NIK     | ACDMY         |           3 |           10 | bukan_warna | warna       | 74.72%         |
+    | 55064 | SOC     | NAVY          |           3 |            4 | warna       | bukan_warna | 8.11%          |
+    |  3906 | ADI     | REARED        |           4 |            6 | warna       | bukan_warna | 8.44%          |
+    | 54866 | SAU     | NAVY          |           3 |            4 | warna       | bukan_warna | 8.11%          |
+    |  1798 | ADI     | CLPINK        |           5 |            5 | warna       | bukan_warna | 31.94%         |
+    | 48138 | PTG     | NAVY          |           2 |            3 | warna       | bukan_warna | 8.11%          |
+    | 21095 | HER     | NAVY          |           6 |            7 | warna       | bukan_warna | 8.11%          |
+    | 32944 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
+    | 15571 | ADI     | SAND          |           2 |            2 | warna       | bukan_warna | 8.78%          |
+    | 13811 | ADI     | OWNTHEGAME    |           1 |            3 | bukan_warna | warna       | 74.23%         |
+    | 10340 | ADI     | VALASION      |           2 |            4 | bukan_warna | warna       | 54.7%          |
+    | 51324 | PUM     | BROWN         |           5 |            6 | warna       | bukan_warna | 39.65%         |
+    | 27162 | NIK     | GLOW          |           8 |            9 | warna       | bukan_warna | 17.97%         |
+    |  4275 | ADI     | MGREYH        |           5 |            7 | warna       | bukan_warna | 40.59%         |
+    | 55981 | STN     | OATMEAL       |           2 |            2 | warna       | bukan_warna | 1.98%          |
+    |  5570 | ADI     | ALPHAEDGE     |           1 |            5 | bukan_warna | warna       | 66.83%         |
+    |   540 | ADI     | REATEA        |           4 |            5 | warna       | bukan_warna | 23.55%         |
+    | 20762 | CAO     | 1BDR          |           3 |            3 | bukan_warna | warna       | 62.83%         |
+    | 33831 | NIK     | EXPX14WHITE   |           2 |            4 | warna       | bukan_warna | 20.9%          |
+    | 20191 | CAO     | 5600MS        |           2 |            3 | bukan_warna | warna       | 50.62%         |
+    | 54157 | PUM     | FIGC          |           1 |            7 | bukan_warna | warna       | 95.07%         |
+    | 54576 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
+    |  8858 | ADI     | ONIX          |           4 |            4 | warna       | bukan_warna | 2.87%          |
+    | 22756 | KIP     | METRO         |           2 |            4 | warna       | bukan_warna | 2.3%           |
+    | 38254 | NIK     | NAVY          |           8 |           11 | warna       | bukan_warna | 8.11%          |
+    | 20473 | CAO     | 5ADR          |           3 |            3 | bukan_warna | warna       | 58.48%         |
+    | 11354 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+    | 36024 | NIK     | N110          |           2 |           12 | bukan_warna | warna       | 52.47%         |
+    | 12807 | ADI     | SAMBAROSE     |           1 |            4 | bukan_warna | warna       | 72.5%          |
+    | 56746 | WAR     | PAISLEY       |           2 |            4 | warna       | bukan_warna | 10.4%          |
+    | 26324 | NIK     | MERCURIALX    |           1 |           10 | bukan_warna | warna       | 64.81%         |
+    |  1405 | ADI     | PK            |           2 |            4 | warna       | bukan_warna | 7.75%          |
+    |  4010 | ADI     | MANAZERO      |           1 |            5 | bukan_warna | warna       | 52.65%         |
+    | 17275 | AGL     | 5             |           5 |            6 | warna       | bukan_warna | 11.46%         |
+    | 21507 | HER     | FOREST        |           2 |            5 | warna       | bukan_warna | 1.72%          |
+    | 54562 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
+    | 15616 | ADI     | EDGE.3        |           2 |            5 | bukan_warna | warna       | 94.49%         |
+    |  8091 | ADI     | CLEORA        |           6 |            7 | warna       | bukan_warna | 15.4%          |
+    |   762 | ADI     | MSILVE        |           6 |            6 | warna       | bukan_warna | 17.38%         |
+    | 32754 | NIK     | NAVY          |           9 |           12 | warna       | bukan_warna | 8.11%          |
+    |  7272 | ADI     | GREFIV        |           4 |            4 | warna       | bukan_warna | 10.86%         |
+    |  7336 | ADI     | FORTARUN      |           1 |            6 | bukan_warna | warna       | 63.57%         |
+    |  6861 | ADI     | DEERUPT       |           1 |            6 | bukan_warna | warna       | 77.13%         |
+    | 26752 | NIK     | PEELORANGE    |           6 |            7 | warna       | bukan_warna | 8.1%           |
+    | 55804 | STN     | VOLT          |           2 |            2 | warna       | bukan_warna | 8.05%          |
+    | 38091 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
+    |  2304 | ADI     | ALTASWIM      |           1 |            5 | bukan_warna | warna       | 60.68%         |
+    | 44843 | NIK     | NAVY          |           8 |           11 | warna       | bukan_warna | 8.11%          |
+    | 12023 | ADI     | LEGEND        |           2 |            3 | warna       | bukan_warna | 2.54%          |
+    |  6095 | ADI     | CONAVY        |           5 |            6 | warna       | bukan_warna | 18.74%         |
+    | 38387 | NIK     | CARBON        |          10 |           13 | warna       | bukan_warna | 1.97%          |
+    | 10776 | ADI     | CRYSTAL       |           2 |            3 | warna       | bukan_warna | 1.25%          |
+    | 21519 | HER     | PRPL          |           2 |            3 | warna       | bukan_warna | 17.27%         |
+    | 31880 | NIK     | CARBON        |           5 |            8 | warna       | bukan_warna | 1.97%          |
+    | 49108 | PUM     | LALIGA        |           1 |            9 | bukan_warna | warna       | 78.92%         |
+    | 32109 | NIK     | OBRAX         |           1 |           11 | bukan_warna | warna       | 80.22%         |
+    |  1079 | ADI     | SAMBAROSE     |           1 |            5 | bukan_warna | warna       | 72.5%          |
+    | 20708 | CAO     | 5600B         |           2 |            3 | bukan_warna | warna       | 77.72%         |
+    | 27568 | NIK     | HYPERVENOM    |           1 |           10 | bukan_warna | warna       | 94.85%         |
+    |  2055 | ADI     | TECINK        |           5 |            6 | warna       | bukan_warna | 32.44%         |
+    | 13382 | ADI     | ULTIMASHOW    |           1 |            3 | bukan_warna | warna       | 64.8%          |
+    |  1656 | ADI     | ONIX          |           8 |            8 | warna       | bukan_warna | 2.87%          |
+    | 41355 | NIK     | NJR           |           1 |           10 | bukan_warna | warna       | 58.31%         |
+    | 46057 | NIK     | NAVY          |           9 |           11 | warna       | bukan_warna | 8.11%          |
+    | 14748 | ADI     | NAVY          |           7 |            7 | warna       | bukan_warna | 8.11%          |
+    | 51425 | PUM     | SCARLE        |           7 |            7 | warna       | bukan_warna | 28.57%         |
+    |  6570 | ADI     | CRYWHT        |           5 |            6 | warna       | bukan_warna | 15.21%         |
+    |  6786 | ADI     | RAWGRE        |           5 |            7 | warna       | bukan_warna | 27.69%         |
+    | 13531 | ADI     | NAVY          |           7 |            7 | warna       | bukan_warna | 8.11%          |
+    |  8185 | ADI     | OWHITE        |           4 |            6 | warna       | bukan_warna | 22.71%         |
+    | 20418 | CAO     | 2000SU        |           2 |            3 | bukan_warna | warna       | 59.95%         |
+    | 26015 | NIK     | WHT           |          11 |           11 | warna       | bukan_warna | 20.68%         |
+    |   399 | ADI     | POWRED        |           6 |            6 | warna       | bukan_warna | 10.18%         |
+    | 21264 | HER     | FROG          |           2 |            3 | warna       | bukan_warna | 2.64%          |
+    | 55478 | STN     | UMPQUA        |           2 |            8 | bukan_warna | warna       | 64.32%         |
+    |  3992 | ADI     | TRACAR        |           5 |            6 | warna       | bukan_warna | 41.94%         |
+    |  8759 | ADI     | ACTIVE        |           3 |            7 | warna       | bukan_warna | 2.2%           |
+    | 37425 | NIK     | ELMNTL        |           2 |            7 | bukan_warna | warna       | 76.67%         |
+    |   790 | ADI     | SUPPNK        |           4 |            6 | warna       | bukan_warna | 17.73%         |
+    |  5935 | ADI     | TRACAR        |           4 |            5 | warna       | bukan_warna | 41.94%         |
+    | 11694 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    |  2027 | ADI     | MSILVE        |           5 |            5 | warna       | bukan_warna | 17.38%         |
+    | 22760 | KIP     | ARMOR         |           2 |            4 | warna       | bukan_warna | 3.96%          |
+    | 10067 | ADI     | BYW           |           2 |            5 | bukan_warna | warna       | 57.86%         |
+    | 32507 | NIK     | METCON        |           2 |            5 | bukan_warna | warna       | 83.89%         |
+    |   256 | ADI     | TECINK        |           4 |            6 | warna       | bukan_warna | 32.44%         |
+    |  4318 | ADI     | DKBLUE        |           4 |            6 | warna       | bukan_warna | 13.2%          |
+    | 10573 | ADI     | METAL         |           2 |            3 | warna       | bukan_warna | 1.74%          |
+    | 56484 | WAR     | NEON          |           2 |            5 | warna       | bukan_warna | 1.01%          |
+    | 31743 | NIK     | CARBON        |           7 |           10 | warna       | bukan_warna | 1.97%          |
+    | 33469 | NIK     | BROWN         |           9 |            9 | warna       | bukan_warna | 39.65%         |
+    | 14254 | ADI     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
+    |  1919 | ADI     | QTFLEX        |           1 |            4 | bukan_warna | warna       | 71.42%         |
+    | 13304 | ADI     | X9000L4       |           1 |            4 | bukan_warna | warna       | 72.17%         |
+    | 24677 | NIK     | FUTSLIDE      |           1 |            8 | bukan_warna | warna       | 50.7%          |
+    | 24214 | NIK     | OKWAHN        |           1 |            9 | bukan_warna | warna       | 89.27%         |
+    | 12386 | ADI     | TRF           |           1 |            4 | bukan_warna | warna       | 55.14%         |
+    | 19482 | BBC     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
+    | 54571 | REL     | 49            |           8 |            8 | warna       | bukan_warna | 0.95%          |
+    |  3774 | ADI     | PETNIT        |           5 |            5 | warna       | bukan_warna | 7.57%          |
+    | 11431 | ADI     | CONAVY        |           3 |            3 | warna       | bukan_warna | 18.74%         |
+    | 40860 | NIK     | NAVY          |          10 |           10 | warna       | bukan_warna | 8.11%          |
+    | 45302 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
+    |  4155 | ADI     | MYSINK        |           4 |            5 | warna       | bukan_warna | 48.24%         |
+    | 13173 | ADI     | SENSE.4       |           2 |            5 | bukan_warna | warna       | 54.74%         |
+    | 45336 | NIK     | ELMNTL        |           2 |            8 | bukan_warna | warna       | 76.67%         |
+    | 53690 | PUM     | NJR           |           1 |            6 | bukan_warna | warna       | 58.31%         |
+    | 11185 | ADI     | X9000L3       |           1 |            4 | bukan_warna | warna       | 72.55%         |
+    |   331 | ADI     | HIRAQU        |           6 |            7 | warna       | bukan_warna | 42.26%         |
+    | 28741 | NIK     | ARROWZ        |           2 |            6 | bukan_warna | warna       | 75.17%         |
+    | 27626 | NIK     | METCON        |           2 |            7 | bukan_warna | warna       | 83.89%         |
+    | 21043 | HER     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
+    |  7699 | ADI     | CARBON        |           7 |            7 | warna       | bukan_warna | 1.97%          |
+    | 32222 | NIK     | VAPORX        |           2 |           10 | bukan_warna | warna       | 51.13%         |
+    |  6701 | ADI     | CRYWHT        |           6 |            6 | warna       | bukan_warna | 15.21%         |
+    | 51188 | PUM     | BROWN         |           8 |            9 | warna       | bukan_warna | 39.65%         |
+    | 50514 | PUM     | PEACOAT       |           2 |            3 | warna       | bukan_warna | 29.83%         |
+    | 16925 | ADI     | ENEBLU        |           6 |            7 | warna       | bukan_warna | 27.69%         |
+    | 11997 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    |  6039 | ADI     | GREFOU        |           4 |            6 | warna       | bukan_warna | 11.85%         |
+    |  1716 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
+    | 17926 | AGL     | TACOLOCAL     |           1 |            3 | bukan_warna | warna       | 70.23%         |
+    |  3555 | ADI     | CONAVY        |           6 |            7 | warna       | bukan_warna | 18.74%         |
+    |  9541 | ADI     | CONAVY        |           2 |            3 | warna       | bukan_warna | 18.74%         |
+    | 21167 | HER     | FOREST        |           2 |            2 | warna       | bukan_warna | 1.72%          |
+    | 12464 | ADI     | BOTTL         |           2 |            4 | bukan_warna | warna       | 67.36%         |
+    | 12017 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 21457 | HER     | ARROWWOOD     |           2 |            2 | warna       | bukan_warna | 37.38%         |
+    | 42357 | NIK     | ONDECK        |           2 |            7 | bukan_warna | warna       | 69.73%         |
+    |   836 | ADI     | CONAVY        |           5 |            6 | warna       | bukan_warna | 18.74%         |
+    | 29739 | NIK     | BROWN         |           8 |            8 | warna       | bukan_warna | 39.65%         |
+    | 29082 | NIK     | CARBON        |           5 |           10 | warna       | bukan_warna | 1.97%          |
+    | 42835 | NIK     | NAVY          |           9 |           12 | warna       | bukan_warna | 8.11%          |
+    | 12005 | ADI     | RAW           |           2 |            3 | warna       | bukan_warna | 10.17%         |
+    |  1759 | ADI     | BRBLUE        |           3 |            5 | warna       | bukan_warna | 34.32%         |
+    | 11286 | ADI     | RETRORUN      |           1 |            3 | bukan_warna | warna       | 92.55%         |
+    |  3406 | ADI     | BROWN         |           4 |            4 | warna       | bukan_warna | 39.65%         |
+    |   190 | ADI     | DKBLUE        |           4 |            5 | warna       | bukan_warna | 13.2%          |
+    | 46940 | NIK     | REACTBRIGHT   |           2 |            7 | warna       | bukan_warna | 31.82%         |
+    |  1746 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
+    |  2547 | ADI     | CWHITE        |           6 |            6 | warna       | bukan_warna | 34.19%         |
+    |  6798 | ADI     | CWHITE        |           8 |            8 | warna       | bukan_warna | 34.19%         |
+    |  6076 | ADI     | CARBON        |           5 |            5 | warna       | bukan_warna | 1.97%          |
+    | 28470 | NIK     | TIEMPO        |           1 |            7 | bukan_warna | warna       | 74.9%          |
+    |  8054 | ADI     | TRAPNK        |           7 |            7 | warna       | bukan_warna | 48.93%         |
+    | 15761 | ADI     | ALUMINA       |           3 |            3 | warna       | bukan_warna | 2.21%          |
+    | 11107 | ADI     | MULTICOLOR    |           2 |            4 | bukan_warna | warna       | 72.86%         |
+    | 29763 | NIK     | DUALTONE      |           2 |            7 | bukan_warna | warna       | 62.25%         |
+    |  4355 | ADI     | ICEPNK        |           4 |            6 | warna       | bukan_warna | 36.66%         |
+    | 55911 | STN     | MELANGE       |           2 |            3 | warna       | bukan_warna | 4.09%          |
+    |  8292 | ADI     | CLEORA        |           6 |            8 | warna       | bukan_warna | 15.4%          |
+    |  2698 | ADI     | CARBON        |           6 |            6 | warna       | bukan_warna | 1.97%          |
+    | 12263 | ADI     | CLSC          |           1 |            4 | bukan_warna | warna       | 75.23%         |
+    | 15600 | ADI     | SPEEDFLOW.3   |           2 |            5 | bukan_warna | warna       | 89.42%         |
+    | 19926 | CAO     | 2B1DR         |           3 |            3 | bukan_warna | warna       | 73.21%         |
+    | 54184 | PUM     | FIGC          |           1 |            7 | bukan_warna | warna       | 95.07%         |
+    |  2828 | ADI     | SOBAKOV       |           1 |            4 | bukan_warna | warna       | 76.76%         |
+    |  1478 | ADI     | LACELESS      |           2 |            4 | bukan_warna | warna       | 52.25%         |
+    |  1387 | ADI     | SBROWN        |           2 |            4 | warna       | bukan_warna | 32.06%         |
+    |   969 | ADI     | SHOYEL        |           6 |            7 | warna       | bukan_warna | 28.61%         |
+    | 10249 | ADI     | GLOW          |           2 |            3 | warna       | bukan_warna | 17.97%         |
+    | 45362 | NIK     | BROWN         |           6 |           10 | warna       | bukan_warna | 39.65%         |
+    | 54527 | REL     | 49            |           7 |            7 | warna       | bukan_warna | 0.95%          |
+    |  2197 | ADI     | EASGRN        |           7 |            7 | warna       | bukan_warna | 32.5%          |
+    | 21469 | HER     | IVY           |           2 |            5 | warna       | bukan_warna | 5.67%          |
+    | 10134 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    |  1403 | ADI     | F17           |           4 |            4 | warna       | bukan_warna | 41.01%         |
+    | 30229 | NIK     | LUNARCHARGE   |           2 |            8 | bukan_warna | warna       | 88.03%         |
+    | 36821 | NIK     | NAVY          |           5 |            7 | warna       | bukan_warna | 8.11%          |
+    | 14131 | ADI     | X9000L4       |           1 |            5 | bukan_warna | warna       | 72.17%         |
+    | 30705 | NIK     | CARBON        |           9 |           10 | warna       | bukan_warna | 1.97%          |
+    | 10424 | ADI     | CORE          |           2 |            7 | warna       | bukan_warna | 12.15%         |
+    |  5372 | ADI     | CARBON        |           6 |            6 | warna       | bukan_warna | 1.97%          |
+    | 11241 | ADI     | S.RDY         |           2 |            5 | bukan_warna | warna       | 55.58%         |
+    | 52652 | PUM     | GLOW          |           4 |            6 | warna       | bukan_warna | 17.97%         |
+    |  7565 | ADI     | VAPGRE        |           5 |            5 | warna       | bukan_warna | 10.29%         |
+    | 54557 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
+    | 10029 | ADI     | ASH           |           3 |            4 | warna       | bukan_warna | 1.12%          |
+    |   479 | ADI     | CCMELS        |           3 |            3 | warna       | bukan_warna | 18.28%         |
+    | 16247 | ADI     | MULTICOLOR    |           2 |            2 | bukan_warna | warna       | 72.86%         |
+    | 21042 | HER     | 600D          |           2 |            4 | warna       | bukan_warna | 20.88%         |
+    | 35206 | NIK     | BROWN         |          12 |           12 | warna       | bukan_warna | 39.65%         |
+    | 44628 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
+    | 22789 | KIP     | BROWN         |           3 |            4 | warna       | bukan_warna | 39.65%         |
+    |  5488 | ADI     | CBROWN        |           4 |            6 | warna       | bukan_warna | 19.14%         |
+    |  2592 | ADI     | ICEPUR        |           2 |            4 | warna       | bukan_warna | 11.32%         |
+    |  5265 | ADI     | CONAVY        |           4 |            6 | warna       | bukan_warna | 18.74%         |
+    |  7372 | ADI     | SGREEN        |           2 |            4 | warna       | bukan_warna | 9.32%          |
+    | 13706 | ADI     | SPEEDFLOW.3   |           2 |            5 | bukan_warna | warna       | 89.42%         |
+    | 56715 | WAR     | MINT          |           2 |            5 | warna       | bukan_warna | 8.9%           |
+    | 27571 | NIK     | HYPERVENOM    |           1 |           10 | bukan_warna | warna       | 94.85%         |
+    |  1697 | ADI     | CONAVY        |           4 |            4 | warna       | bukan_warna | 18.74%         |
+    |  8701 | ADI     | CONAVY        |           4 |            5 | warna       | bukan_warna | 18.74%         |
+    | 25205 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
+    |   319 | ADI     | CLEMIN        |           6 |            6 | warna       | bukan_warna | 20.49%         |
+    |  8451 | ADI     | ASH           |           3 |            5 | warna       | bukan_warna | 1.12%          |
+    | 20727 | CAO     | S6900MC       |           2 |            3 | bukan_warna | warna       | 63.97%         |
+    | 55080 | SOC     | SNIPPLE       |           1 |            5 | bukan_warna | warna       | 86.55%         |
+    |  2827 | ADI     | CHACOR        |           5 |            5 | warna       | bukan_warna | 15.05%         |
+    |  4501 | ADI     | SUBGRN        |           6 |            6 | warna       | bukan_warna | 33.45%         |
+    | 15466 | ADI     | SAVANNAH      |           2 |            2 | warna       | bukan_warna | 4.09%          |
+    | 54951 | SAU     | TAN           |           2 |            3 | warna       | bukan_warna | 14.28%         |
+    | 22780 | KIP     | SHADOW        |           2 |            4 | warna       | bukan_warna | 1.52%          |
+    |  8171 | ADI     | ASHSIL        |           6 |            7 | warna       | bukan_warna | 24.08%         |
+    | 15766 | ADI     | CHALK         |           2 |            3 | warna       | bukan_warna | 8.35%          |
+    |  1914 | ADI     | DKBLUE        |           3 |            5 | warna       | bukan_warna | 13.2%          |
+    | 56226 | WAR     | ORANGE        |           2 |            5 | bukan_warna | warna       | 81.34%         |
+    | 20660 | CAO     | 200RD         |           2 |            3 | bukan_warna | warna       | 76.47%         |
+    |  7638 | ADI     | QTFLEX        |           2 |            6 | bukan_warna | warna       | 71.42%         |
+    | 56112 | WAR     | RED           |           1 |            7 | bukan_warna | warna       | 97.51%         |
+    |  9134 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+    |  7748 | ADI     | LTPINK        |           5 |            6 | warna       | bukan_warna | 33.09%         |
+    |  4385 | ADI     | GREFIV        |           4 |            5 | warna       | bukan_warna | 10.86%         |
+    | 32645 | NIK     | BROWN         |           5 |            9 | warna       | bukan_warna | 39.65%         |
+    |  3245 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
+    | 56014 | VAP     | 0.7L          |           1 |            5 | bukan_warna | warna       | 50.0%          |
+    | 10359 | ADI     | FORTARUN      |           1 |            5 | bukan_warna | warna       | 63.57%         |
+    | 11491 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+    | 28249 | NIK     | GLOW          |          10 |           12 | warna       | bukan_warna | 17.97%         |
+    |  7677 | ADI     | CRYWHT        |           6 |            7 | warna       | bukan_warna | 15.21%         |
+    | 14005 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
+    |  1018 | ADI     | REDNIT        |           5 |            5 | warna       | bukan_warna | 43.67%         |
+    |  1063 | ADI     | SAMBAROSE     |           1 |            5 | bukan_warna | warna       | 72.5%          |
+    | 12260 | ADI     | CLSC          |           1 |            4 | bukan_warna | warna       | 75.23%         |
+    | 17198 | AGL     | YELLOW        |           2 |            5 | bukan_warna | warna       | 89.07%         |
+    | 11359 | ADI     | C40           |           2 |            4 | bukan_warna | warna       | 59.72%         |
+    | 20466 | CAO     | 2110ET        |           2 |            3 | bukan_warna | warna       | 70.88%         |
+    | 16824 | ADI     | ICEPNK        |           5 |            6 | warna       | bukan_warna | 36.66%         |
+    | 50395 | PUM     | PUMA          |           2 |            5 | warna       | bukan_warna | 4.21%          |
+    |  6090 | ADI     | GREFIV        |           5 |            6 | warna       | bukan_warna | 10.86%         |
+    | 34700 | NIK     | EBERNON       |           2 |            5 | bukan_warna | warna       | 68.67%         |
+    | 32998 | NIK     | 23            |          10 |           11 | warna       | bukan_warna | 1.88%          |
+    |  1686 | ADI     | ORCTIN        |           5 |            6 | warna       | bukan_warna | 21.4%          |
+    | 20168 | CAO     | 8DR           |           3 |            3 | bukan_warna | warna       | 88.99%         |
+    |  1257 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
+    | 31343 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
+    |   895 | ADI     | CONFED        |           1 |            6 | bukan_warna | warna       | 81.99%         |
+    | 12714 | ADI     | CTY           |           2 |            4 | bukan_warna | warna       | 59.04%         |
+    | 48075 | PTG     | ORANGE        |           2 |            3 | bukan_warna | warna       | 81.34%         |
+    | 20988 | HER     | NAVY          |           4 |            5 | warna       | bukan_warna | 8.11%          |
+    |  8818 | ADI     | CONEXT19      |           1 |            3 | bukan_warna | warna       | 68.85%         |
+    |  3965 | ADI     | CONAVY        |           4 |            5 | warna       | bukan_warna | 18.74%         |
+    |  6891 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
+    |  5718 | ADI     | ALTARUN       |           1 |            7 | bukan_warna | warna       | 88.32%         |
+    | 28969 | NIK     | CARBON        |           8 |           10 | warna       | bukan_warna | 1.97%          |
+    | 20987 | HER     | 600D          |           2 |            5 | warna       | bukan_warna | 20.88%         |
+    |  2834 | ADI     | SHOPNK        |           6 |            7 | warna       | bukan_warna | 17.0%          |
+    | 25550 | NIK     | MERCURIALX    |           1 |           12 | bukan_warna | warna       | 64.81%         |
+    | 22828 | KIP     | VANILLA       |           2 |            4 | warna       | bukan_warna | 3.61%          |
+    | 12025 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    |  9534 | ADI     | CONAVY        |           2 |            2 | warna       | bukan_warna | 18.74%         |
+    |  4237 | ADI     | GREFIV        |           5 |            5 | warna       | bukan_warna | 10.86%         |
+    | 10938 | ADI     | STEPBACK      |           2 |            4 | bukan_warna | warna       | 59.97%         |
+    |  9537 | ADI     | CONAVY        |           3 |            3 | warna       | bukan_warna | 18.74%         |
+    | 19829 | CAO     | AW5914ADR     |           2 |            3 | bukan_warna | warna       | 58.17%         |
+    | 54953 | SAU     | BRN           |           2 |            3 | warna       | bukan_warna | 5.43%          |
+    |  1810 | ADI     | REAMAG        |           3 |            5 | warna       | bukan_warna | 9.48%          |
+    | 42240 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
+    | 45351 | NIK     | NAVY          |           9 |           10 | warna       | bukan_warna | 8.11%          |
+    | 56661 | WAR     | THE           |           2 |            5 | warna       | bukan_warna | 18.78%         |
+    |  9480 | ADI     | ANK           |           2 |            4 | bukan_warna | warna       | 90.51%         |
+    | 46828 | NIK     | BROWN         |           7 |           10 | warna       | bukan_warna | 39.65%         |
+    |  3866 | ADI     | REARED        |           4 |            5 | warna       | bukan_warna | 8.44%          |
+    |  1751 | ADI     | FORTARUN      |           1 |            7 | bukan_warna | warna       | 63.57%         |
+    | 20233 | CAO     | 5900RS        |           2 |            3 | bukan_warna | warna       | 67.28%         |
+    | 21032 | HER     | NAVY          |           3 |            6 | warna       | bukan_warna | 8.11%          |
+    |  7864 | ADI     | CARBON        |           4 |            6 | warna       | bukan_warna | 1.97%          |
+    |  8313 | ADI     | OWHITE        |           5 |            7 | warna       | bukan_warna | 22.71%         |
+    |  9502 | ADI     | ANK           |           2 |            4 | bukan_warna | warna       | 90.51%         |
+    |  4222 | ADI     | SESAME        |           5 |            7 | warna       | bukan_warna | 3.41%          |
+    |  5715 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
+    | 29687 | NIK     | BROWN         |           8 |            8 | warna       | bukan_warna | 39.65%         |
+    | 28452 | NIK     | TIEMPO        |           2 |           11 | bukan_warna | warna       | 74.9%          |
+    | 10996 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 32901 | NIK     | HYPERVENOM    |           1 |           10 | bukan_warna | warna       | 94.85%         |
+    |  9636 | ADI     | INF           |           2 |            3 | bukan_warna | warna       | 65.23%         |
+    |  6806 | ADI     | CARBON        |           6 |            8 | warna       | bukan_warna | 1.97%          |
+    | 54017 | PUM     | FIGC          |           1 |            6 | bukan_warna | warna       | 95.07%         |
+    |  7049 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
+    |  3677 | ADI     | REARED        |           5 |            7 | warna       | bukan_warna | 8.44%          |
+    | 23451 | NIC     | NAVY          |          10 |           14 | warna       | bukan_warna | 8.11%          |
+    | 56022 | VAP     | 0.7L          |           1 |            4 | bukan_warna | warna       | 50.0%          |
+    |  5509 | ADI     | SCARLE        |           5 |            7 | warna       | bukan_warna | 28.57%         |
+    |  4532 | ADI     | CWHITE        |           6 |            6 | warna       | bukan_warna | 34.19%         |
+    | 46128 | NIK     | BROWN         |           8 |           10 | warna       | bukan_warna | 39.65%         |
+    |   725 | ADI     | CLEORA        |           6 |            7 | warna       | bukan_warna | 15.4%          |
+    | 13687 | ADI     | X9000L4       |           1 |            3 | bukan_warna | warna       | 72.17%         |
+    | 14544 | ADI     | WHT           |           3 |            3 | warna       | bukan_warna | 20.68%         |
+    | 16588 | ADI     | X9000L4       |           1 |            4 | bukan_warna | warna       | 72.17%         |
+    |  2569 | ADI     | OWHITE        |           4 |            6 | warna       | bukan_warna | 22.71%         |
+    |  6760 | ADI     | TRACAR        |           4 |            4 | warna       | bukan_warna | 41.94%         |
+    | 24924 | NIK     | YTH           |           2 |            9 | bukan_warna | warna       | 69.09%         |
+    |  1407 | ADI     | CARGO         |           4 |            4 | warna       | bukan_warna | 9.55%          |
+    |  2001 | ADI     | NGTCAR        |           4 |            6 | warna       | bukan_warna | 42.73%         |
+    | 21603 | HER     | DARK          |           2 |            5 | warna       | bukan_warna | 27.8%          |
+    |  7274 | ADI     | SESAME        |           2 |            4 | warna       | bukan_warna | 3.41%          |
+    |  4879 | ADI     | HIRERE        |           4 |            6 | warna       | bukan_warna | 10.23%         |
+    | 26239 | NIK     | MERCURIALX    |           2 |           10 | bukan_warna | warna       | 64.81%         |
+    |  7870 | ADI     | VAPGRE        |           7 |            7 | warna       | bukan_warna | 10.29%         |
+    | 47559 | NIK     | 3PPK          |           2 |           10 | bukan_warna | warna       | 53.58%         |
+    | 36627 | NIK     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
+    | 55463 | STN     | JOVEN         |           2 |            4 | bukan_warna | warna       | 86.25%         |
+    | 46663 | NIK     | ASUNK         |           1 |            8 | bukan_warna | warna       | 71.18%         |
+    | 21604 | HER     | BROWN         |           5 |            5 | warna       | bukan_warna | 39.65%         |
+    | 19524 | BBC     | BLEACHED      |           1 |            6 | bukan_warna | warna       | 71.67%         |
+    | 46829 | NIK     | BROWN         |           9 |           10 | warna       | bukan_warna | 39.65%         |
+    | 13069 | ADI     | BROWN         |           4 |            4 | warna       | bukan_warna | 39.65%         |
+    | 54661 | REL     | 35            |           5 |            5 | warna       | bukan_warna | 4.4%           |
+    | 10576 | ADI     | SAND          |           2 |            2 | warna       | bukan_warna | 8.78%          |
+    |  3490 | ADI     | SHOCK         |           2 |            3 | warna       | bukan_warna | 7.61%          |
+    | 20547 | CAO     | 1A2DR         |           3 |            3 | bukan_warna | warna       | 63.21%         |
+    |  9936 | ADI     | MAGMUR        |           1 |            6 | bukan_warna | warna       | 61.4%          |
+    | 21085 | HER     | POLY          |           2 |            5 | warna       | bukan_warna | 8.66%          |
+    | 10316 | ADI     | OWNTHEGAME    |           1 |            3 | bukan_warna | warna       | 74.23%         |
+    |  5879 | ADI     | NOBMAR        |           5 |            6 | warna       | bukan_warna | 4.71%          |
+    |  1563 | ADI     | RAWGRE        |           4 |            5 | warna       | bukan_warna | 27.69%         |
+    | 21685 | HER     | NIGHT         |           2 |            3 | warna       | bukan_warna | 1.85%          |
+    | 16626 | ADI     | OWHITE        |           7 |            7 | warna       | bukan_warna | 22.71%         |
+    |   800 | ADI     | CONAVY        |           3 |            5 | warna       | bukan_warna | 18.74%         |
+    | 45342 | NIK     | ELMNTL        |           2 |           10 | bukan_warna | warna       | 76.67%         |
+    | 21037 | HER     | 600D          |           2 |            4 | warna       | bukan_warna | 20.88%         |
+    |  3750 | ADI     | AFA           |           1 |            6 | bukan_warna | warna       | 59.08%         |
+    |  7052 | ADI     | CRYWHT        |           4 |            6 | warna       | bukan_warna | 15.21%         |
+    | 23757 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
+    | 24983 | NIK     | MERCURIALX    |           2 |           12 | bukan_warna | warna       | 64.81%         |
+    |  4815 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
+    |  7740 | ADI     | RAWGRE        |           6 |            6 | warna       | bukan_warna | 27.69%         |
+    |  1592 | ADI     | CWHITE        |           4 |            5 | warna       | bukan_warna | 34.19%         |
+    | 30907 | NIK     | BROWN         |          11 |           12 | warna       | bukan_warna | 39.65%         |
+    | 18208 | BBC     | CLEAR         |           2 |            8 | bukan_warna | warna       | 50.35%         |
+    | 54031 | PUM     | BORUSSE       |           2 |            7 | bukan_warna | warna       | 69.45%         |
+    | 10910 | ADI     | MUTATOR       |           2 |            7 | bukan_warna | warna       | 82.25%         |
+    |  5159 | ADI     | SHOEBAG       |           2 |            4 | bukan_warna | warna       | 57.34%         |
+    |  6852 | ADI     | PROPHERE      |           1 |            5 | bukan_warna | warna       | 75.27%         |
+    | 20480 | CAO     | CSWGYOSAD     |           1 |            3 | bukan_warna | warna       | 64.98%         |
+    | 15190 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
+    | 14069 | ADI     | SAMBAROSE     |           1 |            4 | bukan_warna | warna       | 72.5%          |
+    |  8479 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 54612 | REL     | 35            |           7 |            7 | warna       | bukan_warna | 4.4%           |
+    | 28689 | NIK     | GLOW          |           9 |           11 | warna       | bukan_warna | 17.97%         |
+    | 12923 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 20513 | CAO     | 3ADR          |           3 |            3 | bukan_warna | warna       | 71.37%         |
+    |  6772 | ADI     | OWHITE        |           7 |            7 | warna       | bukan_warna | 22.71%         |
+    | 14727 | ADI     | LEGEND        |           2 |            3 | warna       | bukan_warna | 2.54%          |
+    |  6770 | ADI     | CBROWN        |           5 |            7 | warna       | bukan_warna | 19.14%         |
+    |  1899 | ADI     | HIRAQU        |           3 |            5 | warna       | bukan_warna | 42.26%         |
+    |  4254 | ADI     | CONAVY        |           6 |            6 | warna       | bukan_warna | 18.74%         |
+    |  1900 | ADI     | HIRAQU        |           4 |            5 | warna       | bukan_warna | 42.26%         |
+    | 33814 | NIK     | EXPZ07WHITE   |           2 |            3 | warna       | bukan_warna | 34.37%         |
+    |  7119 | ADI     | CWHITE        |           4 |            6 | warna       | bukan_warna | 34.19%         |
+    |  7805 | ADI     | CARBON        |           4 |            6 | warna       | bukan_warna | 1.97%          |
+    | 20775 | CIT     | AF            |           3 |            5 | bukan_warna | warna       | 64.09%         |
+    |  2207 | ADI     | TURBO         |           6 |            6 | warna       | bukan_warna | 0.94%          |
+    | 22457 | KIP     | RS46          |           1 |            5 | bukan_warna | warna       | 71.93%         |
+    | 21386 | HER     | BRBDSCHRY     |           2 |            3 | warna       | bukan_warna | 45.77%         |
+    |  2424 | ADI     | TURBO         |           7 |            7 | warna       | bukan_warna | 0.94%          |
+    | 46731 | NIK     | CARBON        |           5 |           10 | warna       | bukan_warna | 1.97%          |
+    |  6886 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
+    |  5204 | ADI     | TRAPNK        |           5 |            6 | warna       | bukan_warna | 48.93%         |
+    |  7371 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
+    | 11314 | ADI     | MUTATOR       |           2 |            6 | bukan_warna | warna       | 82.25%         |
+    | 10320 | ADI     | CORE          |           2 |            7 | warna       | bukan_warna | 12.15%         |
+    |  3183 | ADI     | MYSINK        |           7 |            7 | warna       | bukan_warna | 48.24%         |
+    | 35213 | NIK     | GLOW          |          10 |           10 | warna       | bukan_warna | 17.97%         |
+    |  5170 | ADI     | FEF           |           1 |            5 | bukan_warna | warna       | 50.67%         |
+    | 16112 | ADI     | VAPOUR        |           2 |            3 | warna       | bukan_warna | 14.01%         |
+    |  1911 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
+    | 27055 | NIK     | ONDA          |           2 |            9 | bukan_warna | warna       | 73.03%         |
+    | 11545 | ADI     | ACTIVE        |           3 |            4 | warna       | bukan_warna | 2.2%           |
+    |  9705 | ADI     | ASH           |           3 |            5 | warna       | bukan_warna | 1.12%          |
+    | 43926 | NIK     | NAVY          |           8 |            8 | warna       | bukan_warna | 8.11%          |
+    |  4659 | ADI     | BOAQUA        |           2 |            4 | warna       | bukan_warna | 15.24%         |
+    | 38771 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
+    | 54733 | REL     | 49            |           7 |            8 | warna       | bukan_warna | 0.95%          |
+    |  2588 | ADI     | CONAVY        |           2 |            4 | warna       | bukan_warna | 18.74%         |
+    | 29699 | NIK     | DUALTONE      |           2 |            8 | bukan_warna | warna       | 62.25%         |
+    |  6884 | ADI     | GREFOU        |           4 |            5 | warna       | bukan_warna | 11.85%         |
+    |  4083 | ADI     | ICEPNK        |           4 |            6 | warna       | bukan_warna | 36.66%         |
+    | 22824 | KIP     | VANILLA       |           2 |            4 | warna       | bukan_warna | 3.61%          |
+    | 46230 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
+    |   577 | ADI     | HIRAQU        |           6 |            6 | warna       | bukan_warna | 42.26%         |
+    | 21106 | HER     | POLY          |           2 |            4 | warna       | bukan_warna | 8.66%          |
+    | 48162 | PTG     | GREEN         |           2 |            3 | bukan_warna | warna       | 94.05%         |
+    |  6086 | ADI     | HIRERE        |           6 |            6 | warna       | bukan_warna | 10.23%         |
+    |  5236 | ADI     | C40           |           1 |            8 | bukan_warna | warna       | 59.72%         |
+    | 47555 | NIK     | 3PPK          |           3 |            7 | bukan_warna | warna       | 53.58%         |
+    | 21982 | HER     | FLORAL        |           2 |            3 | warna       | bukan_warna | 12.21%         |
+    |  2268 | ADI     | MYSINK        |           6 |            7 | warna       | bukan_warna | 48.24%         |
+    | 42234 | NIK     | NAVY          |           6 |           10 | warna       | bukan_warna | 8.11%          |
+    |  4065 | ADI     | SESOYE        |           6 |            6 | warna       | bukan_warna | 46.29%         |
+    | 24523 | NIK     | ANTHRACITE    |           3 |            5 | warna       | bukan_warna | 5.65%          |
+    |   778 | ADI     | SCARLE        |           4 |            6 | warna       | bukan_warna | 28.57%         |
+    |  9776 | ADI     | ANK           |           2 |            5 | bukan_warna | warna       | 90.51%         |
+    | 17938 | AND     | BROWN         |           4 |            4 | warna       | bukan_warna | 39.65%         |
+    | 11697 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 54636 | REL     | 35            |           6 |            6 | warna       | bukan_warna | 4.4%           |
+    |  2910 | ADI     | ONIX          |           4 |            5 | warna       | bukan_warna | 2.87%          |
+    |  3701 | ADI     | CROYAL        |           5 |            5 | warna       | bukan_warna | 39.06%         |
+    | 23016 | KIP     | NAVY          |           3 |            4 | warna       | bukan_warna | 8.11%          |
+    |  2909 | ADI     | CARBON        |           3 |            5 | warna       | bukan_warna | 1.97%          |
+    |  4889 | ADI     | STARLANCER    |           1 |            5 | bukan_warna | warna       | 66.83%         |
+    |  6845 | ADI     | OWHITE        |           6 |            7 | warna       | bukan_warna | 22.71%         |
+    | 52023 | PUM     | ANZARUN       |           1 |            6 | bukan_warna | warna       | 83.68%         |
+    |  6881 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
+    | 22725 | KIP     | FS68          |           1 |            4 | bukan_warna | warna       | 79.76%         |
+    | 47705 | NIK     | 3PPK          |           3 |            7 | bukan_warna | warna       | 53.58%         |
+    |  6943 | ADI     | HIRERE        |           4 |            6 | warna       | bukan_warna | 10.23%         |
+    | 12683 | ADI     | NAVY          |           3 |            3 | warna       | bukan_warna | 8.11%          |
+    | 13709 | ADI     | SPEEDFLOW.3   |           2 |            5 | bukan_warna | warna       | 89.42%         |
+    | 32639 | NIK     | BROWN         |           9 |            9 | warna       | bukan_warna | 39.65%         |
+    |   588 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
+    |   777 | ADI     | INF           |           3 |            6 | bukan_warna | warna       | 65.23%         |
+    | 48114 | PTG     | NAVY          |           8 |            8 | warna       | bukan_warna | 8.11%          |
+    | 40901 | NIK     | GLOW          |          11 |           11 | warna       | bukan_warna | 17.97%         |
+    | 14243 | ADI     | CORE          |           2 |            7 | warna       | bukan_warna | 12.15%         |
+    | 20256 | CAO     | 8DR           |           3 |            4 | bukan_warna | warna       | 88.99%         |
+    | 39749 | NIK     | ATSUMA        |           2 |            8 | bukan_warna | warna       | 66.4%          |
+    |  9908 | ADI     | FUTUREPACER   |           1 |            3 | bukan_warna | warna       | 53.18%         |
+    |  7278 | ADI     | CWHITE        |           2 |            4 | warna       | bukan_warna | 34.19%         |
+    |  7116 | ADI     | POWRED        |           5 |            5 | warna       | bukan_warna | 10.18%         |
+    | 10328 | ADI     | ACTIVE        |           2 |            3 | warna       | bukan_warna | 2.2%           |
+    | 19919 | CAO     | 150FL         |           2 |            3 | bukan_warna | warna       | 53.1%          |
+    | 15225 | ADI     | NAVY          |           6 |            6 | warna       | bukan_warna | 8.11%          |
+    | 54549 | REL     | 49            |           8 |            8 | warna       | bukan_warna | 0.95%          |
+    | 27543 | NIK     | MERCURIALX    |           1 |           11 | bukan_warna | warna       | 64.81%         |
+    |  9135 | ADI     | GYMSACK       |           1 |            3 | bukan_warna | warna       | 84.56%         |
+    |  3316 | ADI     | BLUSPI        |           4 |            4 | warna       | bukan_warna | 2.56%          |
+    | 33002 | NIK     | NAVY          |          10 |           11 | warna       | bukan_warna | 8.11%          |
+    |  2704 | ADI     | ASHPEA        |           3 |            5 | warna       | bukan_warna | 37.38%         |
+    | 48475 | PUM     | EVOSPEED      |           1 |            8 | bukan_warna | warna       | 64.06%         |
+    |   263 | ADI     | BLUSPI        |           5 |            5 | warna       | bukan_warna | 2.56%          |
+    |   244 | ADI     | CARBON        |           3 |            4 | warna       | bukan_warna | 1.97%          |
+    |  8771 | ADI     | CONEXT19      |           1 |            3 | bukan_warna | warna       | 68.85%         |
+    | 16288 | ADI     | BLK           |           2 |            5 | bukan_warna | warna       | 90.16%         |
+    | 13114 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
+    | 22701 | KIP     | FS66          |           1 |            5 | bukan_warna | warna       | 67.33%         |
+    | 21174 | HER     | RED           |           4 |            8 | bukan_warna | warna       | 97.51%         |
+    |  5607 | ADI     | SUPPNK        |           4 |            6 | warna       | bukan_warna | 17.73%         |
+    |  5285 | ADI     | BLUSPI        |           5 |            5 | warna       | bukan_warna | 2.56%          |
+    | 35941 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
+    | 17081 | ADI     | ADISOCK       |           1 |            4 | bukan_warna | warna       | 81.34%         |
+    |  4283 | ADI     | SCARLE        |           6 |            6 | warna       | bukan_warna | 28.57%         |
+    | 11176 | ADI     | X9000L3       |           1 |            4 | bukan_warna | warna       | 72.55%         |
+    | 40776 | NIK     | BROWN         |          11 |           11 | warna       | bukan_warna | 39.65%         |
+    | 21034 | HER     | 600D          |           2 |            5 | warna       | bukan_warna | 20.88%         |
+    | 13299 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    |  1715 | ADI     | OWHITE        |           5 |            5 | warna       | bukan_warna | 22.71%         |
+    | 29098 | NIK     | 8ASHEN        |           3 |            6 | warna       | bukan_warna | 12.62%         |
+    | 40232 | NIK     | GLOW          |           7 |           11 | warna       | bukan_warna | 17.97%         |
+    |  7006 | ADI     | VIRAL2        |           2 |            6 | bukan_warna | warna       | 50.53%         |
+    | 54901 | SAU     | LOWPRO        |           2 |            4 | bukan_warna | warna       | 54.57%         |
+    | 16035 | ADI     | OWNTHEGAME    |           1 |            4 | bukan_warna | warna       | 74.23%         |
+    |  8669 | ADI     | CARBON        |           4 |            5 | warna       | bukan_warna | 1.97%          |
+    |  6764 | ADI     | CARBON        |           5 |            7 | warna       | bukan_warna | 1.97%          |
+    |  1527 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
+    | 31116 | NIK     | ANTHRACITE    |           3 |            6 | warna       | bukan_warna | 5.65%          |
+    | 31261 | NIK     | VARSITY       |           2 |            6 | warna       | bukan_warna | 2.61%          |
+    | 18808 | BBC     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+    |  9246 | ADI     | 2PP           |           3 |            5 | bukan_warna | warna       | 55.75%         |
+    | 27576 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
+    | 55555 | STN     | LOGOMAN       |           2 |            5 | bukan_warna | warna       | 71.27%         |
+    | 21384 | HER     | ASH           |           2 |            3 | warna       | bukan_warna | 1.12%          |
+    | 32114 | NIK     | OBRAX         |           1 |           10 | bukan_warna | warna       | 80.22%         |
+    |  3783 | ADI     | EQTGRN        |           4 |            6 | warna       | bukan_warna | 6.68%          |
+    | 54724 | REL     | 35            |           5 |            6 | warna       | bukan_warna | 4.4%           |
+    |  2403 | ADI     | OWHITE        |           8 |            8 | warna       | bukan_warna | 22.71%         |
+    | 55759 | STN     | RASTA         |           2 |            2 | warna       | bukan_warna | 5.01%          |
+    |  2267 | ADI     | MYSINK        |           5 |            7 | warna       | bukan_warna | 48.24%         |
+    |  3843 | ADI     | PETNIT        |           4 |            6 | warna       | bukan_warna | 7.57%          |
+    | 13308 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 13296 | ADI     | X9000L4       |           1 |            3 | bukan_warna | warna       | 72.17%         |
+    |  3088 | ADI     | OWHITE        |           6 |            7 | warna       | bukan_warna | 22.71%         |
+    |  3715 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
+    | 16063 | ADI     | PRIMEBLUE     |           2 |            4 | warna       | bukan_warna | 22.63%         |
+    |  2227 | ADI     | MYSINK        |           4 |            6 | warna       | bukan_warna | 48.24%         |
+    |   656 | ADI     | BGREEN        |           7 |            7 | warna       | bukan_warna | 20.2%          |
+    |  1386 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
+    |   873 | ADI     | VAPGRE        |           4 |            6 | warna       | bukan_warna | 10.29%         |
+    |  5248 | ADI     | CORBLU        |           4 |            6 | warna       | bukan_warna | 10.96%         |
+    | 14406 | ADI     | MICROPACER_R1 |           1 |            3 | bukan_warna | warna       | 90.84%         |
+    | 32893 | NIK     | HYPERVENOM    |           1 |           13 | bukan_warna | warna       | 94.85%         |
+    | 21428 | HER     | ASH           |           2 |            3 | warna       | bukan_warna | 1.12%          |
+    | 42214 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
+    |   235 | ADI     | ASHSIL        |           6 |            7 | warna       | bukan_warna | 24.08%         |
+    | 24199 | NIK     | BROWN         |           5 |            6 | warna       | bukan_warna | 39.65%         |
+    |  3977 | ADI     | CLONIX        |           8 |            8 | warna       | bukan_warna | 14.34%         |
+    | 11634 | ADI     | ALTASWIM      |           1 |            9 | bukan_warna | warna       | 60.68%         |
+    |  7279 | ADI     | CWHITE        |           3 |            4 | warna       | bukan_warna | 34.19%         |
+    | 23752 | NIK     | NAVY          |           6 |           10 | warna       | bukan_warna | 8.11%          |
+    |  6532 | ADI     | SESAME        |           6 |            7 | warna       | bukan_warna | 3.41%          |
+    |  6870 | ADI     | BLUBIR        |           5 |            5 | warna       | bukan_warna | 25.92%         |
+    | 32913 | NIK     | HYPERVENOM    |           1 |            8 | bukan_warna | warna       | 94.85%         |
+    | 25371 | NIK     | 23            |           6 |            6 | warna       | bukan_warna | 1.88%          |
+    | 13895 | ADI     | FORTARUN      |           1 |            7 | bukan_warna | warna       | 63.57%         |
+    | 21687 | HER     | DARK          |           2 |            4 | warna       | bukan_warna | 27.8%          |
+    | 22291 | KIP     | BROWN         |           3 |            4 | warna       | bukan_warna | 39.65%         |
+    |  3981 | ADI     | GREFIV        |           5 |            6 | warna       | bukan_warna | 10.86%         |
+    | 22804 | KIP     | POWDER        |           2 |            4 | warna       | bukan_warna | 5.1%           |
+    | 35787 | NIK     | VARSITY       |           2 |           10 | warna       | bukan_warna | 2.61%          |
+    | 15445 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+    | 25943 | NIK     | ESSENTIALIST  |           2 |            7 | bukan_warna | warna       | 56.6%          |
+    |  1673 | ADI     | SHOPNK        |           4 |            6 | warna       | bukan_warna | 17.0%          |
+    |  3487 | ADI     | FUTUREPACER   |           1 |            4 | bukan_warna | warna       | 53.18%         |
+    | 47988 | PSB     | PERSIB        |           2 |            4 | bukan_warna | warna       | 77.61%         |
+    |  5873 | ADI     | ASHSIL        |           5 |            7 | warna       | bukan_warna | 24.08%         |
+    | 22176 | KIP     | BROWN         |           3 |            4 | warna       | bukan_warna | 39.65%         |
+    | 30182 | NIK     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
+    | 24674 | NIK     | FUTSLIDE      |           1 |            8 | bukan_warna | warna       | 50.7%          |
+    |  8776 | ADI     | CONEXT19      |           1 |            4 | bukan_warna | warna       | 68.85%         |
+    | 10083 | ADI     | NAVY          |           3 |            3 | warna       | bukan_warna | 8.11%          |
+    |  1664 | ADI     | ONIX          |           8 |            8 | warna       | bukan_warna | 2.87%          |
+    | 21051 | HER     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
+    |  7370 | ADI     | SHOYEL        |           5 |            5 | warna       | bukan_warna | 28.61%         |
+    |  5576 | ADI     | RAWGRE        |           4 |            6 | warna       | bukan_warna | 27.69%         |
+    |  3844 | ADI     | PETNIT        |           5 |            6 | warna       | bukan_warna | 7.57%          |
+    | 15727 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+    |  7241 | ADI     | CWHITE        |           4 |            5 | warna       | bukan_warna | 34.19%         |
+    | 15367 | ADI     | TIRO          |           1 |            3 | bukan_warna | warna       | 58.89%         |
+    |  4623 | ADI     | SBROWN        |           3 |            5 | warna       | bukan_warna | 32.06%         |
+    |   652 | ADI     | STLT          |           3 |            7 | bukan_warna | warna       | 62.02%         |
+    |  8894 | ADI     | ONIX          |           6 |            8 | warna       | bukan_warna | 2.87%          |
+    |  7170 | ADI     | SHOYEL        |           3 |            5 | warna       | bukan_warna | 28.61%         |
+    |  1017 | ADI     | NTGREY        |           4 |            5 | warna       | bukan_warna | 44.82%         |
+    | 37383 | NIK     | ACDMY         |           2 |            8 | bukan_warna | warna       | 74.72%         |
+    | 13380 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
     
 
 
 ```python
-# selesai dengan model 1, bersihkan memori di GPU terkait model_1
+# selesai dengan model 2, bersihkan memori di GPU terkait model_2
 del model_2
 gc.collect()
 ```
@@ -4766,7 +3158,637 @@ gc.collect()
 
 
 
-    15325
+    3242
+
+
+
+## Model 3: Menggunakan Posisi Kata, Tipe Brand dan Lapisan Embed Custom yang diconcatenate
+
+Pada skenario training ini, kita akan mencoba untuk tidak hanya menggunakan input data kata dan label saja, tetapi juga menambahkan posisi kata dalam kalimat dan juga tipe brand sebagai variabel independen (fitur) yang mungkin dapat menentukan apakah sebuah kata adalah `bukan_warna` atau `warna`.
+Pada dasarnya kita akan membuat tumpukan layer yang mempelajari input data per kata dan juga mempelajari posisi dari kata dan juga tipe brand yang kemudian akan ditumpuk (*stack*) menjadi satu lapisan baru.
+
+### Preprocessing untuk `urut_kata` dan `total_kata`?
+Sebelum kita melakukan *training* pada variabel `urut_kata` dan juga `total_kata`. Terdapat setidaknya dua opsi untuk menggunakan variabel independen ini:
+
+1. Melakukan pembagian `urut_kata` dan `total_kata` sehingga nilai dari posisi adalah diantara 0 sampai dengan 1, dimana ~0 menunjukkan posisi kata yang berada dekat dengan awal kalimat dan ~1 adalah posisi kata yang berada dengan akhir kalimat. Namun hal ini akan menyebabkan kita akan kehilangan beberapa informasi dari input data, sebagai contoh nilai 0.5 bisa diartikan sebagai kata pertama dalam kalimat yang terdiri dari dua kata (1/2) atau bisa juga berarti kata kelima dalam kalimat yang terdiri dari sepuluh kata (5/10).
+2. Menggunakan `urut_kata` dan `total_kata` sebagaimana adanya tanpa melakukan pembagian dan membiarkan model berusaha mempelajari makna dari variabel independen ini.
+
+Pada bagian ini, kita akan mencoba untuk menggunakan opsi pertama.
+
+
+### USE atau Custom Embedding?
+Dikarenakan pada model_2 kita dapat melihat bahwa penggunaan lapisan fitur esktraktor USE tidak dapat dengan baik memprediksi label kata (hal ini bisa disebabkan oleh beberapa hal, seperti fakta bahwa USE dilatih pada dataset *corpus* bahasa internasional yang mungkin lebih baku), maka kita akan kembali menggunakan lapisan *custom embedding* menggunakan Conv1D atau lapisan LSTM dua arah (*bi-directional LSTM*) seperti pada model_1.
+
+### `urut_kata` dan `total_kata` Embedding
+
+Pada bagian ini kita akan melakukan embedding untuk posisional dari sebuah kata dalam kalimat seperti apa yang direpresentasikan oleh kolom `urut_kata` dan `total_kata`.
+
+
+```python
+# Distribusi jumlah kata dalam artikel - artikel
+train_data['urut_kata'].value_counts()
+```
+
+
+
+
+    2.0     11981
+    1.0     11950
+    5.0      3770
+    3.0      3638
+    4.0      3540
+    6.0      3237
+    7.0      2568
+    8.0      1907
+    9.0      1273
+    10.0      858
+    11.0      444
+    12.0      172
+    13.0       46
+    14.0       12
+    15.0        4
+    Name: urut_kata, dtype: int64
+
+
+
+
+```python
+train_data['urut_kata'].plot.hist()
+plt.title('Distribusi Jumlah Kata dalam Artikel', fontsize=18)
+plt.show()
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_83_0.png)
+    
+
+
+
+```python
+# Karena panjang kata berbeda - beda, maka kita akan menggunakan one_hot encoding
+# dengan depth max
+max_kata = int(np.max(train_data['urut_kata']))
+
+# Membuat one_hot tensor untuk kolom 'urut_kata'
+train_data_urut_kata_one_hot = tf.one_hot(train_data['urut_kata'].to_numpy(), 
+                                          depth=max_kata)
+test_data_urut_kata_one_hot = tf.one_hot(test_data['urut_kata'].to_numpy(),
+                                         depth=max_kata)
+train_data_urut_kata_one_hot[:15], train_data_urut_kata_one_hot.shape
+```
+
+
+
+
+    (<tf.Tensor: shape=(15, 15), dtype=float32, numpy=
+     array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.],
+            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+            [0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]],
+           dtype=float32)>,
+     TensorShape([45400, 15]))
+
+
+
+
+```python
+# Distribusi 'total_kata'
+train_data['total_kata'].value_counts()
+```
+
+
+
+
+    6.0     6476
+    5.0     6063
+    7.0     5918
+    8.0     5555
+    9.0     5009
+    4.0     4497
+    10.0    4494
+    11.0    2924
+    3.0     2452
+    12.0    1222
+    13.0     405
+    2.0      270
+    14.0      77
+    15.0      29
+    1.0        9
+    Name: total_kata, dtype: int64
+
+
+
+
+```python
+train_data['total_kata'].plot.hist()
+plt.title('Distribusi Panjang Kalimat dalam Artikel', fontsize=18)
+plt.show()
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_86_0.png)
+    
+
+
+
+```python
+max_kalimat = int(np.max(train_data['total_kata']))
+
+# Membuat one_hot tensor untuk kolom 'total_kata'
+train_data_total_kata_one_hot = tf.one_hot(train_data['total_kata'].to_numpy(),
+                                           depth=max_kalimat)
+test_data_total_kata_one_hot = tf.one_hot(test_data['total_kata'].to_numpy(),
+                                          depth=max_kalimat)
+train_data_total_kata_one_hot[:15], train_data_total_kata_one_hot.shape
+
+```
+
+
+
+
+    (<tf.Tensor: shape=(15, 15), dtype=float32, numpy=
+     array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.],
+            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.]],
+           dtype=float32)>,
+     TensorShape([45400, 15]))
+
+
+
+#### Membuat TensorFlow Dataset, Batching dan Preteching untuk Model 3
+
+
+```python
+# Membuat train dan test dataset (dengan 4 jenis input data)
+# Urutan dataset disesuaikan dengan urutan input data pada tf.keras.Model akhir (model_3)
+train_fitur_data = from_tensor_slices((train_data.iloc[:, 0],
+                                      train_data.iloc[:, 3:].to_numpy(),
+                                      train_data_urut_kata_one_hot,
+                                      train_data_total_kata_one_hot))
+train_target_data = from_tensor_slices(train_target)
+train_dataset = zip((train_fitur_data,
+                     train_target_data))
+train_dataset = train_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
+
+test_fitur_data = from_tensor_slices((test_data.iloc[:, 0],
+                                      test_data.iloc[:, 3:].to_numpy(),
+                                      test_data_urut_kata_one_hot,
+                                      test_data_total_kata_one_hot))
+test_target_data = from_tensor_slices(test_target)
+test_dataset = zip((test_fitur_data,
+                    test_target_data))
+test_dataset = test_dataset.batch(UKURAN_BATCH).prefetch(tf.data.AUTOTUNE)
+```
+
+
+```python
+# Check ukuran dan dimensi dataset
+train_dataset, test_dataset
+```
+
+
+
+
+    (<BatchDataset element_spec=((TensorSpec(shape=(None,), dtype=tf.string, name=None), TensorSpec(shape=(None, 37), dtype=tf.float64, name=None), TensorSpec(shape=(None, 15), dtype=tf.float32, name=None), TensorSpec(shape=(None, 15), dtype=tf.float32, name=None)), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>,
+     <BatchDataset element_spec=((TensorSpec(shape=(None,), dtype=tf.string, name=None), TensorSpec(shape=(None, 37), dtype=tf.float64, name=None), TensorSpec(shape=(None, 15), dtype=tf.float32, name=None), TensorSpec(shape=(None, 15), dtype=tf.float32, name=None)), TensorSpec(shape=(None,), dtype=tf.int32, name=None))>)
+
+
+
+### Membangun dan Menjalankan Training Model 3
+
+1. Membuat model untuk `kata`
+2. Membuat model untuk `brand`
+3. Membuat model untuk `urut_kata`
+4. Membuat model untuk `total_kata`
+5. Mengkombinasikan output 1 & 2 menggunakan `tf.keras.layers.Concatenate`
+6. Menambahkan Dense dan Dropout layer untuk poin 5
+7. Mengkombinasikan output dari poin 3 & 4 menggunakan `tf.keras.layers.Concatenate`
+8. Mengkombinasikan output 6 & 7 menggunakan `tf.keras.layers.Concatenate`
+9. Membuat lapisan output yang menerima input dari 2 lapisan embedding di poin 8 dan menghasilkan output probabilitas
+8. Mengkombinasikan input 1, 2, 3, 4 dan output 9 dalam `tf.keras.Model`
+
+
+```python
+# Jika folder dengan path 'colorskim_checkpoint/{model.name}' sudah ada, maka skip fit model 
+# untuk menghemat waktu pengembangan dan hanya load model yang sudah ada dalam folder tersebut 
+# saja
+if not os.path.isdir(f'colorskim_checkpoint/{MODEL[3]}'):
+        # set random seed
+        tf.random.set_seed(RANDOM_STATE)
+        
+        # 1. model kata
+        input_kata = Input(shape=(1,), dtype=tf.string, name='lapisan_input_kata')
+        lapisan_vektorisasi_kata = lapisan_vektorisasi(input_kata)
+        lapisan_embedding_kata = lapisan_embedding(lapisan_vektorisasi_kata)
+        lapisan_bi_lstm_kata = Bidirectional(LSTM(units=UKURAN_BATCH), 
+                                        name='lapisan_bidirectional_lstm_kata')(lapisan_embedding_kata)
+        # ubah bi_lstm menjadi Conv1D dengan GlobalMaxPooling
+        # lapisan_Conv1D = Conv1D(filters=UKURAN_BATCH,
+        #                         kernel_size=5,
+        #                         padding='same',
+        #                         activation='relu',
+        #                         name='lapisan_konvolusional_1D')(lapisan_embedding_kata)
+        # lapisan_max_pooling = GlobalMaxPooling1D(name='lapisan_max_pooling')(lapisan_Conv1D)
+        model_kata = Model(input_kata,
+                        lapisan_bi_lstm_kata,
+                        name='model_kata')
+
+        # 2. model brand
+        input_brand = Input(shape=(train_data.iloc[:, 3:].shape[1],), 
+                        dtype=tf.float32,
+                        name='lapisan_input_brand')
+        x = Dense(units=UKURAN_BATCH, 
+                activation='relu',
+                name='lapisan_dense_rectified_linear_unit_brand')(input_brand)
+        model_brand = Model(input_brand,
+                        x,
+                        name='model_brand')
+
+        # 3. model urut_kata
+        input_urut_kata = Input(shape=(max_kata,),
+                                dtype=tf.float32,
+                                name='lapisan_input_urut_kata')
+        x = Dense(units=UKURAN_BATCH,
+                activation='relu',
+                name='lapisan_dense_rectified_linear_unit_urut_kata')(input_urut_kata)
+        model_urut_kata = Model(input_urut_kata,
+                                x,
+                                name='model_urut_kata')
+
+        # 4. model total_kata
+        input_total_kata = Input(shape=(max_kalimat,),
+                                dtype=tf.float32,
+                                name='lapisan_input_total_kata')
+        x = Dense(units=UKURAN_BATCH,
+                activation='relu',
+                name='lapisan_dense_rectified_linear_unit_total_kata')(input_total_kata)
+        model_total_kata = Model(input_total_kata,
+                                x,
+                                name='model_total_kata')
+
+        # 5. Mengkombinasikan model kata dan brand
+        kombinasi_kata_brand = Concatenate(name='lapisan_kombinasi_kata_brand')([model_kata.output, 
+                                                                                model_brand.output])
+
+        # 6. Menambahkan lapisan dense dan dropout dari output kombinasi kata dan brand
+        z = Dense(256, 
+                activation='relu',
+                name='lapisan_dense_kombinasi_kata_brand')(kombinasi_kata_brand)
+        z = Dropout(0.5)(z)
+
+        # 7. Mengkombinasikan model 3 dan 4
+        kombinasi_urut_total_kata = Concatenate(name='lapisan_kombinasi_urut_total_kata')([model_urut_kata.output, 
+                                                                                        model_total_kata.output])
+
+        # 8. Mengkombinasikan output di poin 6 dengan lapisan_kombinasi_urut_total_kata
+        kombinasi_kata_brand_urut_total_kata = Concatenate(name='lapisan_kombinasi_kata_brand_urut_total_kata')([z,
+                                                                                                                kombinasi_urut_total_kata])
+
+        # 9. Membuat lapisan output final
+        lapisan_output = Dense(units=1,
+                        activation='sigmoid',
+                        name='lapisan_output_final')(kombinasi_kata_brand_urut_total_kata)
+
+        # 10. Menyatukan semua model dari berbagai input
+        model_3 = Model(inputs=[model_kata.input,
+                                model_brand.input,
+                                model_urut_kata.input,
+                                model_total_kata.input],
+                        outputs=lapisan_output,
+                        name=MODEL[3])
+
+        # Compile model_3
+        model_3.compile(loss=BinaryCrossentropy(),
+                        optimizer=Adam(),
+                        metrics=['accuracy'])
+
+        # Setup wandb init dan config
+        wb.init(project=wandb['proyek'],
+                entity=wandb['user'],
+                name=model_3.name,
+                config={'epochs': EPOCHS,
+                        'n_layers': len(model_3.layers)})
+
+
+        # Fit model_3
+        model_3.fit(train_dataset,
+                    epochs=EPOCHS,
+                    validation_data=test_dataset,
+                    callbacks=[wandb_callback(train_dataset),
+                               model_checkpoint(model_3.name),
+                               reduce_lr_on_plateau(),
+                               early_stopping()])
+        
+        # tutup logging wandb
+        wb.finish()
+        
+        # load model_3
+        model_3 = load_model(f'colorskim_checkpoint/{MODEL[3]}')
+else:
+        # load model_3
+        model_3 = load_model(f'colorskim_checkpoint/{MODEL[3]}')
+```
+
+
+```python
+# Ringkasan dari model_3
+model_3.summary()
+```
+
+    Model: "model_3_quadbrid_embedding"
+    __________________________________________________________________________________________________
+     Layer (type)                   Output Shape         Param #     Connected to                     
+    ==================================================================================================
+     lapisan_input_kata (InputLayer  [(None, 1)]         0           []                               
+     )                                                                                                
+                                                                                                      
+     lapisan_vektorisasi (TextVecto  (None, 1)           0           ['lapisan_input_kata[0][0]']     
+     rization)                                                                                        
+                                                                                                      
+     lapisan_embedding (Embedding)  (None, 1, 32)        92992       ['lapisan_vektorisasi[0][0]']    
+                                                                                                      
+     lapisan_input_brand (InputLaye  [(None, 37)]        0           []                               
+     r)                                                                                               
+                                                                                                      
+     lapisan_bidirectional_lstm_kat  (None, 64)          16640       ['lapisan_embedding[0][0]']      
+     a (Bidirectional)                                                                                
+                                                                                                      
+     lapisan_dense_rectified_linear  (None, 32)          1216        ['lapisan_input_brand[0][0]']    
+     _unit_brand (Dense)                                                                              
+                                                                                                      
+     lapisan_kombinasi_kata_brand (  (None, 96)          0           ['lapisan_bidirectional_lstm_kata
+     Concatenate)                                                    [0][0]',                         
+                                                                      'lapisan_dense_rectified_linear_
+                                                                     unit_brand[0][0]']               
+                                                                                                      
+     lapisan_input_urut_kata (Input  [(None, 15)]        0           []                               
+     Layer)                                                                                           
+                                                                                                      
+     lapisan_input_total_kata (Inpu  [(None, 15)]        0           []                               
+     tLayer)                                                                                          
+                                                                                                      
+     lapisan_dense_kombinasi_kata_b  (None, 256)         24832       ['lapisan_kombinasi_kata_brand[0]
+     rand (Dense)                                                    [0]']                            
+                                                                                                      
+     lapisan_dense_rectified_linear  (None, 32)          512         ['lapisan_input_urut_kata[0][0]']
+     _unit_urut_kata (Dense)                                                                          
+                                                                                                      
+     lapisan_dense_rectified_linear  (None, 32)          512         ['lapisan_input_total_kata[0][0]'
+     _unit_total_kata (Dense)                                        ]                                
+                                                                                                      
+     dropout (Dropout)              (None, 256)          0           ['lapisan_dense_kombinasi_kata_br
+                                                                     and[0][0]']                      
+                                                                                                      
+     lapisan_kombinasi_urut_total_k  (None, 64)          0           ['lapisan_dense_rectified_linear_
+     ata (Concatenate)                                               unit_urut_kata[0][0]',           
+                                                                      'lapisan_dense_rectified_linear_
+                                                                     unit_total_kata[0][0]']          
+                                                                                                      
+     lapisan_kombinasi_kata_brand_u  (None, 320)         0           ['dropout[0][0]',                
+     rut_total_kata (Concatenate)                                     'lapisan_kombinasi_urut_total_ka
+                                                                     ta[0][0]']                       
+                                                                                                      
+     lapisan_output_final (Dense)   (None, 1)            321         ['lapisan_kombinasi_kata_brand_ur
+                                                                     ut_total_kata[0][0]']            
+                                                                                                      
+    ==================================================================================================
+    Total params: 137,025
+    Trainable params: 137,025
+    Non-trainable params: 0
+    __________________________________________________________________________________________________
+    
+
+
+```python
+# plot struktur model_3
+plot_model(model_3, show_shapes=True)
+```
+
+
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_94_0.png)
+    
+
+
+
+### Eksplorasi Hasil Model 3
+
+
+```python
+# evaluasi model_3
+model_3.evaluate(test_dataset)
+```
+
+    355/355 [==============================] - 37s 86ms/step - loss: 0.0214 - accuracy: 0.9944
+    
+
+
+
+
+    [0.021449144929647446, 0.9944498538970947]
+
+
+
+
+```python
+# prediksi probabilitas model_3
+model_3_pred_prob = tf.squeeze(model_3.predict(test_dataset))
+model_3_pred_prob
+```
+
+
+
+
+    <tf.Tensor: shape=(11351,), dtype=float32, numpy=
+    array([9.9962115e-01, 5.4790482e-05, 9.9976093e-01, ..., 2.4132943e-08,
+           3.0743347e-08, 3.4280158e-05], dtype=float32)>
+
+
+
+
+```python
+# membuat prediksi model_3
+model_3_pred = tf.round(tf.round(model_3_pred_prob))
+model_3_pred
+```
+
+
+
+
+    <tf.Tensor: shape=(11351,), dtype=float32, numpy=array([1., 0., 1., ..., 0., 0., 0.], dtype=float32)>
+
+
+
+
+```python
+# metriks skor model_3
+model_3_metrik = hitung_metrik(target=test_target,
+                               prediksi=model_3_pred)
+model_3_metrik
+```
+
+
+
+
+    {'akurasi': 0.9944498282089683,
+     'presisi': 0.9944503482062841,
+     'recall': 0.9944498282089683,
+     'f1-score': 0.9944482769856459}
+
+
+
+
+```python
+# plot residual model_3
+residual_plot_logr(test_target=test_target,
+                   nama_model=MODEL[3],
+                   model_akurasi=model_3_metrik['akurasi'],
+                   probabilitas_prediksi_model=tf.squeeze(model_3_pred_prob))
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_100_0.png)
+    
+
+
+
+```python
+# plot confusion matrix
+plot_conf_matrix(target_label=test_target,
+                 prediksi_label=model_3_pred,
+                 nama_model=MODEL[3],
+                 akurasi=model_3_metrik['akurasi'],
+                 label_titik_x=['bukan_warna', 'warna'],
+                 label_titik_y=['bukan_warna', 'warna'])
+plt.show()
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_101_0.png)
+    
+
+
+
+```python
+# dataframe kesalahan prediksi model_3
+df_kesalahan_prediksi(label_encoder=label_encoder,
+                      test_data=test_data_mnb,
+                      prediksi=model_3_pred,
+                      probabilitas_prediksi=model_3_pred_prob,
+                      order_ulang_header=['brand',
+                                          'kata',
+                                          'urut_kata',
+                                          'total_kata',
+                                          'label'])
+```
+
+    |       | brand   | kata        |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
+    |------:|:--------|:------------|------------:|-------------:|:------------|:------------|:---------------|
+    | 55259 | STN     | AQUA        |           3 |            3 | warna       | bukan_warna | 0.01%          |
+    | 23355 | NIC     | 7           |          11 |           11 | warna       | bukan_warna | 3.41%          |
+    | 56444 | WAR     | OREO        |           2 |            3 | warna       | bukan_warna | 1.82%          |
+    | 14605 | ADI     | REPEAT      |           2 |            3 | bukan_warna | warna       | 50.28%         |
+    | 46960 | NIK     | FTR10PURE   |           2 |            7 | warna       | bukan_warna | 0.32%          |
+    | 13918 | ADI     | CARDBOARD   |           2 |            2 | warna       | bukan_warna | 44.58%         |
+    | 12202 | ADI     | COM         |           2 |            3 | bukan_warna | warna       | 50.28%         |
+    |  8735 | ADI     | FULL        |           1 |            3 | bukan_warna | warna       | 82.15%         |
+    | 31091 | NIK     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna | 0.51%          |
+    |  5964 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna | 19.68%         |
+    | 21176 | HER     | ANGELS      |           2 |            3 | bukan_warna | warna       | 62.74%         |
+    | 21451 | HER     | MEDIUM      |           2 |            3 | bukan_warna | warna       | 83.72%         |
+    | 56083 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 67.72%         |
+    | 55981 | STN     | OATMEAL     |           2 |            2 | warna       | bukan_warna | 18.83%         |
+    | 33831 | NIK     | EXPX14WHITE |           2 |            4 | warna       | bukan_warna | 0.51%          |
+    | 12345 | ADI     | FESTIV      |           2 |            3 | bukan_warna | warna       | 50.28%         |
+    | 56746 | WAR     | PAISLEY     |           2 |            4 | warna       | bukan_warna | 0.88%          |
+    |  1405 | ADI     | PK          |           2 |            4 | warna       | bukan_warna | 0.01%          |
+    | 56086 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 67.72%         |
+    | 17275 | AGL     | 5           |           5 |            6 | warna       | bukan_warna | 1.61%          |
+    | 26752 | NIK     | PEELORANGE  |           6 |            7 | warna       | bukan_warna | 1.37%          |
+    | 55804 | STN     | VOLT        |           2 |            2 | warna       | bukan_warna | 18.83%         |
+    | 12023 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 28.49%         |
+    |  8962 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 78.66%         |
+    | 13740 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 44.58%         |
+    | 10573 | ADI     | METAL       |           2 |            3 | warna       | bukan_warna | 0.05%          |
+    | 56484 | WAR     | NEON        |           2 |            5 | warna       | bukan_warna | 0.11%          |
+    | 46940 | NIK     | REACTBRIGHT |           2 |            7 | warna       | bukan_warna | 0.32%          |
+    |  9992 | ADI     | TECH        |           2 |            4 | bukan_warna | warna       | 64.85%         |
+    |  1403 | ADI     | F17         |           4 |            4 | warna       | bukan_warna | 1.2%           |
+    | 52652 | PUM     | GLOW        |           4 |            6 | warna       | bukan_warna | 32.14%         |
+    |  2592 | ADI     | ICEPUR      |           2 |            4 | warna       | bukan_warna | 38.93%         |
+    |  7372 | ADI     | SGREEN      |           2 |            4 | warna       | bukan_warna | 38.93%         |
+    | 10336 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 44.58%         |
+    | 15466 | ADI     | SAVANNAH    |           2 |            2 | warna       | bukan_warna | 44.58%         |
+    | 54951 | SAU     | TAN         |           2 |            3 | warna       | bukan_warna | 0.0%           |
+    | 22780 | KIP     | SHADOW      |           2 |            4 | warna       | bukan_warna | 7.41%          |
+    | 56226 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       | 81.07%         |
+    | 17198 | AGL     | YELLOW      |           2 |            5 | bukan_warna | warna       | 97.89%         |
+    | 50395 | PUM     | PUMA        |           2 |            5 | warna       | bukan_warna | 0.01%          |
+    | 48075 | PTG     | ORANGE      |           2 |            3 | bukan_warna | warna       | 97.78%         |
+    | 54953 | SAU     | BRN         |           2 |            3 | warna       | bukan_warna | 4.62%          |
+    | 56661 | WAR     | THE         |           2 |            5 | warna       | bukan_warna | 23.55%         |
+    |  8968 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 78.66%         |
+    |  1407 | ADI     | CARGO       |           4 |            4 | warna       | bukan_warna | 1.22%          |
+    | 16273 | ADI     | SWEATSHIRT  |           2 |            3 | bukan_warna | warna       | 50.28%         |
+    |  3490 | ADI     | SHOCK       |           2 |            3 | warna       | bukan_warna | 0.09%          |
+    | 14727 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 28.49%         |
+    | 33814 | NIK     | EXPZ07WHITE |           2 |            3 | warna       | bukan_warna | 0.8%           |
+    |  8965 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 78.66%         |
+    |  4659 | ADI     | BOAQUA      |           2 |            4 | warna       | bukan_warna | 38.93%         |
+    | 14574 | ADI     | OFF         |           2 |            4 | bukan_warna | warna       | 66.82%         |
+    | 21982 | HER     | FLORAL      |           2 |            3 | warna       | bukan_warna | 3.38%          |
+    | 21091 | HER     | 600D        |           3 |            6 | bukan_warna | warna       | 99.94%         |
+    |  7224 | ADI     | SPR         |           2 |            3 | bukan_warna | warna       | 50.28%         |
+    | 17520 | AGL     | BROWN       |           1 |            4 | bukan_warna | warna       | 77.41%         |
+    | 48153 | PTG     | DOVE        |           2 |            3 | bukan_warna | warna       | 94.19%         |
+    | 19643 | BEA     | 35          |           2 |            3 | bukan_warna | warna       | 60.07%         |
+    | 16288 | ADI     | BLK         |           2 |            5 | bukan_warna | warna       | 99.4%          |
+    | 21174 | HER     | RED         |           4 |            8 | bukan_warna | warna       | 99.77%         |
+    | 29098 | NIK     | 8ASHEN      |           3 |            6 | warna       | bukan_warna | 0.93%          |
+    | 55759 | STN     | RASTA       |           2 |            2 | warna       | bukan_warna | 18.83%         |
+    | 31572 | NIK     | LIGHTCARBON |           4 |            6 | warna       | bukan_warna | 0.82%          |
+    
+
+
+```python
+# selesai dengan model 3, bersihkan memori di GPU terkait model_3
+del model_3
+gc.collect()
+```
+
+
+
+
+    167901
 
 
 
@@ -4778,20 +3800,196 @@ tf.config.experimental.get_memory_info('GPU:0')
 
 
 
-    {'current': 17507328, 'peak': 1101423360}
+    {'current': 1057082880, 'peak': 1075037440}
 
 
 
-## Model 3: Menggunakan Posisi Kata, Tipe Brand dan Lapisan Embed Custom yang diconcatenate
 
-Pada skenario training ini, kita akan mencoba untuk tidak hanya menggunakan input data kata dan label saja, tetapi juga menambahkan posisi kata dalam kalimat dan juga tipe brand sebagai variabel independen (fitur) yang mungkin dapat menentukan apakah sebuah kata adalah `bukan_warna` atau `warna`.
-Pada dasarnya kita akan membuat tumpukan layer yang mempelajari input data per kata dan juga mempelajari posisi dari kata dan juga tipe brand yang kemudian akan ditumpuk (*stack*) menjadi satu lapisan baru.
+```python
+# Membuat fungsi untuk mengambil bobot masing - masing kata dalam neuron model dengan embedding
+def get_bobot_kata(model_list,
+                   lapisan_vektorisasi=lapisan_vektorisasi):
+    """
+    Fungsi ini akan menerima list model dengan lapisan embedding dan menghasilkan file
+    vectors_{model.name}.tsv serta file metadata.tsv untuk diproyeksikan
+    dalam bidang 3D tensorboard atau projector.tensorflow.org
+    
+    Args:
+        model_list (list): List model yang akan diekstrak bobot neuronnya dan dipergunakan sebagai input di bidang 3D
+        lapisan_vektorisasi (tf.keras.layers.TextVectorization): Lapisan text vektorisasi yang akan diambil vocabularynya untuk file metadata.tsv
+    """
+    kata_dalam_vektorizer = lapisan_vektorisasi.get_vocabulary()
+    
+    for model in model_list:
+        model = load_model(f'colorskim_checkpoint/{model}')
+        bobot_kata_embed = model.get_layer('lapisan_embedding').get_weights()[0]
+        file_vektor = io.open(f'vectors_{model.name}.tsv', 'w', encoding='utf-8')
+        for indeks, _ in enumerate(kata_dalam_vektorizer):
+            if indeks == 0:
+                continue
+            vektor = bobot_kata_embed[indeks]
+            file_vektor.write('\t'.join([str(x) for x in vektor]) + '\n')
+        file_vektor.close()
+        del model
+        gc.collect()
+    
+    file_metadata = io.open(f'metadata.tsv', 'w', encoding='utf-8')
+    for kata in kata_dalam_vektorizer:
+        file_metadata.write(kata + '\n')
+    file_metadata.close()         
+```
 
-### Preprocessing 'urut_kata' dan 'total_kata'
-Sebelum kita melakukan *training* pada variabel 'urut_kata' dan juga 'total_kata', kita perlu untuk terlebih dahulu melakukan *preprocessing* pada kedua input ini.
-Hal yang akan kita lakukan diantaranya:
 
-1. Cek train_data
+```python
+# Mengekstrak bobot masing - masing kata dalam neuron dengan model embedding
+get_bobot_kata([MODEL[1], MODEL[3]], lapisan_vektorisasi)
+```
+
+## Perbandingan Kinerja dari setiap Model
+
+
+```python
+# Mengkombinasikan hasil model ke dalam dataframe
+hasil_semua_model = pd.DataFrame({"model_0_multinomial_naive_bayes": model_0_metrik,
+                                  "model_1_Conv1D_vektorisasi_embedding": model_1_metrik,
+                                  "model_2_Conv1D_USE_embed": model_2_metrik,
+                                  "model_3_quadbrid_embedding": model_3_metrik})
+hasil_semua_model = hasil_semua_model.transpose()
+hasil_semua_model
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>akurasi</th>
+      <th>presisi</th>
+      <th>recall</th>
+      <th>f1-score</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>model_0_multinomial_naive_bayes</th>
+      <td>0.992159</td>
+      <td>0.992160</td>
+      <td>0.992159</td>
+      <td>0.992156</td>
+    </tr>
+    <tr>
+      <th>model_1_Conv1D_vektorisasi_embedding</th>
+      <td>0.992071</td>
+      <td>0.992072</td>
+      <td>0.992071</td>
+      <td>0.992068</td>
+    </tr>
+    <tr>
+      <th>model_2_Conv1D_USE_embed</th>
+      <td>0.938860</td>
+      <td>0.939021</td>
+      <td>0.938860</td>
+      <td>0.938596</td>
+    </tr>
+    <tr>
+      <th>model_3_quadbrid_embedding</th>
+      <td>0.994450</td>
+      <td>0.994450</td>
+      <td>0.994450</td>
+      <td>0.994448</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+# Plot dan perbandingan semua hasil model
+hasil_semua_model.plot(kind='bar', figsize=(10, 7)).legend(bbox_to_anchor=(1.0, 1.0));
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_109_0.png)
+    
+
+
+
+```python
+# Plot confusion matrix semua model
+dua_kolom = int(len(MODEL)/2)
+fig, axs = plt.subplots(2, dua_kolom, figsize=(10, 7))
+for indeks, model in enumerate(MODEL):
+    switcher = {
+        0: [model_0_pred, model_0_metrik],
+        1: [model_1_pred, model_1_metrik],
+        2: [model_2_pred, model_2_metrik],
+        3: [model_3_pred, model_3_metrik]
+    }
+    model_pred = switcher.get(indeks)[0]
+    model_metrik = switcher.get(indeks)[1]
+    axs[indeks if indeks <= 1 else indeks - 2] = plt.subplot(2, 
+                                                             dua_kolom, 
+                                                             indeks + 1)
+    plot_conf_matrix(target_label=test_target_mnb,
+                     prediksi_label=model_pred,
+                     nama_model=MODEL[indeks],
+                     akurasi=model_metrik['akurasi'],
+                     label_titik_x=['bukan_warna', 'warna'],
+                     label_titik_y=['bukan_warna', 'warna'])
+fig.tight_layout(h_pad=2, w_pad=2)
+plt.show()
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_110_0.png)
+    
+
+
+
+```python
+# Plot nilai residual dari model (kecuali untuk model_0)
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+for indeks, model in enumerate(MODEL[1:]):
+    switcher = {
+        0: [model_1_metrik, model_1_pred_prob],
+        1: [model_2_metrik, model_2_pred_prob],
+        2: [model_3_metrik, model_3_pred_prob]
+    }
+    model_metrik = switcher.get(indeks)[0]
+    model_pred_prob = switcher.get(indeks)[1]
+    axs[indeks] = plt.subplot(1, len(MODEL[1:]), indeks + 1)
+    residual_plot_logr(test_target,
+                       MODEL[indeks + 1],
+                       model_metrik['akurasi'],
+                       model_pred_prob)
+plt.tight_layout(h_pad=3, w_pad=3)
+plt.show()
+```
+
+
+    
+![png](ColorSkim_AI_files/ColorSkim_AI_111_0.png)
+    
 
 
 

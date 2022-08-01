@@ -9,9 +9,9 @@ theme:
     logo: fontawesome/solid/robot
   favicon: images/favicon.png
   palette:
-    scheme: default
-    primary: teal
-    accent: teal
+    scheme: slate
+    primary: deep orange
+    accent: orange
   language: id
   font:
     text: Nunito
@@ -22,24 +22,40 @@ theme:
   features:
     - navigation.instant
     - navigation.tracking
-    - navigation.prune
+    - navigation.sections
     - toc.integrate
     - navigation.top
 markdown_extensions:
   - tables
   - pymdownx.highlight:
-      anchor_linenums: true
-      linenums: true
+      use_pygments: true
+      linenums: false
   - pymdownx.superfences
   - pymdownx.inlinehilite
+  - pymdownx.snippets
   - pymdownx.arithmatex:
       generic: true
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+extra_css:
+  - stylesheets/extra.css
 extra:
+  social:
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/teh_kotak_lemon/
+      name: jPao on Twitter
+    - icon: fontawesome/brands/github
+      link: https://github.com/johanesPao/
+      name: jPao on GitHub
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/u/j0hanespao
+      name: jPao on Docker
   version:
     provider: mike
 repo_url: https://github.com/johanesPao/ColorSkim
 repo_name: johanesPao/ColorSkim
+plugins:
+  - tags
+copyright: Copyright &copy; 2022 Johanes Indra Pradana Pao

@@ -1,0 +1,12 @@
+.md-grid {
+    max-width: 1440px;
+}
+
+:root>* {
+    --md-code-hl-string-color: #ee7600;
+    --md-code-hl-comment-color: #388e3c;
+    --md-code-hl-name-color: #73e8ff;
+    --md-code-hl-punctuation-color: #ffff72;
+    --md-code-hl-operator-color: #ff77a9;
+    /* --md-code-hl-keyword-color: #000000; */
+}
