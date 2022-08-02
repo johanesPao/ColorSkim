@@ -1,7 +1,7 @@
-site_name: ColorSkim AI Machine Learning
+site_name: Pembelajaran Mesin untuk Warna Artikel
 site_url: https://colorskim.jpao.live/
 nav:
-  - Permasalahan dan Objektif: index.md
+  - Pembelajaran Mesin: index.md
   - Dokumentasi ColorSkim: ColorSkim_AI.md
 theme:
   name: material
@@ -10,8 +10,8 @@ theme:
   favicon: images/favicon.png
   palette:
     scheme: slate
-    primary: deep orange
-    accent: orange
+    primary: black
+    accent: red
   language: id
   font:
     text: Nunito
@@ -26,15 +26,28 @@ theme:
     - toc.integrate
     - navigation.top
 markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.magiclink:
+      repo_url_shortener: true
+      provider: 'github'
+      user: 'johanesPao'
+      repo: 'colorskim'
   - tables
   - pymdownx.highlight:
       use_pygments: true
       linenums: false
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6

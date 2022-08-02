@@ -1,7 +1,6 @@
 # ColorSkim Machine Learning AI
-
-
-
+!!! quote "Matthew Quick, The Good Luck of Right Now"
+    *The voice that navigated was definitely that of a machine, and yet you could tell that the machine was a woman, which hurt my mind a little. How can machines have genders? The machine also had an American accent. How can machines have nationalities? This can't be a good idea, making machines talk like real people, can it? Giving machines humanoid identities?*
 
 ```python
 # import modul dasar⁡⁡
@@ -25,7 +24,7 @@ from tensorflow.data.experimental import enable_debug_mode # type: ignore
 from sklearn.model_selection import train_test_split
 """
 karena struktur objek dalam tf.data.Dataset, from_tensor_slices() 
-tidak dapat dipanggil secara langsung dalam modul import
+dan zip tidak dapat dipanggil secara langsung dalam modul import
 """
 from_tensor_slices = tf.data.Dataset.from_tensor_slices
 zip = tf.data.Dataset.zip
@@ -103,7 +102,7 @@ list_local_devices()[1]
       links {
       }
     }
-    incarnation: 16803828788420614469
+    incarnation: 4677246905546237580
     physical_device_desc: "device: 0, name: NVIDIA GeForce MX250, pci bus id: 0000:02:00.0, compute capability: 6.1"
     xla_global_id: 416903419
 
@@ -148,11 +147,11 @@ MODEL = ['model_0_multinomial_naive_bayes',
 Beberapa *callbacks* yang akan digunakan dalam proses *training* model diantaranya:
 
 * `WandbCallback` - *Callback* ke [wandb.ai](https://wandb.ai) untuk mencatat log dari sesi *training* model.
-* `ModelCheckpoint` - Untuk menyimpan model dengan *val_loss* terbaik dari seluruh *epoch* dalam *training* model.
-* `EarlyStopping` (ES) - *Callback* ini digunakan untuk menghentikan proses *training* model jika selama beberapa *epoch* model tidak mengalami perbaikan pada metrik *val_loss*-nya. *Callback* ini juga digunakan bersama dengan `ReduceLROnPlateau` dimana *patience* ES > *patience* RLOP.
-* `ReduceLROnPlateau` (RLOP) - *Callback* ini digunakan untuk memperkecil *learning_rate* dari model jika tidak mengalami perbaikan *val_loss* selama beberapa *epoch*.
+* `ModelCheckpoint` - Untuk menyimpan model dengan *val_accuracy* terbaik dari seluruh *epoch* dalam *training* model.
+* `EarlyStopping` (ES) - *Callback* ini digunakan untuk menghentikan proses *training* model jika selama beberapa *epoch* model tidak mengalami perbaikan pada metrik *val_accuracy*-nya. *Callback* ini juga digunakan bersama dengan `ReduceLROnPlateau` dimana *patience* ES > *patience* RLOP.
+* `ReduceLROnPlateau` (RLOP) - *Callback* ini digunakan untuk memperkecil *learning_rate* dari model jika tidak mengalami perbaikan *val_accuracy* selama beberapa *epoch*.
 
-*Patience* dari ES di-set lebih tinggi dari *patience* RLOP untuk memberikan kesempatan bagi RLOP untuk memperkecil *learning_rate* beberapa kali sebelum proses *training* model dihentikan oleh ES setelah tidak berhasil mendapatkan *val_loss* yang lebih baik selama beberapa *epoch*.
+*Patience* dari ES di-set lebih tinggi dari *patience* RLOP untuk memberikan kesempatan bagi RLOP untuk memperkecil *learning_rate* beberapa kali sebelum proses *training* model dihentikan oleh ES setelah tidak berhasil mendapatkan *val_accuracy* yang lebih baik selama beberapa *epoch*.
 
 
 ```python
@@ -163,14 +162,14 @@ wb.login(key=API_KEY_WANDB)
 # Pembuatan fungsi callback
 def wandb_callback(data_training):
     return WandbCallback(save_model=False, # model akan disimpan menggunakan callback ModelCheckpoint
-                         log_weights=True, # weight akan disimpan untuk visualisasi di wandb
+                         log_weights=True, # bobot akan disimpan untuk visualisasi di wandb
                          log_gradients=True, # gradient akan disimpan untuk visualisasi di wandb
                          training_data=data_training) 
 def model_checkpoint(nama_model):
     return ModelCheckpoint(filepath=os.path.join(DIR_MODEL_CHECKPOINT, nama_model),
                            verbose=0,
                            monitor=METRIK_MONITOR,
-                           save_best_only=True) # model dengan 'val_loss' terbaik akan disimpan
+                           save_best_only=True) # model dengan 'val_accuracy' terbaik akan disimpan
 def early_stopping():
     return EarlyStopping(patience=TOLERANSI_ES,
                          monitor=METRIK_MONITOR)
@@ -193,7 +192,7 @@ def reduce_lr_on_plateau():
 Data yang dipergunakan adalah sebanyak 101,077 kata. Terdapat 2 versi data, data versi 1 hanya memiliki 56,751 kata dan data versi 2 adalah data lengkap.
 
 * Data 1: 56,751 kata, terdiri dari 34,174 kata dengan label `bukan_warna` dan 22,577 kata dengan label `warna` atau rasio 1.51 : 1 `bukan_warna` berbanding `warna`
-* Data 2: 101,077 kata, rincian menyusul....
+* Data 2: 101,077 kata, dikarenakan kekurangan *man power* untuk proses *labeling* manual, maka kita tidak akan menggunakan data ini.
 
 `brand`, `urut_kata` dan `total_kata` akan digunakan sebagai alternatif variabel independen tambahan dalam model tertentu.
 
@@ -206,145 +205,113 @@ Merubah kolom `urut_kata` dan 'total_kata' menjadi float32
 data = pd.read_csv('data/setengah_dataset_artikel.csv')
 data = data.astype({'urut_kata': np.float32, 'total_kata': np.float32})
 # Untuk dokumentasi, gunakan format markdown untuk rendering dataframe
-# print(data.to_markdown())
-data
+# Menampilkan 100 data pertama
+print(data[:100].to_markdown())
 ```
 
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>brand</th>
-      <th>nama_artikel</th>
-      <th>kata</th>
-      <th>label</th>
-      <th>urut_kata</th>
-      <th>total_kata</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>ADISSAGE</td>
-      <td>bukan_warna</td>
-      <td>1.0</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>BLACK</td>
-      <td>warna</td>
-      <td>2.0</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>BLACK</td>
-      <td>warna</td>
-      <td>3.0</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>RUNWHT</td>
-      <td>warna</td>
-      <td>4.0</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>ADI</td>
-      <td>ADISSAGE-N.NAVY/N.NAVY/RUNWHT</td>
-      <td>ADISSAGE</td>
-      <td>bukan_warna</td>
-      <td>1.0</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>56746</th>
-      <td>WAR</td>
-      <td>125CM PAISLEY WHITE FLAT</td>
-      <td>PAISLEY</td>
-      <td>warna</td>
-      <td>2.0</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
-      <th>56747</th>
-      <td>WAR</td>
-      <td>125CM PAISLEY WHITE FLAT</td>
-      <td>WHITE</td>
-      <td>warna</td>
-      <td>3.0</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
-      <th>56748</th>
-      <td>WAR</td>
-      <td>125CM VINTAGE ORANGE</td>
-      <td>125CM</td>
-      <td>bukan_warna</td>
-      <td>1.0</td>
-      <td>3.0</td>
-    </tr>
-    <tr>
-      <th>56749</th>
-      <td>WAR</td>
-      <td>125CM VINTAGE ORANGE</td>
-      <td>VINTAGE</td>
-      <td>warna</td>
-      <td>2.0</td>
-      <td>3.0</td>
-    </tr>
-    <tr>
-      <th>56750</th>
-      <td>WAR</td>
-      <td>125CM VINTAGE ORANGE</td>
-      <td>ORANGE</td>
-      <td>warna</td>
-      <td>3.0</td>
-      <td>3.0</td>
-    </tr>
-  </tbody>
-</table>
-<p>56751 rows × 6 columns</p>
-</div>
-
-
+|    | brand   | nama_artikel                       | kata       | label       |   urut_kata |   total_kata |
+|---:|:--------|:-----------------------------------|:-----------|:------------|------------:|-------------:|
+|  0 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | ADISSAGE   | bukan_warna |           1 |            4 |
+|  1 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | BLACK      | warna       |           2 |            4 |
+|  2 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | BLACK      | warna       |           3 |            4 |
+|  3 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | RUNWHT     | warna       |           4 |            4 |
+|  4 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | ADISSAGE   | bukan_warna |           1 |            4 |
+|  5 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           2 |            4 |
+|  6 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           3 |            4 |
+|  7 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | RUNWHT     | warna       |           4 |            4 |
+|  8 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | 3          | bukan_warna |           1 |            6 |
+|  9 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | STRIPE     | bukan_warna |           2 |            6 |
+| 10 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | D          | bukan_warna |           3 |            6 |
+| 11 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | 29.5       | bukan_warna |           4 |            6 |
+| 12 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | BASKETBALL | warna       |           5 |            6 |
+| 13 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | NATURAL    | warna       |           6 |            6 |
+| 14 | ADI     | 3S RUBBER X-BLACK                  | 3S         | bukan_warna |           1 |            4 |
+| 15 | ADI     | 3S RUBBER X-BLACK                  | RUBBER     | bukan_warna |           2 |            4 |
+| 16 | ADI     | 3S RUBBER X-BLACK                  | X          | bukan_warna |           3 |            4 |
+| 17 | ADI     | 3S RUBBER X-BLACK                  | BLACK      | warna       |           4 |            4 |
+| 18 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | ADILETTE   | bukan_warna |           1 |            4 |
+| 19 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | BLACK1     | warna       |           2 |            4 |
+| 20 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | WHT        | warna       |           3 |            4 |
+| 21 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | BLACK1     | warna       |           4 |            4 |
+| 22 | ADI     | ADILETTE-WHITE                     | ADILETTE   | bukan_warna |           1 |            2 |
+| 23 | ADI     | ADILETTE-WHITE                     | WHITE      | warna       |           2 |            2 |
+| 24 | ADI     | TANGO ROSARIO-WHITE                | TANGO      | bukan_warna |           1 |            3 |
+| 25 | ADI     | TANGO ROSARIO-WHITE                | ROSARIO    | bukan_warna |           2 |            3 |
+| 26 | ADI     | TANGO ROSARIO-WHITE                | WHITE      | warna       |           3 |            3 |
+| 27 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | ADISSAGE   | bukan_warna |           1 |            4 |
+| 28 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           2 |            4 |
+| 29 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           3 |            4 |
+| 30 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | RUNWHT     | warna       |           4 |            4 |
+| 31 | ADI     | CFC SCARF-CHEBLU/WHITE             | CFC        | bukan_warna |           1 |            4 |
+| 32 | ADI     | CFC SCARF-CHEBLU/WHITE             | SCARF      | bukan_warna |           2 |            4 |
+| 33 | ADI     | CFC SCARF-CHEBLU/WHITE             | CHEBLU     | warna       |           3 |            4 |
+| 34 | ADI     | CFC SCARF-CHEBLU/WHITE             | WHITE      | warna       |           4 |            4 |
+| 35 | ADI     | DFB H JSY Y-WHITE/BLACK            | DFB        | bukan_warna |           1 |            6 |
+| 36 | ADI     | DFB H JSY Y-WHITE/BLACK            | H          | bukan_warna |           2 |            6 |
+| 37 | ADI     | DFB H JSY Y-WHITE/BLACK            | JSY        | bukan_warna |           3 |            6 |
+| 38 | ADI     | DFB H JSY Y-WHITE/BLACK            | Y          | bukan_warna |           4 |            6 |
+| 39 | ADI     | DFB H JSY Y-WHITE/BLACK            | WHITE      | warna       |           5 |            6 |
+| 40 | ADI     | DFB H JSY Y-WHITE/BLACK            | BLACK      | warna       |           6 |            6 |
+| 41 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | 3S         | bukan_warna |           1 |            8 |
+| 42 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | PER        | bukan_warna |           2 |            8 |
+| 43 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | N          | bukan_warna |           3 |            8 |
+| 44 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | S          | bukan_warna |           4 |            8 |
+| 45 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | HC3P       | bukan_warna |           5 |            8 |
+| 46 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           6 |            8 |
+| 47 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           7 |            8 |
+| 48 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | WHITE      | warna       |           8 |            8 |
+| 49 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | 3S         | bukan_warna |           1 |            8 |
+| 50 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | PER        | bukan_warna |           2 |            8 |
+| 51 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | AN         | bukan_warna |           3 |            8 |
+| 52 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | HC         | bukan_warna |           4 |            8 |
+| 53 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | 3P         | bukan_warna |           5 |            8 |
+| 54 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | WHITE      | warna       |           6 |            8 |
+| 55 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | WHITE      | warna       |           7 |            8 |
+| 56 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | BLACK      | warna       |           8 |            8 |
+| 57 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | 3S         | bukan_warna |           1 |            8 |
+| 58 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | PER        | bukan_warna |           2 |            8 |
+| 59 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | AN         | bukan_warna |           3 |            8 |
+| 60 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | HC         | bukan_warna |           4 |            8 |
+| 61 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | 3P         | bukan_warna |           5 |            8 |
+| 62 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | BLACK      | warna       |           6 |            8 |
+| 63 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | BLACK      | warna       |           7 |            8 |
+| 64 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | BLACK      | warna       |           8 |            8 |
+| 65 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | 3S         | bukan_warna |           1 |            8 |
+| 66 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | PER        | bukan_warna |           2 |            8 |
+| 67 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | AN         | bukan_warna |           3 |            8 |
+| 68 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | HC         | bukan_warna |           4 |            8 |
+| 69 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | 1P         | bukan_warna |           5 |            8 |
+| 70 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | WHITE      | warna       |           6 |            8 |
+| 71 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | WHITE      | warna       |           7 |            8 |
+| 72 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | BLACK      | warna       |           8 |            8 |
+| 73 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | 3S         | bukan_warna |           1 |            8 |
+| 74 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | PER        | bukan_warna |           2 |            8 |
+| 75 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | AN         | bukan_warna |           3 |            8 |
+| 76 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | HC         | bukan_warna |           4 |            8 |
+| 77 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | 1P         | bukan_warna |           5 |            8 |
+| 78 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | BLACK      | warna       |           6 |            8 |
+| 79 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | BLACK      | warna       |           7 |            8 |
+| 80 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | WHITE      | warna       |           8 |            8 |
+| 81 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | 3S         | bukan_warna |           1 |            8 |
+| 82 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | PER        | bukan_warna |           2 |            8 |
+| 83 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | CR         | bukan_warna |           3 |            8 |
+| 84 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | HC         | bukan_warna |           4 |            8 |
+| 85 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | 3P         | bukan_warna |           5 |            8 |
+| 86 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | WHITE      | warna       |           6 |            8 |
+| 87 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | WHITE      | warna       |           7 |            8 |
+| 88 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | WHITE      | warna       |           8 |            8 |
+| 89 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | 3S         | bukan_warna |           1 |            8 |
+| 90 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | PER        | bukan_warna |           2 |            8 |
+| 91 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | CR         | bukan_warna |           3 |            8 |
+| 92 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | HC         | bukan_warna |           4 |            8 |
+| 93 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | 3P         | bukan_warna |           5 |            8 |
+| 94 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           6 |            8 |
+| 95 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           7 |            8 |
+| 96 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | WHITE      | warna       |           8 |            8 |
+| 97 | ADI     | 3S PER CR HC 1P-WHITE/WHITE/BLACK  | 3S         | bukan_warna |           1 |            8 |
+| 98 | ADI     | 3S PER CR HC 1P-WHITE/WHITE/BLACK  | PER        | bukan_warna |           2 |            8 |
+| 99 | ADI     | 3S PER CR HC 1P-WHITE/WHITE/BLACK  | CR         | bukan_warna |           3 |            8 |
+    
 
 ### Eksplorasi Data
 
@@ -354,24 +321,18 @@ data
 print(data['label'].value_counts())
 data['label'].value_counts().plot(kind='bar')
 plt.gca().set_title('Distribusi Label', fontsize=18)
+plt.figure(facecolor='w')
 ```
 
     bukan_warna    34174
     warna          22577
     Name: label, dtype: int64
-    
-
-
-
-
-    Text(0.5, 1.0, 'Distribusi Label')
 
 
 
 
     
 ![png](ColorSkim_AI_files/ColorSkim_AI_10_2.png)
-    
 
 
 
@@ -380,6 +341,7 @@ plt.gca().set_title('Distribusi Label', fontsize=18)
 print(data[['brand', 'label']].value_counts().unstack().sort_values(by='bukan_warna', ascending=False)[:10])
 data[['brand', 'label']].value_counts().unstack().sort_values(by='bukan_warna', ascending=False)[:10].plot(kind='bar')
 plt.gca().set_title('Distribusi Label Berdasarkan Brand', fontsize=18)
+plt.figure(facecolor='w')
 ```
 
     label  bukan_warna    warna
@@ -394,12 +356,6 @@ plt.gca().set_title('Distribusi Label Berdasarkan Brand', fontsize=18)
     KIP          554.0    321.0
     STN          494.0    255.0
     WAR          404.0    298.0
-    
-
-
-
-
-    Text(0.5, 1.0, 'Distribusi Label Berdasarkan Brand')
 
 
 
@@ -411,7 +367,7 @@ plt.gca().set_title('Distribusi Label Berdasarkan Brand', fontsize=18)
 
 ### Konversi Fitur dan Label ke dalam numerik
 
-Kita akan melakukan pengkonversian fitur dan label ke dalam bentuk numerik, dikarenakan jaringan saraf buatan hanya dapat bekerja dalam data numerik. 
+Kita akan melakukan pengkonversian fitur dan label ke dalam bentuk numerik, dikarenakan jaringan saraf tiruan hanya dapat bekerja dalam data numerik. 
 
 Terdapat dua jenis *encoding* untuk data yang bersifat kategorikal:
 
@@ -442,7 +398,7 @@ Terdapat dua jenis *encoding* untuk data yang bersifat kategorikal:
 | SPE | 1 |
 | ... | ... |
 
-**Kapan menggunakan `OneHotEncoder` atau `LabelEncoder` dalam sebuah proses encoding?** Kita dapat menggunakan `OneHotEncoder` ketika kita tidak menginginkan suatu bentuk hubungan hirarki di dalam data kategorikal yang kita miliki. Dalam hal ini ketika kita tidak ingin jaringan saraf buatan untuk memandang ADI (3) lebih signifikan dari NIK (0) dalam hal nilainya jika dilakukan label *encoding*, maka kita dapat menggunakan `OneHotEncoder`.
+**Kapan menggunakan `OneHotEncoder` atau `LabelEncoder` dalam sebuah proses encoding?** Kita dapat menggunakan `OneHotEncoder` ketika kita tidak menginginkan suatu bentuk hubungan hirarki di dalam data kategorikal yang kita miliki. Dalam hal ini ketika kita tidak ingin jaringan saraf tiruan untuk memandang ADI (3) lebih signifikan dari NIK (0) dalam hal nilainya jika dilakukan label *encoding*, maka kita dapat menggunakan `OneHotEncoder`.
 Jika kategori bersifat biner seperti 'Pria' atau 'Wanita', 'Ya' atau 'Tidak' dsbnya, penggunaan `LabelEncoder` dinilai lebih efektif.
 
 > Dengan pertimbangan di atas dan melihat struktur data kita, maka kita akan menggunakan `OneHotEncoder` untuk kolom *brand* (fitur) dan menggunakan `LabelEncoder` untuk kolom *label* (target), kecuali untuk **Model 0** yang akan menggunakan fungsi ekstraksi fitur dengan `TfIdfVectorizer` kita hanya akan menggunakan kolom 'label' yang belum di-*encode*.
@@ -462,328 +418,117 @@ df_label_encoded = pd.DataFrame(label_encoded, columns=['label_encoded'])
 # gabungkan dengan dataframe awal
 data_encoded = data.copy()
 data_encoded = pd.concat([data_encoded,df_fitur_encoded, df_label_encoded], axis=1)
-data_encoded
+# Menampilkan 100 data pertama
+print(data_encoded[:100].to_markdown())
 ```
 
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>brand</th>
-      <th>nama_artikel</th>
-      <th>kata</th>
-      <th>label</th>
-      <th>urut_kata</th>
-      <th>total_kata</th>
-      <th>brand_ADI</th>
-      <th>brand_ADS</th>
-      <th>brand_AGL</th>
-      <th>brand_AND</th>
-      <th>...</th>
-      <th>brand_PTG</th>
-      <th>brand_PUM</th>
-      <th>brand_REL</th>
-      <th>brand_SAU</th>
-      <th>brand_SOC</th>
-      <th>brand_STN</th>
-      <th>brand_UME</th>
-      <th>brand_VAP</th>
-      <th>brand_WAR</th>
-      <th>label_encoded</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>ADISSAGE</td>
-      <td>bukan_warna</td>
-      <td>1.0</td>
-      <td>4.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>BLACK</td>
-      <td>warna</td>
-      <td>2.0</td>
-      <td>4.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>BLACK</td>
-      <td>warna</td>
-      <td>3.0</td>
-      <td>4.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>ADI</td>
-      <td>ADISSAGE-BLACK/BLACK/RUNWHT</td>
-      <td>RUNWHT</td>
-      <td>warna</td>
-      <td>4.0</td>
-      <td>4.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>ADI</td>
-      <td>ADISSAGE-N.NAVY/N.NAVY/RUNWHT</td>
-      <td>ADISSAGE</td>
-      <td>bukan_warna</td>
-      <td>1.0</td>
-      <td>4.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>56746</th>
-      <td>WAR</td>
-      <td>125CM PAISLEY WHITE FLAT</td>
-      <td>PAISLEY</td>
-      <td>warna</td>
-      <td>2.0</td>
-      <td>4.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1.0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>56747</th>
-      <td>WAR</td>
-      <td>125CM PAISLEY WHITE FLAT</td>
-      <td>WHITE</td>
-      <td>warna</td>
-      <td>3.0</td>
-      <td>4.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1.0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>56748</th>
-      <td>WAR</td>
-      <td>125CM VINTAGE ORANGE</td>
-      <td>125CM</td>
-      <td>bukan_warna</td>
-      <td>1.0</td>
-      <td>3.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1.0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>56749</th>
-      <td>WAR</td>
-      <td>125CM VINTAGE ORANGE</td>
-      <td>VINTAGE</td>
-      <td>warna</td>
-      <td>2.0</td>
-      <td>3.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1.0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>56750</th>
-      <td>WAR</td>
-      <td>125CM VINTAGE ORANGE</td>
-      <td>ORANGE</td>
-      <td>warna</td>
-      <td>3.0</td>
-      <td>3.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1.0</td>
-      <td>1</td>
-    </tr>
-  </tbody>
-</table>
-<p>56751 rows × 44 columns</p>
-</div>
-
+|    | brand   | nama_artikel                       | kata       | label       |   urut_kata |   total_kata |   brand_ADI |   brand_ADS |   brand_AGL |   brand_AND |   brand_ASC |   brand_BAL |   brand_BBC |   brand_BEA |   brand_CAO |   brand_CIT |   brand_CRP |   brand_DOM |   brand_FIS |   brand_GUE |   brand_HER |   brand_JAS |   brand_KIP |   brand_NEW |   brand_NFA |   brand_NFC |   brand_NFL |   brand_NIB |   brand_NIC |   brand_NIK |   brand_NPS |   brand_ODD |   brand_PBY |   brand_PSB |   brand_PTG |   brand_PUM |   brand_REL |   brand_SAU |   brand_SOC |   brand_STN |   brand_UME |   brand_VAP |   brand_WAR |   label_encoded |
+|---:|:--------|:-----------------------------------|:-----------|:------------|------------:|-------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|----------------:|
+|  0 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | ADISSAGE   | bukan_warna |           1 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+|  1 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | BLACK      | warna       |           2 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+|  2 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | BLACK      | warna       |           3 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+|  3 | ADI     | ADISSAGE-BLACK/BLACK/RUNWHT        | RUNWHT     | warna       |           4 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+|  4 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | ADISSAGE   | bukan_warna |           1 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+|  5 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           2 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+|  6 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           3 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+|  7 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | RUNWHT     | warna       |           4 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+|  8 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | 3          | bukan_warna |           1 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+|  9 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | STRIPE     | bukan_warna |           2 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 10 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | D          | bukan_warna |           3 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 11 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | 29.5       | bukan_warna |           4 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 12 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | BASKETBALL | warna       |           5 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 13 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL | NATURAL    | warna       |           6 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 14 | ADI     | 3S RUBBER X-BLACK                  | 3S         | bukan_warna |           1 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 15 | ADI     | 3S RUBBER X-BLACK                  | RUBBER     | bukan_warna |           2 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 16 | ADI     | 3S RUBBER X-BLACK                  | X          | bukan_warna |           3 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 17 | ADI     | 3S RUBBER X-BLACK                  | BLACK      | warna       |           4 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 18 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | ADILETTE   | bukan_warna |           1 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 19 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | BLACK1     | warna       |           2 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 20 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | WHT        | warna       |           3 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 21 | ADI     | ADILETTE-BLACK1/WHT/BLACK1         | BLACK1     | warna       |           4 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 22 | ADI     | ADILETTE-WHITE                     | ADILETTE   | bukan_warna |           1 |            2 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 23 | ADI     | ADILETTE-WHITE                     | WHITE      | warna       |           2 |            2 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 24 | ADI     | TANGO ROSARIO-WHITE                | TANGO      | bukan_warna |           1 |            3 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 25 | ADI     | TANGO ROSARIO-WHITE                | ROSARIO    | bukan_warna |           2 |            3 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 26 | ADI     | TANGO ROSARIO-WHITE                | WHITE      | warna       |           3 |            3 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 27 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | ADISSAGE   | bukan_warna |           1 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 28 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           2 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 29 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | N.NAVY     | warna       |           3 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 30 | ADI     | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      | RUNWHT     | warna       |           4 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 31 | ADI     | CFC SCARF-CHEBLU/WHITE             | CFC        | bukan_warna |           1 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 32 | ADI     | CFC SCARF-CHEBLU/WHITE             | SCARF      | bukan_warna |           2 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 33 | ADI     | CFC SCARF-CHEBLU/WHITE             | CHEBLU     | warna       |           3 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 34 | ADI     | CFC SCARF-CHEBLU/WHITE             | WHITE      | warna       |           4 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 35 | ADI     | DFB H JSY Y-WHITE/BLACK            | DFB        | bukan_warna |           1 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 36 | ADI     | DFB H JSY Y-WHITE/BLACK            | H          | bukan_warna |           2 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 37 | ADI     | DFB H JSY Y-WHITE/BLACK            | JSY        | bukan_warna |           3 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 38 | ADI     | DFB H JSY Y-WHITE/BLACK            | Y          | bukan_warna |           4 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 39 | ADI     | DFB H JSY Y-WHITE/BLACK            | WHITE      | warna       |           5 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 40 | ADI     | DFB H JSY Y-WHITE/BLACK            | BLACK      | warna       |           6 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 41 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 42 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 43 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | N          | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 44 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | S          | bukan_warna |           4 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 45 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | HC3P       | bukan_warna |           5 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 46 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           6 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 47 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           7 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 48 | ADI     | 3S PER N-S HC3P-BLACK/BLACK/WHITE  | WHITE      | warna       |           8 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 49 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 50 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 51 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | AN         | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 52 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | HC         | bukan_warna |           4 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 53 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | 3P         | bukan_warna |           5 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 54 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | WHITE      | warna       |           6 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 55 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | WHITE      | warna       |           7 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 56 | ADI     | 3S PER AN HC 3P-WHITE/WHITE/BLACK  | BLACK      | warna       |           8 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 57 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 58 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 59 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | AN         | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 60 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | HC         | bukan_warna |           4 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 61 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | 3P         | bukan_warna |           5 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 62 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | BLACK      | warna       |           6 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 63 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | BLACK      | warna       |           7 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 64 | ADI     | 3S PER AN HC 3P-BLACK/BLACK/BLACK  | BLACK      | warna       |           8 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 65 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 66 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 67 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | AN         | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 68 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | HC         | bukan_warna |           4 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 69 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | 1P         | bukan_warna |           5 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 70 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | WHITE      | warna       |           6 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 71 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | WHITE      | warna       |           7 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 72 | ADI     | 3S PER AN HC 1P-WHITE/WHITE/BLACK  | BLACK      | warna       |           8 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 73 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 74 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 75 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | AN         | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 76 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | HC         | bukan_warna |           4 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 77 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | 1P         | bukan_warna |           5 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 78 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | BLACK      | warna       |           6 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 79 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | BLACK      | warna       |           7 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 80 | ADI     | 3S PER AN HC 1P-BLACK/BLACK/WHITE  | WHITE      | warna       |           8 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 81 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 82 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 83 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | CR         | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 84 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | HC         | bukan_warna |           4 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 85 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | 3P         | bukan_warna |           5 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 86 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | WHITE      | warna       |           6 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 87 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | WHITE      | warna       |           7 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 88 | ADI     | 3S PER CR HC 3P-WHITE/WHITE/WHITE  | WHITE      | warna       |           8 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 89 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 90 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 91 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | CR         | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 92 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | HC         | bukan_warna |           4 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 93 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | 3P         | bukan_warna |           5 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 94 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           6 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 95 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | BLACK      | warna       |           7 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 96 | ADI     | 3S PER CR HC 3P-BLACK/BLACK/WHITE  | WHITE      | warna       |           8 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               1 |
+| 97 | ADI     | 3S PER CR HC 1P-WHITE/WHITE/BLACK  | 3S         | bukan_warna |           1 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 98 | ADI     | 3S PER CR HC 1P-WHITE/WHITE/BLACK  | PER        | bukan_warna |           2 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
+| 99 | ADI     | 3S PER CR HC 1P-WHITE/WHITE/BLACK  | CR         | bukan_warna |           3 |            8 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |               0 |
 
 
 ### Konversi Data ke dalam Train dan Test untuk Model 0
 
-Data akan dibagi ke dalam train dan test data menggunakan metode `train_test_split` dari modul *sklearn.model_selection* dengan menggunakan rasio dan keacakan yang telah ditentukan di variabel global (lihat *RASIO_TEST_TRAIN* dan *RANDOM_STATE*).
+Data akan dibagi ke dalam train dan test data menggunakan metode `train_test_split` dari modul *sklearn.model_selection* dengan menggunakan rasio dan keacakan yang telah ditentukan di variabel global (*RASIO_TEST_TRAIN* dan *RANDOM_STATE*).
 
 
 ```python
@@ -796,11 +541,11 @@ dimana TfIdfVectorizer hanya dapat menerima satu kolom data yang akan diubah men
 (angka), kecuali kita dapat menggabungkan kembali brand kata dan kolom kolom lainnya ke dalam
 satu kolom seperti['NIK GREEN 1 0 0 0 1'] alih - alih [['NIK', 'GREEN', '1', '0', '0', '0', '1']]
 Maka untuk Model 0 kita tetap akan hanya menggunakan kolom 'kata' sebagai fitur.
-kolom 'brand', 'urut_kata' 'total_kata' dan 'label' sebenarnya tidak akan 
+kolom 'nama_artikel', 'brand', 'urut_kata' 'total_kata' dan 'label' sebenarnya tidak akan 
 digunakan untuk training, namun pada train_test_split ini kita akan menyimpan brand untuk 
 display hasil prediksi berbanding dengan target label (ground truth)
 """
-train_data_mnb, test_data_mnb, train_target_mnb, test_target_mnb = train_test_split(data_encoded[['kata', 'brand', 'urut_kata', 'total_kata', 'label']],
+train_data_mnb, test_data_mnb, train_target_mnb, test_target_mnb = train_test_split(data_encoded[['kata', 'nama_artikel', 'brand', 'urut_kata', 'total_kata', 'label']],
                                                                                     data_encoded['label_encoded'],
                                                                                     test_size=RASIO_TEST_TRAIN,
                                                                                     random_state=RANDOM_STATE)
@@ -814,18 +559,20 @@ train_data, test_data, train_target, test_target = train_test_split(data_encoded
 
 
 ```python
+# Shape dari train_data_mnb, test_data_mnb, train_target_mnb dan test_target_mnb
 train_data_mnb.shape, test_data_mnb.shape, train_target_mnb.shape, test_target_mnb.shape
 ```
 
 
 
 
-    ((45400, 5), (11351, 5), (45400,), (11351,))
+    ((45400, 6), (11351, 6), (45400,), (11351,))
 
 
 
 
 ```python
+# Shape dari train_data, test_data, train_target dan test_target
 train_data.shape, test_data.shape, train_target.shape, test_target.shape
 ```
 
@@ -841,16 +588,24 @@ train_data.shape, test_data.shape, train_target.shape, test_target.shape
 # Eksplorasi contoh hasil split train dan test
 train_target_unik, train_target_hitung = np.unique(train_target_mnb, return_counts=True)
 test_target_unik, test_target_hitung = np.unique(test_target_mnb, return_counts=True)
-print(f'2 data pertama di train_data_mnb:\n{train_data_mnb.iloc[:2, 0].tolist()}\n') # :2 menampilkan 2 data pertama, :1 hanya menampilkan kata
-print(f'2 data pertama di train_data:')
+print('2 data pertama di train_data_mnb:')
 with pd.option_context('display.max_columns', None):
-    display(train_data[:2])
-print(f'\n2 label pertama di train_target (mnb & non-mnb, sama):\n{train_target[:2].tolist()}\n') 
-print(f'2 data pertama di test_data_mnb:\n{test_data_mnb.iloc[:2, 0].tolist()}\n') # :2 menampilkan 2 data pertama, :1 hanya menampilkan kata
-print(f'2 data pertama di test_data:')
+    print(train_data_mnb.iloc[:2].to_markdown())
+print('2 data pertama di train_data:')
 with pd.option_context('display.max_columns', None):
-    display(test_data[:2])
-print(f'2 label pertama di test_target (mnb & non-mnb, sama):\n{test_target[:2].tolist()}\n')
+    print(train_data[:2].to_markdown())
+print('\n2 data pertama di train_target (mnb & non-mnb, sama):')
+with pd.option_context('display.max_columns', None):
+    print(train_target[:2].to_markdown()) 
+print('2 data pertama di test_data_mnb:')
+with pd.option_context('display.max_columns', None):
+    print(test_data_mnb.iloc[:2].to_markdown())
+print('2 data pertama di test_data:')
+with pd.option_context('display.max_columns', None):
+    print(test_data[:2].to_markdown())
+print('2 data pertama di test_target (mnb & non-mnb, sama):')
+with pd.option_context('display.max_columns', None):
+    print(test_target[:2].to_markdown())
 train_target_distribusi = np.column_stack((train_target_unik, train_target_hitung))
 test_target_distribusi = np.column_stack((test_target_unik, test_target_hitung))
 print(f'Distribusi label (target) di train: \n{train_target_distribusi}\n')
@@ -859,330 +614,41 @@ print('Dimana label 0 = bukan warna dan label 1 = warna')
 ```
 
     2 data pertama di train_data_mnb:
-    ['GREY', 'BLACK']
-    
+|       | kata   | nama_artikel                                          | brand   |   urut_kata |   total_kata | label   |
+|------:|:-------|:------------------------------------------------------|:--------|------------:|-------------:|:--------|
+| 43886 | GREY   | AS W NK DRY TANK DFC YOGA FOIL-BARELY ROSE/SMOKE GREY | NIK     |          12 |           12 | warna   |
+| 14859 | BLACK  | PRED SG CLB-BLACK                                     | ADI     |           4 |            4 | warna   |
+
     2 data pertama di train_data:
-    
+|       | kata   |   urut_kata |   total_kata |   brand_ADI |   brand_ADS |   brand_AGL |   brand_AND |   brand_ASC |   brand_BAL |   brand_BBC |   brand_BEA |   brand_CAO |   brand_CIT |   brand_CRP |   brand_DOM |   brand_FIS |   brand_GUE |   brand_HER |   brand_JAS |   brand_KIP |   brand_NEW |   brand_NFA |   brand_NFC |   brand_NFL |   brand_NIB |   brand_NIC |   brand_NIK |   brand_NPS |   brand_ODD |   brand_PBY |   brand_PSB |   brand_PTG |   brand_PUM |   brand_REL |   brand_SAU |   brand_SOC |   brand_STN |   brand_UME |   brand_VAP |   brand_WAR |
+|------:|:-------|------------:|-------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|
+| 43886 | GREY   |          12 |           12 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |
+| 14859 | BLACK  |           4 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |
 
+    2 data pertama di train_target (mnb & non-mnb, sama):
+|       |   label_encoded |
+|------:|----------------:|
+| 43886 |               1 |
+| 14859 |               1 |
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>kata</th>
-      <th>urut_kata</th>
-      <th>total_kata</th>
-      <th>brand_ADI</th>
-      <th>brand_ADS</th>
-      <th>brand_AGL</th>
-      <th>brand_AND</th>
-      <th>brand_ASC</th>
-      <th>brand_BAL</th>
-      <th>brand_BBC</th>
-      <th>brand_BEA</th>
-      <th>brand_CAO</th>
-      <th>brand_CIT</th>
-      <th>brand_CRP</th>
-      <th>brand_DOM</th>
-      <th>brand_FIS</th>
-      <th>brand_GUE</th>
-      <th>brand_HER</th>
-      <th>brand_JAS</th>
-      <th>brand_KIP</th>
-      <th>brand_NEW</th>
-      <th>brand_NFA</th>
-      <th>brand_NFC</th>
-      <th>brand_NFL</th>
-      <th>brand_NIB</th>
-      <th>brand_NIC</th>
-      <th>brand_NIK</th>
-      <th>brand_NPS</th>
-      <th>brand_ODD</th>
-      <th>brand_PBY</th>
-      <th>brand_PSB</th>
-      <th>brand_PTG</th>
-      <th>brand_PUM</th>
-      <th>brand_REL</th>
-      <th>brand_SAU</th>
-      <th>brand_SOC</th>
-      <th>brand_STN</th>
-      <th>brand_UME</th>
-      <th>brand_VAP</th>
-      <th>brand_WAR</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>43886</th>
-      <td>GREY</td>
-      <td>12.0</td>
-      <td>12.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-    </tr>
-    <tr>
-      <th>14859</th>
-      <td>BLACK</td>
-      <td>4.0</td>
-      <td>4.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-    
-    2 label pertama di train_target (mnb & non-mnb, sama):
-    [1, 1]
-    
     2 data pertama di test_data_mnb:
-    ['SESOYE', 'GHOST']
-    
+|       | kata   | nama_artikel                        | brand   |   urut_kata |   total_kata | label       |
+|------:|:-------|:------------------------------------|:--------|------------:|-------------:|:------------|
+| 16829 | SESOYE | FORTAPLAY AC I-CORBLU/SESOYE/CONAVY | ADI     |           5 |            6 | warna       |
+|  5081 | GHOST  | GHOST LESTO-GREY/CBLACK             | ADI     |           1 |            4 | bukan_warna |
+
     2 data pertama di test_data:
-    
+|       | kata   |   urut_kata |   total_kata |   brand_ADI |   brand_ADS |   brand_AGL |   brand_AND |   brand_ASC |   brand_BAL |   brand_BBC |   brand_BEA |   brand_CAO |   brand_CIT |   brand_CRP |   brand_DOM |   brand_FIS |   brand_GUE |   brand_HER |   brand_JAS |   brand_KIP |   brand_NEW |   brand_NFA |   brand_NFC |   brand_NFL |   brand_NIB |   brand_NIC |   brand_NIK |   brand_NPS |   brand_ODD |   brand_PBY |   brand_PSB |   brand_PTG |   brand_PUM |   brand_REL |   brand_SAU |   brand_SOC |   brand_STN |   brand_UME |   brand_VAP |   brand_WAR |
+|------:|:-------|------------:|-------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|
+| 16829 | SESOYE |           5 |            6 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |
+|  5081 | GHOST  |           1 |            4 |           1 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |           0 |
 
+    2 data pertama di test_target (mnb & non-mnb, sama):
+|       |   label_encoded |
+|------:|----------------:|
+| 16829 |               1 |
+|  5081 |               0 |
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>kata</th>
-      <th>urut_kata</th>
-      <th>total_kata</th>
-      <th>brand_ADI</th>
-      <th>brand_ADS</th>
-      <th>brand_AGL</th>
-      <th>brand_AND</th>
-      <th>brand_ASC</th>
-      <th>brand_BAL</th>
-      <th>brand_BBC</th>
-      <th>brand_BEA</th>
-      <th>brand_CAO</th>
-      <th>brand_CIT</th>
-      <th>brand_CRP</th>
-      <th>brand_DOM</th>
-      <th>brand_FIS</th>
-      <th>brand_GUE</th>
-      <th>brand_HER</th>
-      <th>brand_JAS</th>
-      <th>brand_KIP</th>
-      <th>brand_NEW</th>
-      <th>brand_NFA</th>
-      <th>brand_NFC</th>
-      <th>brand_NFL</th>
-      <th>brand_NIB</th>
-      <th>brand_NIC</th>
-      <th>brand_NIK</th>
-      <th>brand_NPS</th>
-      <th>brand_ODD</th>
-      <th>brand_PBY</th>
-      <th>brand_PSB</th>
-      <th>brand_PTG</th>
-      <th>brand_PUM</th>
-      <th>brand_REL</th>
-      <th>brand_SAU</th>
-      <th>brand_SOC</th>
-      <th>brand_STN</th>
-      <th>brand_UME</th>
-      <th>brand_VAP</th>
-      <th>brand_WAR</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>16829</th>
-      <td>SESOYE</td>
-      <td>5.0</td>
-      <td>6.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-    </tr>
-    <tr>
-      <th>5081</th>
-      <td>GHOST</td>
-      <td>1.0</td>
-      <td>4.0</td>
-      <td>1.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-    2 label pertama di test_target (mnb & non-mnb, sama):
-    [1, 0]
-    
     Distribusi label (target) di train: 
     [[    0 27355]
      [    1 18045]]
@@ -1226,7 +692,7 @@ model_0.fit(X=np.squeeze(train_data_mnb.iloc[:, 0]), y=train_target_mnb)
 
 
 
-<style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox" ><label for="sk-estimator-id-1" class="sk-toggleable__label sk-toggleable__label-arrow">Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox" ><label for="sk-estimator-id-2" class="sk-toggleable__label sk-toggleable__label-arrow">TfidfVectorizer</label><div class="sk-toggleable__content"><pre>TfidfVectorizer()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-3" type="checkbox" ><label for="sk-estimator-id-3" class="sk-toggleable__label sk-toggleable__label-arrow">MultinomialNB</label><div class="sk-toggleable__content"><pre>MultinomialNB()</pre></div></div></div></div></div></div></div>
+<style>#sk-container-id-2 {color: black;background-color: white;}#sk-container-id-2 pre{padding: 0;}#sk-container-id-2 div.sk-toggleable {background-color: white;}#sk-container-id-2 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-2 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-2 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-2 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-2 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-2 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-2 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-2 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-2 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-2 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-2 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-2 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-2 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-2 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-2 div.sk-item {position: relative;z-index: 1;}#sk-container-id-2 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-2 div.sk-item::before, #sk-container-id-2 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-2 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-2 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-2 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-2 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-2 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-2 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-2 div.sk-label-container {text-align: center;}#sk-container-id-2 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-2 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-2" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden><div class="sk-item sk-dashed-wrapped"><div class="sk-label-container"><div class="sk-label sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-4" type="checkbox" ><label for="sk-estimator-id-4" class="sk-toggleable__label sk-toggleable__label-arrow">Pipeline</label><div class="sk-toggleable__content"><pre>Pipeline(steps=[(&#x27;tf-idf&#x27;, TfidfVectorizer()), (&#x27;clf&#x27;, MultinomialNB())])</pre></div></div></div><div class="sk-serial"><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-5" type="checkbox" ><label for="sk-estimator-id-5" class="sk-toggleable__label sk-toggleable__label-arrow">TfidfVectorizer</label><div class="sk-toggleable__content"><pre>TfidfVectorizer()</pre></div></div></div><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-6" type="checkbox" ><label for="sk-estimator-id-6" class="sk-toggleable__label sk-toggleable__label-arrow">MultinomialNB</label><div class="sk-toggleable__content"><pre>MultinomialNB()</pre></div></div></div></div></div></div></div>
 
 
 
@@ -1247,7 +713,7 @@ skor_model_0
 ### Eksplorasi Hasil Model 0
 Pada hasil training dengan menggunakan model algoritma *Multinomial Naive-Bayes* kita mendapatkan akurasi sebesar ~99.22%
 
-Secara sekilas model yang pertama ini (model 0) memberikan akurasi yang sangat tinggi dalam membedakan kata `warna` dan `bukan_warna`. Namun secara brand speisifik, akurasi ini mungkin akan lebih buruk karena di beberapa brand terutama 'PUM' kita dapat menjumpai artikel dengan nama misalkan 'PUMA XTG WOVEN PANTS PUMA BLACK-PUMA WHITE' dimana kata PUMA pertama adalah `bukan_warna` namun kata PUMA kedua dan ketiga adalah bagian dari `warna`.
+Secara sekilas model yang pertama ini (model_0) memberikan akurasi yang sangat tinggi dalam membedakan kata `warna` dan `bukan_warna`. Namun secara brand spesifik, akurasi ini mungkin akan lebih buruk karena di beberapa brand terutama 'PUM' kita dapat menjumpai artikel dengan nama misalkan 'PUMA XTG WOVEN PANTS PUMA BLACK-PUMA WHITE' dimana kata PUMA pertama adalah `bukan_warna` namun kata PUMA kedua dan ketiga adalah bagian dari `warna`.
 
 Dengan demikian, nanti kita mungkin akan mengulas lebih mendalam model pertama ini menggunakan dataset yang dipisahkan berdasar brand. Untuk sementara kita akan melanjutkan mengembangkan model - model alternatif untuk pemisahan `bukan_warna` dan `warna` dari nama artikel.
 
@@ -1270,7 +736,7 @@ model_0_pred
 # Membuat fungsi dasar untuk menghitung accuray, precision, recall, f1-score
 def hitung_metrik(target, prediksi):
     """
-    Menghitung accuracy, precision, recall dan f1-score dari model klasifikasi biner
+    Menghitung akurasi, presisi, recall dan f1-score dari model klasifikasi biner
     
     Args:
         target: label yang sebenarnya dalam bentuk 1D array
@@ -1335,26 +801,7 @@ Dimana:
 
 
 ```python
-# Membuat confusion matrix untuk prediksi model_0
-# cf_matrix = confusion_matrix(test_target_mnb, pred_model_0)
-
-# Menampilkan confusion matrix menggunakan seaborn
-# ax = sns.heatmap(cf_matrix, annot=True, fmt='d', cmap='Blues')
-
-# ax.set_title(f'Confusion Matrix Model 0 - Akurasi {skor_model_0:.2%}')
-# ax.set_xlabel('Prediksi')
-# ax.set_ylabel('Label')
-
-# label tick
-# ax.xaxis.set_ticklabels(['bukan_warna', 'warna'])
-# ax.yaxis.set_ticklabels(['bukan_warna', 'warna'])
-
-# Tampilkan
-# plt.show()
-
-"""
-Merubah confusion matrix ke dalam fungsi
-"""
+# Membuat fungsi untuk menampilkan confusion matrix
 def plot_conf_matrix(target_label, 
                      prediksi_label, 
                      nama_model,
@@ -1370,10 +817,11 @@ def plot_conf_matrix(target_label,
         target_label (list atau 1D-array): label yang sebenarnya dalam bentuk 1D array
         prediksi_label (list atau 1D-array): label yang diprediksi dalam bentuk 1D array
         akurasi (float): akurasi model dalam bentuk float
-        label_titik_x dan label_titik_y, keduanya merupakan list dari sekumpulan
-        string dan harus dalam vector shape yang sama
         label_titik_x (list str): label untuk x-axis dalam bentuk list
         label_titik_y (list str): label untuk y-axis dalam bentuk list
+        
+        label_titik_x dan label_titik_y, keduanya merupakan list dari sekumpulan
+        string dan harus dalam bentuk vektor yang sama
         
     Returns:
         plot_confusion_matrix
@@ -1401,6 +849,7 @@ plot_conf_matrix(target_label=test_target_mnb,
                  akurasi=model_0_metrik['akurasi'],
                  label_titik_x=['bukan_warna', 'warna'],
                  label_titik_y=['bukan_warna', 'warna'])
+plt.figure(facecolor='w')
 plt.show()
 ```
 
@@ -1408,6 +857,9 @@ plt.show()
     
 ![png](ColorSkim_AI_files/ColorSkim_AI_28_0.png)
     
+
+
+
 
 
 Pada tabel *Confusion Matrix* di atas kita dapat melihat bahwa Model 0 berhasil memprediksi secara tepat 6,785 kata dengan label `bukan_warna` dan 4,477 kata dengan label `warna`.
@@ -1423,9 +875,9 @@ def df_kesalahan_prediksi(label_encoder,
                           probabilitas_prediksi=None, 
                           order_ulang_header=None):
     """
-    (penting) Fungsi ini akan menerima objek label encoder sklearn, set test_data
-    (penting) sebelum modifikasi encoding fitur dan label, prediksi dari model
-    (penting) serta urutan order_ulang_header jika diperlukan
+    Fungsi ini akan menerima objek label encoder sklearn, set test_data
+    sebelum modifikasi encoding fitur dan label, prediksi dari model
+    serta urutan order_ulang_header jika diperlukan
     
     Args:
         label_encoder (obyek LabelEncoder sklear.preprocessing): obyek label encoder dari sklearn.preprocessing
@@ -1448,11 +900,18 @@ def df_kesalahan_prediksi(label_encoder,
     kolom_pred = pd.DataFrame(np.int8(prediksi), columns=['prediksi'])
     kolom_prob_pred = pd.DataFrame(probabilitas_prediksi, columns=['probabilitas']) * 100
     data_final['prediksi'] = kolom_pred.iloc[:, 0].tolist()
+    
     if probabilitas_prediksi is not None:
         data_final['probabilitas'] = kolom_prob_pred.iloc[:, 0].tolist()
-        data_final['probabilitas'] = data_final['probabilitas'].round(2).astype(str) + '%'
+        
     data_final['prediksi'] = data_final['prediksi'].astype(int).map(lambda x: inverse_label_encoder[x])
-    data_final = data_final.loc[data_final['label'] != data_final['prediksi']]
+    
+    if probabilitas_prediksi is not None:
+        data_final = data_final.loc[data_final['label'] != data_final['prediksi']].sort_values(by='probabilitas', ascending=False)
+        data_final['probabilitas'] = data_final['probabilitas'].round(2).astype(str) + '%'
+    else:
+        data_final = data_final.loc[data_final['label'] != data_final['prediksi']].sort_values(by='prediksi', ascending=False)
+        
     with pd.option_context('display.max_rows', None):
         print(data_final.to_markdown())
 ```
@@ -1464,112 +923,115 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
                       test_data=test_data_mnb,
                       prediksi=model_0_pred,
                       order_ulang_header=['brand', 
+                                          'nama_artikel',
                                           'kata', 
                                           'urut_kata', 
                                           'total_kata', 
                                           'label'])
 ```
 
-    |       | brand   | kata        |   urut_kata |   total_kata | label       | prediksi    |
-    |------:|:--------|:------------|------------:|-------------:|:------------|:------------|
-    | 55259 | STN     | AQUA        |           3 |            3 | warna       | bukan_warna |
-    |    12 | ADI     | BASKETBALL  |           5 |            6 | warna       | bukan_warna |
-    | 23355 | NIC     | 7           |          11 |           11 | warna       | bukan_warna |
-    | 56444 | WAR     | OREO        |           2 |            3 | warna       | bukan_warna |
-    | 46960 | NIK     | FTR10PURE   |           2 |            7 | warna       | bukan_warna |
-    | 13918 | ADI     | CARDBOARD   |           2 |            2 | warna       | bukan_warna |
-    |  8735 | ADI     | FULL        |           1 |            3 | bukan_warna | warna       |
-    | 31091 | NIK     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna |
-    | 51267 | PUM     | TRACE       |           2 |            7 | bukan_warna | warna       |
-    |  5964 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna |
-    | 36008 | NIK     | SIGNAL      |           2 |           11 | bukan_warna | warna       |
-    |   808 | ADI     | LEGIVY      |           6 |            6 | warna       | bukan_warna |
-    | 19560 | BBC     | WOODLAND    |           1 |            6 | bukan_warna | warna       |
-    | 56083 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       |
-    | 18933 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       |
-    | 55981 | STN     | OATMEAL     |           2 |            2 | warna       | bukan_warna |
-    | 33831 | NIK     | EXPX14WHITE |           2 |            4 | warna       | bukan_warna |
-    | 48650 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       |
-    | 56746 | WAR     | PAISLEY     |           2 |            4 | warna       | bukan_warna |
-    |  1405 | ADI     | PK          |           2 |            4 | warna       | bukan_warna |
-    | 56116 | WAR     | FULL        |           1 |            6 | bukan_warna | warna       |
-    | 56086 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       |
-    | 17275 | AGL     | 5           |           5 |            6 | warna       | bukan_warna |
-    | 52109 | PUM     | GLOW        |           3 |            7 | bukan_warna | warna       |
-    | 26752 | NIK     | PEELORANGE  |           6 |            7 | warna       | bukan_warna |
-    | 55804 | STN     | VOLT        |           2 |            2 | warna       | bukan_warna |
-    | 12023 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna |
-    |  8962 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       |
-    |  1039 | ADI     | TESIME      |           6 |            6 | warna       | bukan_warna |
-    |  8759 | ADI     | ACTIVE      |           3 |            7 | warna       | bukan_warna |
-    | 52114 | PUM     | GLOW        |           3 |            8 | bukan_warna | warna       |
-    | 13740 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna |
-    | 10573 | ADI     | METAL       |           2 |            3 | warna       | bukan_warna |
-    | 56484 | WAR     | NEON        |           2 |            5 | warna       | bukan_warna |
-    | 46940 | NIK     | REACTBRIGHT |           2 |            7 | warna       | bukan_warna |
-    | 15761 | ADI     | ALUMINA     |           3 |            3 | warna       | bukan_warna |
-    | 48805 | PUM     | CORE        |           2 |            7 | bukan_warna | warna       |
-    |  2197 | ADI     | EASGRN      |           7 |            7 | warna       | bukan_warna |
-    |  1403 | ADI     | F17         |           4 |            4 | warna       | bukan_warna |
-    |  2592 | ADI     | ICEPUR      |           2 |            4 | warna       | bukan_warna |
-    |  7372 | ADI     | SGREEN      |           2 |            4 | warna       | bukan_warna |
-    | 10336 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna |
-    | 15466 | ADI     | SAVANNAH    |           2 |            2 | warna       | bukan_warna |
-    | 54951 | SAU     | TAN         |           2 |            3 | warna       | bukan_warna |
-    | 22780 | KIP     | SHADOW      |           2 |            4 | warna       | bukan_warna |
-    | 56226 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       |
-    | 56112 | WAR     | RED         |           1 |            7 | bukan_warna | warna       |
-    | 17198 | AGL     | YELLOW      |           2 |            5 | bukan_warna | warna       |
-    | 50395 | PUM     | PUMA        |           2 |            5 | warna       | bukan_warna |
-    | 32998 | NIK     | 23          |          10 |           11 | warna       | bukan_warna |
-    | 48075 | PTG     | ORANGE      |           2 |            3 | bukan_warna | warna       |
-    | 54953 | SAU     | BRN         |           2 |            3 | warna       | bukan_warna |
-    | 19265 | BBC     | DARK        |           2 |            6 | bukan_warna | warna       |
-    | 56661 | WAR     | THE         |           2 |            5 | warna       | bukan_warna |
-    |  4222 | ADI     | SESAME      |           5 |            7 | warna       | bukan_warna |
-    | 52841 | PUM     | CORE        |           1 |            7 | bukan_warna | warna       |
-    |  8968 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       |
-    |  1407 | ADI     | CARGO       |           4 |            4 | warna       | bukan_warna |
-    |  7274 | ADI     | SESAME      |           2 |            4 | warna       | bukan_warna |
-    |  3490 | ADI     | SHOCK       |           2 |            3 | warna       | bukan_warna |
-    | 21685 | HER     | NIGHT       |           2 |            3 | warna       | bukan_warna |
-    | 18208 | BBC     | CLEAR       |           2 |            8 | bukan_warna | warna       |
-    | 14727 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna |
-    | 33814 | NIK     | EXPZ07WHITE |           2 |            3 | warna       | bukan_warna |
-    | 30639 | NIK     | 35          |           5 |           11 | bukan_warna | warna       |
-    | 21386 | HER     | BRBDSCHRY   |           2 |            3 | warna       | bukan_warna |
-    |  8965 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       |
-    | 16112 | ADI     | VAPOUR      |           2 |            3 | warna       | bukan_warna |
-    | 11545 | ADI     | ACTIVE      |           3 |            4 | warna       | bukan_warna |
-    |  4659 | ADI     | BOAQUA      |           2 |            4 | warna       | bukan_warna |
-    | 21982 | HER     | FLORAL      |           2 |            3 | warna       | bukan_warna |
-    | 21091 | HER     | 600D        |           3 |            6 | bukan_warna | warna       |
-    | 17520 | AGL     | BROWN       |           1 |            4 | bukan_warna | warna       |
-    | 10328 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna |
-    | 48153 | PTG     | DOVE        |           2 |            3 | bukan_warna | warna       |
-    | 19643 | BEA     | 35          |           2 |            3 | bukan_warna | warna       |
-    | 16288 | ADI     | BLK         |           2 |            5 | bukan_warna | warna       |
-    | 21174 | HER     | RED         |           4 |            8 | bukan_warna | warna       |
-    | 30654 | NIK     | 35          |           5 |           10 | bukan_warna | warna       |
-    | 29098 | NIK     | 8ASHEN      |           3 |            6 | warna       | bukan_warna |
-    | 53459 | PUM     | GLOW        |           1 |            5 | bukan_warna | warna       |
-    | 55759 | STN     | RASTA       |           2 |            2 | warna       | bukan_warna |
-    | 18940 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       |
-    |   656 | ADI     | BGREEN      |           7 |            7 | warna       | bukan_warna |
-    | 54972 | SAU     | VINTAGE     |           2 |            5 | bukan_warna | warna       |
-    |  6532 | ADI     | SESAME      |           6 |            7 | warna       | bukan_warna |
-    | 25371 | NIK     | 23          |           6 |            6 | warna       | bukan_warna |
-    | 24154 | NIK     | CORE        |           2 |            6 | bukan_warna | warna       |
-    | 31572 | NIK     | LIGHTCARBON |           4 |            6 | warna       | bukan_warna |
+|       | brand   | nama_artikel                                                | kata        |   urut_kata |   total_kata | label       | prediksi    |
+|------:|:--------|:------------------------------------------------------------|:------------|------------:|-------------:|:------------|:------------|
+| 19265 | BBC     | BB DARK STAR LS KNIT-BLACK                                  | DARK        |           2 |            6 | bukan_warna | warna       |
+|  8962 | ADI     | LIN CORE ORG-BLACK                                          | CORE        |           2 |            4 | bukan_warna | warna       |
+| 56086 | WAR     | FLAT GLOW IN THE DARK-WHITE                                 | GLOW        |           2 |            6 | bukan_warna | warna       |
+| 16288 | ADI     | CLR BLK CRW 2PP-BLACK                                       | BLK         |           2 |            5 | bukan_warna | warna       |
+| 52109 | PUM     | CELL STELLAR GLOW WNS PUMA WHITE-PURPLE                     | GLOW        |           3 |            7 | bukan_warna | warna       |
+| 19643 | BEA     | SERIES 35-MULTI                                             | 35          |           2 |            3 | bukan_warna | warna       |
+| 48153 | PTG     | MISTY DOVE-GREY                                             | DOVE        |           2 |            3 | bukan_warna | warna       |
+| 56112 | WAR     | RED BLACK FLAT NON REFLECTIVE-RED/BLACK                     | RED         |           1 |            7 | bukan_warna | warna       |
+| 17520 | AGL     | BROWN MOUNTAIN 008 - PEACH                                  | BROWN       |           1 |            4 | bukan_warna | warna       |
+| 30654 | NIK     | NIKE AIR ZOOM PEGASUS 35-BRIGHT CRIMSON/ICE BLUE-SAIL       | 35          |           5 |           10 | bukan_warna | warna       |
+| 21091 | HER     | POP QUIZ-600D POLY NAVY/ZIP                                 | 600D        |           3 |            6 | bukan_warna | warna       |
+| 52114 | PUM     | CELL STELLAR GLOW WN"S PUMA BLACK-PURPLE HEATHER            | GLOW        |           3 |            8 | bukan_warna | warna       |
+| 56226 | WAR     | SHOELACES ORANGE OVAL LACES-ORANGE                          | ORANGE      |           2 |            5 | bukan_warna | warna       |
+|  8965 | ADI     | LIN CORE CROSSB-BLACK                                       | CORE        |           2 |            4 | bukan_warna | warna       |
+| 48805 | PUM     | WMN CORE ROUND BACKPACK LILAC SNOW-VALENTINE                | CORE        |           2 |            7 | bukan_warna | warna       |
+| 18208 | BBC     | BB CLEAR SKY L/S T-SHIRT-BLACK                              | CLEAR       |           2 |            8 | bukan_warna | warna       |
+| 56116 | WAR     | FULL BLACK FLAT NON REFLECTIVE-BLACK                        | FULL        |           1 |            6 | bukan_warna | warna       |
+| 21174 | HER     | HER-HERITAGE-BOSTON RED SOX-(21L)-BAG-US                    | RED         |           4 |            8 | bukan_warna | warna       |
+| 48650 | PUM     | WMN CORE SEASONAL ARCHIVE BACKPACK PEACO                    | CORE        |           2 |            6 | bukan_warna | warna       |
+| 18940 | BBC     | FULL SCALE CRASH L/S T-SHIRT-ORANGE                         | FULL        |           1 |            8 | bukan_warna | warna       |
+| 24154 | NIK     | TS CORE POLO-ROYAL BLUE/WHITE                               | CORE        |           2 |            6 | bukan_warna | warna       |
+| 52841 | PUM     | CORE-RUN S/S TEE-LAPIS BLUE                                 | CORE        |           1 |            7 | bukan_warna | warna       |
+| 48075 | PTG     | POLKA ORANGE-ORANGE                                         | ORANGE      |           2 |            3 | bukan_warna | warna       |
+| 54972 | SAU     | JAZZ VINTAGE-GREY/BLUE/WHITE                                | VINTAGE     |           2 |            5 | bukan_warna | warna       |
+|  8735 | ADI     | FULL ZIP-CWHITE                                             | FULL        |           1 |            3 | bukan_warna | warna       |
+|  8968 | ADI     | LIN CORE BP-BLACK                                           | CORE        |           2 |            4 | bukan_warna | warna       |
+| 51267 | PUM     | PLATFORM TRACE STRAP WN S WHISPER WHITE-                    | TRACE       |           2 |            7 | bukan_warna | warna       |
+| 36008 | NIK     | NIKE SIGNAL D/MS/X-GUAVA ICE/LIGHT AQUA-HYPER CRIMSON       | SIGNAL      |           2 |           11 | bukan_warna | warna       |
+| 19560 | BBC     | WOODLAND CAMO CURVE T-SHIRT-GREY                            | WOODLAND    |           1 |            6 | bukan_warna | warna       |
+| 56083 | WAR     | ROPE GLOW IN THE DARK-WHITE                                 | GLOW        |           2 |            6 | bukan_warna | warna       |
+| 18933 | BBC     | FULL SCALE CRASH L/S T-SHIRT-BLACK                          | FULL        |           1 |            8 | bukan_warna | warna       |
+| 53459 | PUM     | GLOW PACK CREW PUMA WHITE                                   | GLOW        |           1 |            5 | bukan_warna | warna       |
+| 17198 | AGL     | ESAGLXY YELLOW CRICKET LIGHTER -YELLOW                      | YELLOW      |           2 |            5 | bukan_warna | warna       |
+| 30639 | NIK     | NIKE AIR ZOOM PEGASUS 35-BLUE ORBIT/BRIGHT CITRON-BLUE VOID | 35          |           5 |           11 | bukan_warna | warna       |
+| 14727 | ADI     | SHOPPER-LEGEND INK                                          | LEGEND      |           2 |            3 | warna       | bukan_warna |
+|  1407 | ADI     | NMD_TS1 PK-NIGHT CARGO                                      | CARGO       |           4 |            4 | warna       | bukan_warna |
+|  7274 | ADI     | NMD_R1-SESAME/TRACAR/BASGRN                                 | SESAME      |           2 |            4 | warna       | bukan_warna |
+|  3490 | ADI     | FUTUREPACER-SHOCK RED                                       | SHOCK       |           2 |            3 | warna       | bukan_warna |
+| 21685 | HER     | FOURTEEN-NIGHT CAMO                                         | NIGHT       |           2 |            3 | warna       | bukan_warna |
+| 55259 | STN     | FAMILY FORCE-AQUA                                           | AQUA        |           3 |            3 | warna       | bukan_warna |
+| 33814 | NIK     | NIKE EXPZ07WHITE/BLACK                                      | EXPZ07WHITE |           2 |            3 | warna       | bukan_warna |
+| 21386 | HER     | SEVENTEEN-BRBDSCHRY/BKCRSHTCH                               | BRBDSCHRY   |           2 |            3 | warna       | bukan_warna |
+| 16112 | ADI     | FLUIDSTREET-VAPOUR PINK                                     | VAPOUR      |           2 |            3 | warna       | bukan_warna |
+| 11545 | ADI     | DURAMO 9-ACTIVE RED                                         | ACTIVE      |           3 |            4 | warna       | bukan_warna |
+|  4659 | ADI     | CAMPUS-BOAQUA/FTWWHT/CWHITE                                 | BOAQUA      |           2 |            4 | warna       | bukan_warna |
+| 21982 | HER     | HANSON-FLORAL BLR                                           | FLORAL      |           2 |            3 | warna       | bukan_warna |
+|  4222 | ADI     | TUBULAR DOOM SOCK PK-SESAME/SESAME/CRYWHT                   | SESAME      |           5 |            7 | warna       | bukan_warna |
+| 29098 | NIK     | NIKE DOWNSHIFTER 8ASHEN SLATE/OBSIDIANDIFFUSED BLUEBLACK    | 8ASHEN      |           3 |            6 | warna       | bukan_warna |
+| 55759 | STN     | VIARTA-RASTA                                                | RASTA       |           2 |            2 | warna       | bukan_warna |
+|   656 | ADI     | NMD R1 STLT PK-CBLACK/NOBGRN/BGREEN                         | BGREEN      |           7 |            7 | warna       | bukan_warna |
+|  6532 | ADI     | TUBULAR DOOM SOCK PK-BASGRN/SESAME/CWHITE                   | SESAME      |           6 |            7 | warna       | bukan_warna |
+| 25371 | NIK     | JORDAN AIR JUMPMAN-BLACK/INFRARED 23                        | 23          |           6 |            6 | warna       | bukan_warna |
+| 10328 | ADI     | RUN60S-ACTIVE MAROON                                        | ACTIVE      |           2 |            3 | warna       | bukan_warna |
+| 22780 | KIP     | FS72-SHADOW BROWN-140                                       | SHADOW      |           2 |            4 | warna       | bukan_warna |
+| 56661 | WAR     | 125CM THE BLUES FLAT LACES                                  | THE         |           2 |            5 | warna       | bukan_warna |
+| 55981 | STN     | XYZ-OATMEAL                                                 | OATMEAL     |           2 |            2 | warna       | bukan_warna |
+| 55804 | STN     | RAILWAY-VOLT                                                | VOLT        |           2 |            2 | warna       | bukan_warna |
+| 26752 | NIK     | WMNS KAWA SLIDEPINK PRIME/ORANGE PEELORANGE PEEL            | PEELORANGE  |           6 |            7 | warna       | bukan_warna |
+| 17275 | AGL     | ITALIC 5 PANEL MAROON 005-MAROON                            | 5           |           5 |            6 | warna       | bukan_warna |
+|  1405 | ADI     | NMD_TS1 PK-NIGHT CARGO                                      | PK          |           2 |            4 | warna       | bukan_warna |
+| 56746 | WAR     | 125CM PAISLEY WHITE FLAT                                    | PAISLEY     |           2 |            4 | warna       | bukan_warna |
+| 33831 | NIK     | NIKE EXPX14WHITE/WOLF GREYBLACK                             | EXPX14WHITE |           2 |            4 | warna       | bukan_warna |
+|   808 | ADI     | POD-S3.1 C-CBLACK/CBLACK/LEGIVY                             | LEGIVY      |           6 |            6 | warna       | bukan_warna |
+|  1039 | ADI     | ARKYN PK W-CBLACK/CBLACK/TESIME                             | TESIME      |           6 |            6 | warna       | bukan_warna |
+|  5964 | ADI     | FUTUREPACER-CLOUD WHITE                                     | CLOUD       |           2 |            3 | warna       | bukan_warna |
+| 31091 | NIK     | NIKE VIALEBLACK/VOLTSOLAR REDANTHRACITE                     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna |
+| 13918 | ADI     | NMD_R1.V2-CARDBOARD                                         | CARDBOARD   |           2 |            2 | warna       | bukan_warna |
+| 46960 | NIK     | NK FTR10PURE PLATINUM/BRIGHT CRIMSON/DARK GREY              | FTR10PURE   |           2 |            7 | warna       | bukan_warna |
+| 56444 | WAR     | 90CM OREO ROPE                                              | OREO        |           2 |            3 | warna       | bukan_warna |
+| 23355 | NIC     | NIKE KD FULL COURT 8P-AMBER/BLACK/METALLIC SILVER/BLACK 07  | 7           |          11 |           11 | warna       | bukan_warna |
+| 12023 | ADI     | ASWEERUN-LEGEND INK                                         | LEGEND      |           2 |            3 | warna       | bukan_warna |
+|  8759 | ADI     | X LESTO-ACTIVE RED/BLACK/OFF WHITE                          | ACTIVE      |           3 |            7 | warna       | bukan_warna |
+| 54953 | SAU     | COURAGEOUS-BRN/YEL                                          | BRN         |           2 |            3 | warna       | bukan_warna |
+|  7372 | ADI     | PROPHERE-SGREEN/CGREEN/CBLACK                               | SGREEN      |           2 |            4 | warna       | bukan_warna |
+| 32998 | NIK     | PSG M NK BRT STAD JSY SS AW-INFRARED 23/BLACK               | 23          |          10 |           11 | warna       | bukan_warna |
+| 50395 | PUM     | RESOLVE PUMA BLACK-PUMA SILVER                              | PUMA        |           2 |            5 | warna       | bukan_warna |
+|    12 | ADI     | 3 STRIPE D 29.5-BASKETBALL NATURAL                          | BASKETBALL  |           5 |            6 | warna       | bukan_warna |
+| 54951 | SAU     | COURAGEOUS-TAN/PNK                                          | TAN         |           2 |            3 | warna       | bukan_warna |
+| 15466 | ADI     | OZELIA-SAVANNAH                                             | SAVANNAH    |           2 |            2 | warna       | bukan_warna |
+| 10336 | ADI     | RUN60S-MAROON                                               | MAROON      |           2 |            2 | warna       | bukan_warna |
+|  2592 | ADI     | GAZELLE-ICEPUR/WHITE/GOLDMT                                 | ICEPUR      |           2 |            4 | warna       | bukan_warna |
+| 13740 | ADI     | ULTRA4D-MAROON                                              | MAROON      |           2 |            2 | warna       | bukan_warna |
+|  1403 | ADI     | NMD_R1-GREY TWO F17                                         | F17         |           4 |            4 | warna       | bukan_warna |
+|  2197 | ADI     | EQT SUPPORT RF PK-FROGRN/CBLACK/EASGRN                      | EASGRN      |           7 |            7 | warna       | bukan_warna |
+| 15761 | ADI     | FLUIDFLOW 2.0-ALUMINA                                       | ALUMINA     |           3 |            3 | warna       | bukan_warna |
+| 46940 | NIK     | NK REACTBRIGHT CRIMSON/DARK GREY/PURE PLATINUM              | REACTBRIGHT |           2 |            7 | warna       | bukan_warna |
+| 56484 | WAR     | 125CM NEON REFLECTIVE ROPE LACES                            | NEON        |           2 |            5 | warna       | bukan_warna |
+| 10573 | ADI     | NMD_R1-METAL GREY                                           | METAL       |           2 |            3 | warna       | bukan_warna |
+| 31572 | NIK     | WMNS NIKE QUEST-LIGHTCARBON/BLACKLASER ORANGE               | LIGHTCARBON |           4 |            6 | warna       | bukan_warna |
     
 
 ## Model 1: Conv1D dengan Embedding
 
-`Conv1D` atau *1-dimension convolution* merupakan satu jenis layer dari layer convolution yang umumnya digunakan untuk mengekstrak fitur penting dari input data.
+`Conv1D` atau konvolusi 1 dimensi merupakan satu jenis layer dari layer convolution yang umumnya digunakan untuk mengekstrak fitur penting dari input data.
 
 Meskipun umumnya jaringan saraf tiruan *convolution* digunakan untuk klasifikasi gambar (`Conv2D`) pada pembelajaran *image recognition*, tidak jarang juga `Conv1D` dipergunakan dalam *natural language processing* atau *time series forecasting*.
 
 Layer ini pada prinsipnya menggunakan *kernel_size*, *padding* dan juga *stride* untuk menciptakan sebuah jendela yang akan men-*scan* input matrix atau vektor secara perlahan dan melakukan *pooling* (*min*, *max* atau *average pooling*) untuk mengekstrak nilai yang menjadi fitur penting dari input data.
+
+Oleh karena itu layer *convolutional* ini sering dipergunakan dalam data yang sifatnya *sequence-to-sequence* atau *seq2seq* seperti dalam kasus *natural language processing*, *image classification/recognition*, *audio/video recognition* dan *time series forecasting*.
 
 ![convlayer](images/convlayer.gif)
 
@@ -1603,29 +1065,25 @@ Pada akhir proses training, bobot dari suatu kata sudah melalui beberapa ratus p
 
 Lebih lengkapnya dapat merujuk pada link berikut:
 
-- Lapisan Vektorisasi Teks: https://www.tensorflow.org/api_docs/python/tf/keras/layers/TextVectorization
-- Lapisan Embedding Teks: https://www.tensorflow.org/text/guide/word_embeddings
+- [Lapisan Vektorisasi Teks](https://www.tensorflow.org/api_docs/python/tf/keras/layers/TextVectorization)
+- [Lapisan Embedding Teks](https://www.tensorflow.org/text/guide/word_embeddings)
 
 
 ```python
 # jumlah data (kata) dalam train_data
-print(f'jumlah data: {len(train_data.kata)}\n')
-train_data.kata[:3]
+print(f'Jumlah data: {len(train_data.kata)}')
+print('3 kata pertama dalam train_data:')
+print(train_data.kata[:3].to_markdown())
 ```
 
-    jumlah data: 45400
+    Jumlah data: 45400
+    3 kata pertama dalam train_data:
+|       | kata   |
+|------:|:-------|
+| 43886 | GREY   |
+| 14859 | BLACK  |
+| 47729 | U      |
     
-    
-
-
-
-
-    43886     GREY
-    14859    BLACK
-    47729        U
-    Name: kata, dtype: object
-
-
 
 
 ```python
@@ -1665,15 +1123,15 @@ print(f'Kata setelah vektorisasi:\n{lapisan_vektorisasi([target_kata])}')
 ```
 
     Kata:
-    LEGEND
+    ULTRABOOST
     
     Kata setelah vektorisasi:
-    [[48]]
+    [[22]]
     
 
 
 ```python
-# konfigurasi lapisan vektorisasi
+# Konfigurasi lapisan vektorisasi
 lapisan_vektorisasi.get_config()
 ```
 
@@ -1735,21 +1193,21 @@ print(f'Shape dari kata setelah embedding:\n{kata_terembed.shape}')
 ```
 
     Kata sebelum vektorisasi:
-    LEGEND
+    ULTRABOOST
     
     
     Kata sesudah vektorisasi (sebelum embedding):
-    [[48]]
+    [[22]]
     
     
     Kata setelah embedding:
-    [[[ 0.03849443  0.00019671 -0.04510099 -0.00319308  0.04155094
-        0.04344675 -0.0250809  -0.00759856 -0.03895147  0.02165213
-       -0.04660178 -0.02801985  0.0037294   0.01857214 -0.0298463
-        0.01407415 -0.00080757  0.03984049 -0.01322604  0.0383907
-        0.02639275 -0.03076639  0.0047793   0.03325495  0.0136058
-        0.03234738  0.00281041 -0.03449615  0.01464859 -0.02935088
-       -0.01725741  0.02477313]]]
+    [[[ 0.04344383 -0.01464387 -0.03505018  0.03013081 -0.03754324
+        0.0161945  -0.00386264 -0.02871505 -0.02963296 -0.00619398
+       -0.03534311  0.03194788 -0.04005265 -0.00023266  0.01971561
+       -0.02440481  0.0317731   0.00433347  0.00037297  0.03806284
+        0.01001209 -0.01998474  0.0183844  -0.02738135  0.04759083
+       -0.02447642 -0.03849269  0.00627618 -0.00946458 -0.02909201
+       -0.03733308  0.00344805]]]
     
     Shape dari kata setelah embedding:
     (1, 1, 32)
@@ -1761,7 +1219,7 @@ Pada bagian ini kita akan merubah data menjadi *dataset* dan menerapkan *batchin
 
 ![prefetched](images/prefetched.jpg)
 
-Lihat https://www.tensorflow.org/guide/data_performance
+Lebih lengkap mengenai peningkatan performa training bisa dilihat di [Better Performance with the tf.data API](https://www.tensorflow.org/guide/data_performance)
 
 
 ```python
@@ -1924,19 +1382,14 @@ Di bagian bawah kita akan melakukan beberapa evaluasi dari hasil *training* mode
 model_1.evaluate(test_kata_dataset)
 ```
 
-    355/355 [==============================] - 30s 49ms/step - loss: 0.0289 - accuracy: 0.9921
-    
-
-
-
-
+    355/355 [==============================] - 20s 38ms/step - loss: 0.0289 - accuracy: 0.9921
     [0.02888941951096058, 0.9920712113380432]
 
 
 
 
 ```python
-# Membuat prodeksi menggunakan model_1
+# Membuat probabilitas prodeksi menggunakan model_1
 model_1_pred_prob = tf.squeeze(model_1.predict(test_kata_dataset))
 model_1_pred_prob
 ```
@@ -1952,7 +1405,7 @@ model_1_pred_prob
 
 
 ```python
-# Pembulatan probabilitas prediksi model_1
+# Membuat prediksi untuk model_1
 model_1_pred = tf.round(model_1_pred_prob)
 model_1_pred
 ```
@@ -2021,6 +1474,7 @@ def residual_plot_logr(test_target,
               fontsize=14)
     plt.xlabel('Target Label dalam Bin')
     plt.ylabel('Residual')
+    plt.figure(facecolor='w')
 ```
 
 
@@ -2041,10 +1495,11 @@ plt.show()
 # Menampilkan confusion matrix dari model_1
 plot_conf_matrix(target_label=test_target,
                  prediksi_label=model_1_pred,
-                 nama_model='Model Conv1D dengan Vektorisasi Embedding',
+                 nama_model=MODEL[1],
                  akurasi=model_1_metrik['akurasi'],
                  label_titik_x=['bukan_warna', 'warna'],
                  label_titik_y=['bukan_warna', 'warna'])
+plt.figure(facecolor='w')
 plt.show()
 ```
 
@@ -2056,110 +1511,111 @@ plt.show()
 
 
 ```python
-# Menampilkan kesalahan prediksi 
+# Menampilkan kesalahan prediksi model_1
 df_kesalahan_prediksi(label_encoder=label_encoder,
                       test_data=test_data_mnb,
                       prediksi=model_1_pred,
                       probabilitas_prediksi=model_1_pred_prob,
                       order_ulang_header=['brand', 
-                                          'kata', 
+                                          'kata',
+                                          'nama_artikel', 
                                           'urut_kata', 
                                           'total_kata', 
                                           'label'])
 ```
 
-    |       | brand   | kata        |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
-    |------:|:--------|:------------|------------:|-------------:|:------------|:------------|:---------------|
-    | 55259 | STN     | AQUA        |           3 |            3 | warna       | bukan_warna | 0.05%          |
-    |    12 | ADI     | BASKETBALL  |           5 |            6 | warna       | bukan_warna | 7.35%          |
-    | 23355 | NIC     | 7           |          11 |           11 | warna       | bukan_warna | 0.4%           |
-    | 56444 | WAR     | OREO        |           2 |            3 | warna       | bukan_warna | 0.33%          |
-    | 46960 | NIK     | FTR10PURE   |           2 |            7 | warna       | bukan_warna | 7.35%          |
-    | 13918 | ADI     | CARDBOARD   |           2 |            2 | warna       | bukan_warna | 7.35%          |
-    |  8735 | ADI     | FULL        |           1 |            3 | bukan_warna | warna       | 90.96%         |
-    | 31091 | NIK     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna | 7.35%          |
-    | 51267 | PUM     | TRACE       |           2 |            7 | bukan_warna | warna       | 91.96%         |
-    |  5964 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna | 25.57%         |
-    | 36008 | NIK     | SIGNAL      |           2 |           11 | bukan_warna | warna       | 60.5%          |
-    |   808 | ADI     | LEGIVY      |           6 |            6 | warna       | bukan_warna | 7.35%          |
-    | 19560 | BBC     | WOODLAND    |           1 |            6 | bukan_warna | warna       | 74.04%         |
-    | 19622 | BBC     | CREAM       |           2 |            5 | bukan_warna | warna       | 67.23%         |
-    | 56083 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 89.1%          |
-    | 18933 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       | 90.96%         |
-    | 55981 | STN     | OATMEAL     |           2 |            2 | warna       | bukan_warna | 7.35%          |
-    | 33831 | NIK     | EXPX14WHITE |           2 |            4 | warna       | bukan_warna | 7.35%          |
-    | 48650 | PUM     | CORE        |           2 |            6 | bukan_warna | warna       | 80.28%         |
-    | 56746 | WAR     | PAISLEY     |           2 |            4 | warna       | bukan_warna | 0.28%          |
-    |  1405 | ADI     | PK          |           2 |            4 | warna       | bukan_warna | 0.02%          |
-    | 56116 | WAR     | FULL        |           1 |            6 | bukan_warna | warna       | 90.96%         |
-    | 56086 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 89.1%          |
-    | 17275 | AGL     | 5           |           5 |            6 | warna       | bukan_warna | 0.63%          |
-    | 52109 | PUM     | GLOW        |           3 |            7 | bukan_warna | warna       | 89.1%          |
-    | 26752 | NIK     | PEELORANGE  |           6 |            7 | warna       | bukan_warna | 7.35%          |
-    | 55804 | STN     | VOLT        |           2 |            2 | warna       | bukan_warna | 7.35%          |
-    | 12023 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 0.95%          |
-    |  8962 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 80.28%         |
-    |  1039 | ADI     | TESIME      |           6 |            6 | warna       | bukan_warna | 7.35%          |
-    |  8759 | ADI     | ACTIVE      |           3 |            7 | warna       | bukan_warna | 43.27%         |
-    | 52114 | PUM     | GLOW        |           3 |            8 | bukan_warna | warna       | 89.1%          |
-    | 13740 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 7.35%          |
-    | 10573 | ADI     | METAL       |           2 |            3 | warna       | bukan_warna | 0.06%          |
-    | 56484 | WAR     | NEON        |           2 |            5 | warna       | bukan_warna | 0.1%           |
-    | 46940 | NIK     | REACTBRIGHT |           2 |            7 | warna       | bukan_warna | 7.35%          |
-    | 15761 | ADI     | ALUMINA     |           3 |            3 | warna       | bukan_warna | 7.35%          |
-    | 48805 | PUM     | CORE        |           2 |            7 | bukan_warna | warna       | 80.28%         |
-    |  2197 | ADI     | EASGRN      |           7 |            7 | warna       | bukan_warna | 7.35%          |
-    |  1403 | ADI     | F17         |           4 |            4 | warna       | bukan_warna | 0.47%          |
-    |  2592 | ADI     | ICEPUR      |           2 |            4 | warna       | bukan_warna | 7.35%          |
-    |  7372 | ADI     | SGREEN      |           2 |            4 | warna       | bukan_warna | 7.35%          |
-    | 10336 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 7.35%          |
-    | 15466 | ADI     | SAVANNAH    |           2 |            2 | warna       | bukan_warna | 7.35%          |
-    | 54951 | SAU     | TAN         |           2 |            3 | warna       | bukan_warna | 0.02%          |
-    | 22780 | KIP     | SHADOW      |           2 |            4 | warna       | bukan_warna | 2.94%          |
-    | 56226 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       | 99.27%         |
-    | 56112 | WAR     | RED         |           1 |            7 | bukan_warna | warna       | 99.34%         |
-    | 17198 | AGL     | YELLOW      |           2 |            5 | bukan_warna | warna       | 97.57%         |
-    | 50395 | PUM     | PUMA        |           2 |            5 | warna       | bukan_warna | 0.17%          |
-    | 32998 | NIK     | 23          |          10 |           11 | warna       | bukan_warna | 34.74%         |
-    | 48075 | PTG     | ORANGE      |           2 |            3 | bukan_warna | warna       | 99.27%         |
-    | 54953 | SAU     | BRN         |           2 |            3 | warna       | bukan_warna | 7.35%          |
-    | 19265 | BBC     | DARK        |           2 |            6 | bukan_warna | warna       | 67.7%          |
-    | 56661 | WAR     | THE         |           2 |            5 | warna       | bukan_warna | 15.38%         |
-    |  4222 | ADI     | SESAME      |           5 |            7 | warna       | bukan_warna | 38.07%         |
-    | 52841 | PUM     | CORE        |           1 |            7 | bukan_warna | warna       | 80.28%         |
-    |  8968 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 80.28%         |
-    |  1407 | ADI     | CARGO       |           4 |            4 | warna       | bukan_warna | 0.23%          |
-    |  7274 | ADI     | SESAME      |           2 |            4 | warna       | bukan_warna | 38.07%         |
-    |  3490 | ADI     | SHOCK       |           2 |            3 | warna       | bukan_warna | 0.09%          |
-    | 21685 | HER     | NIGHT       |           2 |            3 | warna       | bukan_warna | 40.44%         |
-    | 18208 | BBC     | CLEAR       |           2 |            8 | bukan_warna | warna       | 67.08%         |
-    | 14727 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 0.95%          |
-    | 33814 | NIK     | EXPZ07WHITE |           2 |            3 | warna       | bukan_warna | 7.35%          |
-    | 30639 | NIK     | 35          |           5 |           11 | bukan_warna | warna       | 79.45%         |
-    | 21386 | HER     | BRBDSCHRY   |           2 |            3 | warna       | bukan_warna | 7.35%          |
-    |  8965 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 80.28%         |
-    | 16112 | ADI     | VAPOUR      |           2 |            3 | warna       | bukan_warna | 7.35%          |
-    | 11545 | ADI     | ACTIVE      |           3 |            4 | warna       | bukan_warna | 43.27%         |
-    |  4659 | ADI     | BOAQUA      |           2 |            4 | warna       | bukan_warna | 7.35%          |
-    | 21982 | HER     | FLORAL      |           2 |            3 | warna       | bukan_warna | 0.48%          |
-    | 21091 | HER     | 600D        |           3 |            6 | bukan_warna | warna       | 99.05%         |
-    | 17520 | AGL     | BROWN       |           1 |            4 | bukan_warna | warna       | 99.45%         |
-    | 10328 | ADI     | ACTIVE      |           2 |            3 | warna       | bukan_warna | 43.27%         |
-    | 48153 | PTG     | DOVE        |           2 |            3 | bukan_warna | warna       | 95.45%         |
-    | 19643 | BEA     | 35          |           2 |            3 | bukan_warna | warna       | 79.45%         |
-    | 16288 | ADI     | BLK         |           2 |            5 | bukan_warna | warna       | 98.82%         |
-    | 21174 | HER     | RED         |           4 |            8 | bukan_warna | warna       | 99.34%         |
-    | 30654 | NIK     | 35          |           5 |           10 | bukan_warna | warna       | 79.45%         |
-    | 29098 | NIK     | 8ASHEN      |           3 |            6 | warna       | bukan_warna | 7.35%          |
-    | 53459 | PUM     | GLOW        |           1 |            5 | bukan_warna | warna       | 89.1%          |
-    | 55759 | STN     | RASTA       |           2 |            2 | warna       | bukan_warna | 7.35%          |
-    | 18940 | BBC     | FULL        |           1 |            8 | bukan_warna | warna       | 90.96%         |
-    |   656 | ADI     | BGREEN      |           7 |            7 | warna       | bukan_warna | 7.35%          |
-    | 54972 | SAU     | VINTAGE     |           2 |            5 | bukan_warna | warna       | 78.0%          |
-    |  6532 | ADI     | SESAME      |           6 |            7 | warna       | bukan_warna | 38.07%         |
-    | 25371 | NIK     | 23          |           6 |            6 | warna       | bukan_warna | 34.74%         |
-    | 24154 | NIK     | CORE        |           2 |            6 | bukan_warna | warna       | 80.28%         |
-    | 31572 | NIK     | LIGHTCARBON |           4 |            6 | warna       | bukan_warna | 7.35%          |
+|       | brand   | kata        | nama_artikel                                                |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
+|------:|:--------|:------------|:------------------------------------------------------------|------------:|-------------:|:------------|:------------|:---------------|
+| 17520 | AGL     | BROWN       | BROWN MOUNTAIN 008 - PEACH                                  |           1 |            4 | bukan_warna | warna       | 99.45%         |
+| 21174 | HER     | RED         | HER-HERITAGE-BOSTON RED SOX-(21L)-BAG-US                    |           4 |            8 | bukan_warna | warna       | 99.34%         |
+| 56112 | WAR     | RED         | RED BLACK FLAT NON REFLECTIVE-RED/BLACK                     |           1 |            7 | bukan_warna | warna       | 99.34%         |
+| 48075 | PTG     | ORANGE      | POLKA ORANGE-ORANGE                                         |           2 |            3 | bukan_warna | warna       | 99.27%         |
+| 56226 | WAR     | ORANGE      | SHOELACES ORANGE OVAL LACES-ORANGE                          |           2 |            5 | bukan_warna | warna       | 99.27%         |
+| 21091 | HER     | 600D        | POP QUIZ-600D POLY NAVY/ZIP                                 |           3 |            6 | bukan_warna | warna       | 99.05%         |
+| 16288 | ADI     | BLK         | CLR BLK CRW 2PP-BLACK                                       |           2 |            5 | bukan_warna | warna       | 98.82%         |
+| 17198 | AGL     | YELLOW      | ESAGLXY YELLOW CRICKET LIGHTER -YELLOW                      |           2 |            5 | bukan_warna | warna       | 97.57%         |
+| 48153 | PTG     | DOVE        | MISTY DOVE-GREY                                             |           2 |            3 | bukan_warna | warna       | 95.45%         |
+| 51267 | PUM     | TRACE       | PLATFORM TRACE STRAP WN S WHISPER WHITE-                    |           2 |            7 | bukan_warna | warna       | 91.96%         |
+| 18933 | BBC     | FULL        | FULL SCALE CRASH L/S T-SHIRT-BLACK                          |           1 |            8 | bukan_warna | warna       | 90.96%         |
+| 18940 | BBC     | FULL        | FULL SCALE CRASH L/S T-SHIRT-ORANGE                         |           1 |            8 | bukan_warna | warna       | 90.96%         |
+| 56116 | WAR     | FULL        | FULL BLACK FLAT NON REFLECTIVE-BLACK                        |           1 |            6 | bukan_warna | warna       | 90.96%         |
+|  8735 | ADI     | FULL        | FULL ZIP-CWHITE                                             |           1 |            3 | bukan_warna | warna       | 90.96%         |
+| 52109 | PUM     | GLOW        | CELL STELLAR GLOW WNS PUMA WHITE-PURPLE                     |           3 |            7 | bukan_warna | warna       | 89.1%          |
+| 53459 | PUM     | GLOW        | GLOW PACK CREW PUMA WHITE                                   |           1 |            5 | bukan_warna | warna       | 89.1%          |
+| 56083 | WAR     | GLOW        | ROPE GLOW IN THE DARK-WHITE                                 |           2 |            6 | bukan_warna | warna       | 89.1%          |
+| 56086 | WAR     | GLOW        | FLAT GLOW IN THE DARK-WHITE                                 |           2 |            6 | bukan_warna | warna       | 89.1%          |
+| 52114 | PUM     | GLOW        | CELL STELLAR GLOW WN"S PUMA BLACK-PURPLE HEATHER            |           3 |            8 | bukan_warna | warna       | 89.1%          |
+| 48650 | PUM     | CORE        | WMN CORE SEASONAL ARCHIVE BACKPACK PEACO                    |           2 |            6 | bukan_warna | warna       | 80.28%         |
+| 52841 | PUM     | CORE        | CORE-RUN S/S TEE-LAPIS BLUE                                 |           1 |            7 | bukan_warna | warna       | 80.28%         |
+|  8968 | ADI     | CORE        | LIN CORE BP-BLACK                                           |           2 |            4 | bukan_warna | warna       | 80.28%         |
+| 24154 | NIK     | CORE        | TS CORE POLO-ROYAL BLUE/WHITE                               |           2 |            6 | bukan_warna | warna       | 80.28%         |
+|  8965 | ADI     | CORE        | LIN CORE CROSSB-BLACK                                       |           2 |            4 | bukan_warna | warna       | 80.28%         |
+|  8962 | ADI     | CORE        | LIN CORE ORG-BLACK                                          |           2 |            4 | bukan_warna | warna       | 80.28%         |
+| 48805 | PUM     | CORE        | WMN CORE ROUND BACKPACK LILAC SNOW-VALENTINE                |           2 |            7 | bukan_warna | warna       | 80.28%         |
+| 19643 | BEA     | 35          | SERIES 35-MULTI                                             |           2 |            3 | bukan_warna | warna       | 79.45%         |
+| 30639 | NIK     | 35          | NIKE AIR ZOOM PEGASUS 35-BLUE ORBIT/BRIGHT CITRON-BLUE VOID |           5 |           11 | bukan_warna | warna       | 79.45%         |
+| 30654 | NIK     | 35          | NIKE AIR ZOOM PEGASUS 35-BRIGHT CRIMSON/ICE BLUE-SAIL       |           5 |           10 | bukan_warna | warna       | 79.45%         |
+| 54972 | SAU     | VINTAGE     | JAZZ VINTAGE-GREY/BLUE/WHITE                                |           2 |            5 | bukan_warna | warna       | 78.0%          |
+| 19560 | BBC     | WOODLAND    | WOODLAND CAMO CURVE T-SHIRT-GREY                            |           1 |            6 | bukan_warna | warna       | 74.04%         |
+| 19265 | BBC     | DARK        | BB DARK STAR LS KNIT-BLACK                                  |           2 |            6 | bukan_warna | warna       | 67.7%          |
+| 19622 | BBC     | CREAM       | ICE CREAM MAN TEE-WHITE                                     |           2 |            5 | bukan_warna | warna       | 67.23%         |
+| 18208 | BBC     | CLEAR       | BB CLEAR SKY L/S T-SHIRT-BLACK                              |           2 |            8 | bukan_warna | warna       | 67.08%         |
+| 36008 | NIK     | SIGNAL      | NIKE SIGNAL D/MS/X-GUAVA ICE/LIGHT AQUA-HYPER CRIMSON       |           2 |           11 | bukan_warna | warna       | 60.5%          |
+|  8759 | ADI     | ACTIVE      | X LESTO-ACTIVE RED/BLACK/OFF WHITE                          |           3 |            7 | warna       | bukan_warna | 43.27%         |
+| 10328 | ADI     | ACTIVE      | RUN60S-ACTIVE MAROON                                        |           2 |            3 | warna       | bukan_warna | 43.27%         |
+| 11545 | ADI     | ACTIVE      | DURAMO 9-ACTIVE RED                                         |           3 |            4 | warna       | bukan_warna | 43.27%         |
+| 21685 | HER     | NIGHT       | FOURTEEN-NIGHT CAMO                                         |           2 |            3 | warna       | bukan_warna | 40.44%         |
+|  7274 | ADI     | SESAME      | NMD_R1-SESAME/TRACAR/BASGRN                                 |           2 |            4 | warna       | bukan_warna | 38.07%         |
+|  6532 | ADI     | SESAME      | TUBULAR DOOM SOCK PK-BASGRN/SESAME/CWHITE                   |           6 |            7 | warna       | bukan_warna | 38.07%         |
+|  4222 | ADI     | SESAME      | TUBULAR DOOM SOCK PK-SESAME/SESAME/CRYWHT                   |           5 |            7 | warna       | bukan_warna | 38.07%         |
+| 32998 | NIK     | 23          | PSG M NK BRT STAD JSY SS AW-INFRARED 23/BLACK               |          10 |           11 | warna       | bukan_warna | 34.74%         |
+| 25371 | NIK     | 23          | JORDAN AIR JUMPMAN-BLACK/INFRARED 23                        |           6 |            6 | warna       | bukan_warna | 34.74%         |
+|  5964 | ADI     | CLOUD       | FUTUREPACER-CLOUD WHITE                                     |           2 |            3 | warna       | bukan_warna | 25.57%         |
+| 56661 | WAR     | THE         | 125CM THE BLUES FLAT LACES                                  |           2 |            5 | warna       | bukan_warna | 15.38%         |
+| 21386 | HER     | BRBDSCHRY   | SEVENTEEN-BRBDSCHRY/BKCRSHTCH                               |           2 |            3 | warna       | bukan_warna | 7.35%          |
+| 54953 | SAU     | BRN         | COURAGEOUS-BRN/YEL                                          |           2 |            3 | warna       | bukan_warna | 7.35%          |
+| 16112 | ADI     | VAPOUR      | FLUIDSTREET-VAPOUR PINK                                     |           2 |            3 | warna       | bukan_warna | 7.35%          |
+|  4659 | ADI     | BOAQUA      | CAMPUS-BOAQUA/FTWWHT/CWHITE                                 |           2 |            4 | warna       | bukan_warna | 7.35%          |
+| 33814 | NIK     | EXPZ07WHITE | NIKE EXPZ07WHITE/BLACK                                      |           2 |            3 | warna       | bukan_warna | 7.35%          |
+| 31572 | NIK     | LIGHTCARBON | WMNS NIKE QUEST-LIGHTCARBON/BLACKLASER ORANGE               |           4 |            6 | warna       | bukan_warna | 7.35%          |
+|    12 | ADI     | BASKETBALL  | 3 STRIPE D 29.5-BASKETBALL NATURAL                          |           5 |            6 | warna       | bukan_warna | 7.35%          |
+| 55804 | STN     | VOLT        | RAILWAY-VOLT                                                |           2 |            2 | warna       | bukan_warna | 7.35%          |
+| 46960 | NIK     | FTR10PURE   | NK FTR10PURE PLATINUM/BRIGHT CRIMSON/DARK GREY              |           2 |            7 | warna       | bukan_warna | 7.35%          |
+| 13918 | ADI     | CARDBOARD   | NMD_R1.V2-CARDBOARD                                         |           2 |            2 | warna       | bukan_warna | 7.35%          |
+| 31091 | NIK     | VIALEBLACK  | NIKE VIALEBLACK/VOLTSOLAR REDANTHRACITE                     |           2 |            4 | warna       | bukan_warna | 7.35%          |
+|   808 | ADI     | LEGIVY      | POD-S3.1 C-CBLACK/CBLACK/LEGIVY                             |           6 |            6 | warna       | bukan_warna | 7.35%          |
+| 55981 | STN     | OATMEAL     | XYZ-OATMEAL                                                 |           2 |            2 | warna       | bukan_warna | 7.35%          |
+| 33831 | NIK     | EXPX14WHITE | NIKE EXPX14WHITE/WOLF GREYBLACK                             |           2 |            4 | warna       | bukan_warna | 7.35%          |
+|   656 | ADI     | BGREEN      | NMD R1 STLT PK-CBLACK/NOBGRN/BGREEN                         |           7 |            7 | warna       | bukan_warna | 7.35%          |
+| 26752 | NIK     | PEELORANGE  | WMNS KAWA SLIDEPINK PRIME/ORANGE PEELORANGE PEEL            |           6 |            7 | warna       | bukan_warna | 7.35%          |
+|  1039 | ADI     | TESIME      | ARKYN PK W-CBLACK/CBLACK/TESIME                             |           6 |            6 | warna       | bukan_warna | 7.35%          |
+| 15466 | ADI     | SAVANNAH    | OZELIA-SAVANNAH                                             |           2 |            2 | warna       | bukan_warna | 7.35%          |
+| 13740 | ADI     | MAROON      | ULTRA4D-MAROON                                              |           2 |            2 | warna       | bukan_warna | 7.35%          |
+| 55759 | STN     | RASTA       | VIARTA-RASTA                                                |           2 |            2 | warna       | bukan_warna | 7.35%          |
+| 46940 | NIK     | REACTBRIGHT | NK REACTBRIGHT CRIMSON/DARK GREY/PURE PLATINUM              |           2 |            7 | warna       | bukan_warna | 7.35%          |
+|  2197 | ADI     | EASGRN      | EQT SUPPORT RF PK-FROGRN/CBLACK/EASGRN                      |           7 |            7 | warna       | bukan_warna | 7.35%          |
+| 29098 | NIK     | 8ASHEN      | NIKE DOWNSHIFTER 8ASHEN SLATE/OBSIDIANDIFFUSED BLUEBLACK    |           3 |            6 | warna       | bukan_warna | 7.35%          |
+|  2592 | ADI     | ICEPUR      | GAZELLE-ICEPUR/WHITE/GOLDMT                                 |           2 |            4 | warna       | bukan_warna | 7.35%          |
+|  7372 | ADI     | SGREEN      | PROPHERE-SGREEN/CGREEN/CBLACK                               |           2 |            4 | warna       | bukan_warna | 7.35%          |
+| 10336 | ADI     | MAROON      | RUN60S-MAROON                                               |           2 |            2 | warna       | bukan_warna | 7.35%          |
+| 15761 | ADI     | ALUMINA     | FLUIDFLOW 2.0-ALUMINA                                       |           3 |            3 | warna       | bukan_warna | 7.35%          |
+| 22780 | KIP     | SHADOW      | FS72-SHADOW BROWN-140                                       |           2 |            4 | warna       | bukan_warna | 2.94%          |
+| 14727 | ADI     | LEGEND      | SHOPPER-LEGEND INK                                          |           2 |            3 | warna       | bukan_warna | 0.95%          |
+| 12023 | ADI     | LEGEND      | ASWEERUN-LEGEND INK                                         |           2 |            3 | warna       | bukan_warna | 0.95%          |
+| 17275 | AGL     | 5           | ITALIC 5 PANEL MAROON 005-MAROON                            |           5 |            6 | warna       | bukan_warna | 0.63%          |
+| 21982 | HER     | FLORAL      | HANSON-FLORAL BLR                                           |           2 |            3 | warna       | bukan_warna | 0.48%          |
+|  1403 | ADI     | F17         | NMD_R1-GREY TWO F17                                         |           4 |            4 | warna       | bukan_warna | 0.47%          |
+| 23355 | NIC     | 7           | NIKE KD FULL COURT 8P-AMBER/BLACK/METALLIC SILVER/BLACK 07  |          11 |           11 | warna       | bukan_warna | 0.4%           |
+| 56444 | WAR     | OREO        | 90CM OREO ROPE                                              |           2 |            3 | warna       | bukan_warna | 0.33%          |
+| 56746 | WAR     | PAISLEY     | 125CM PAISLEY WHITE FLAT                                    |           2 |            4 | warna       | bukan_warna | 0.28%          |
+|  1407 | ADI     | CARGO       | NMD_TS1 PK-NIGHT CARGO                                      |           4 |            4 | warna       | bukan_warna | 0.23%          |
+| 50395 | PUM     | PUMA        | RESOLVE PUMA BLACK-PUMA SILVER                              |           2 |            5 | warna       | bukan_warna | 0.17%          |
+| 56484 | WAR     | NEON        | 125CM NEON REFLECTIVE ROPE LACES                            |           2 |            5 | warna       | bukan_warna | 0.1%           |
+|  3490 | ADI     | SHOCK       | FUTUREPACER-SHOCK RED                                       |           2 |            3 | warna       | bukan_warna | 0.09%          |
+| 10573 | ADI     | METAL       | NMD_R1-METAL GREY                                           |           2 |            3 | warna       | bukan_warna | 0.06%          |
+| 55259 | STN     | AQUA        | FAMILY FORCE-AQUA                                           |           3 |            3 | warna       | bukan_warna | 0.05%          |
+| 54951 | SAU     | TAN         | COURAGEOUS-TAN/PNK                                          |           2 |            3 | warna       | bukan_warna | 0.02%          |
+|  1405 | ADI     | PK          | NMD_TS1 PK-NIGHT CARGO                                      |           2 |            4 | warna       | bukan_warna | 0.02%          |
     
 
 
@@ -2172,7 +1628,7 @@ gc.collect()
 
 
 
-    14994
+    10475
 
 
 
@@ -2202,19 +1658,100 @@ tf_hub_embedding = hub.KerasLayer('colorskim_checkpoint/use.v4/',
 kata_acak = random.choice(train_data_mnb['kata'].tolist())
 print(f'Kata acak:\n {kata_acak}')
 kata_embed_pretrain = tf_hub_embedding([kata_acak])
-print(f'\nKata setelah embed dengan USE:\n{kata_embed_pretrain[0][:30]}\n')
+print(f'\nKata setelah embed dengan USE:\n{kata_embed_pretrain[0]}\n')
 print(f'Panjang dari kata setelah embedding: {len(kata_embed_pretrain[0])}')
 ```
 
     Kata acak:
-     BOYD
+     NIKE
     
     Kata setelah embed dengan USE:
-    [ 0.01104935 -0.03197816 -0.00418905  0.01691557  0.04390273  0.05630679
-     -0.05388017 -0.06413457  0.04082758  0.00436567  0.00574849  0.06332859
-     -0.00318939 -0.05387031 -0.01070012 -0.00107764  0.03956668  0.02198536
-     -0.04347479  0.02945289  0.01730662  0.06538456  0.01217358  0.00765909
-      0.01802523 -0.01132349  0.06331084 -0.03587084 -0.027212    0.0056668 ]
+    [ 0.03551936 -0.01092234 -0.04452999 -0.011615    0.02078822  0.03616779
+      0.02028491 -0.04521689 -0.06267793 -0.01205434 -0.06147045 -0.04277659
+      0.044472   -0.03846516 -0.01646156  0.04231635 -0.04280001 -0.04259221
+      0.02336692 -0.0149713   0.00785487  0.0131372   0.06377136  0.00091608
+     -0.01144155 -0.00248365 -0.0456779  -0.046661   -0.01129454 -0.02044706
+      0.07824446 -0.02754597  0.00210647  0.07455748  0.03685687  0.04225997
+      0.03182033 -0.02679156  0.06342416  0.04529719 -0.06783359 -0.0248361
+      0.07103027 -0.00629707  0.00433935  0.05146051 -0.01485019  0.03876241
+      0.07278479  0.0009041   0.05664367 -0.06668704  0.0241777   0.07243448
+     -0.04070075 -0.06603528  0.06918954 -0.04095845  0.06053145  0.07463565
+      0.01343846 -0.02636237  0.0616648   0.05107952  0.02252498  0.02215132
+     -0.06586358  0.00607882  0.05185373  0.05264953 -0.07568023 -0.04224531
+     -0.00805937 -0.04342831  0.00167232 -0.06503586  0.004361   -0.01371297
+     -0.03355193  0.02891815  0.06603467  0.01700427 -0.0279174   0.02507633
+     -0.02567692 -0.04835125 -0.03684086 -0.04631411  0.05025171  0.04808898
+     -0.02833271 -0.01959861  0.02793185  0.0543673   0.03376793 -0.05010658
+      0.00592942 -0.06519038  0.01859676 -0.0353713   0.00766027 -0.00334424
+     -0.03353013  0.0313806  -0.02838316  0.03093965  0.05986924  0.0233705
+     -0.06270017  0.05457193 -0.02671948 -0.02759826 -0.01483797 -0.04928165
+      0.02404594 -0.02501503  0.05870967  0.0207445  -0.05472719  0.05273714
+     -0.07252224 -0.06794119 -0.01538243  0.01332556 -0.05433645  0.0688628
+     -0.03460832 -0.01138156 -0.00949107 -0.01125747 -0.06732188 -0.04552472
+      0.07460805  0.00889968 -0.00280288  0.06425659  0.0613145   0.00834193
+     -0.03950722 -0.06944551 -0.01862261 -0.05291961  0.05189019 -0.0704136
+     -0.01533997  0.03102191 -0.06291    -0.02337333  0.06298447  0.05690104
+      0.04923342  0.03985649 -0.06449309 -0.00915918 -0.02750308 -0.02121983
+     -0.03716319 -0.05120215 -0.02033108 -0.0376828   0.05732057  0.0508699
+     -0.05313801 -0.02852584 -0.07193327  0.04402891 -0.043501    0.01040053
+     -0.05722377 -0.02140645  0.0280024   0.06227337 -0.00149252 -0.04377782
+      0.04100104  0.05172922  0.01621546  0.00419973 -0.03920238  0.00992098
+     -0.05693381 -0.05796782  0.04262339 -0.05103716  0.01172633 -0.01269967
+      0.07080697 -0.06015277 -0.02805375  0.03648995 -0.0404921  -0.0074265
+      0.07094666  0.04367533  0.06983639 -0.07221088  0.00054545 -0.07213555
+     -0.07322811 -0.05495409 -0.05772717 -0.07736363 -0.04488755  0.00677462
+      0.01069611  0.00771156  0.02260842  0.00909366  0.07486101  0.06389294
+     -0.06780038 -0.07150001  0.00668007 -0.03589934  0.03037837  0.02435404
+     -0.07544938 -0.04152847  0.06835841  0.04962672 -0.02535345 -0.02914595
+     -0.03527066  0.0560013   0.01352146  0.01594795 -0.06152666  0.06713767
+      0.01546754 -0.04652558  0.0087596  -0.05915464  0.04778609  0.07824762
+     -0.01258852 -0.02061768  0.05956362  0.04689779 -0.06026362 -0.02124402
+      0.00915563  0.068636   -0.04575855  0.01184536 -0.01048048 -0.0718644
+     -0.05675729  0.01992276 -0.05778389 -0.07409275  0.04049169 -0.02760815
+      0.0036087  -0.02334823 -0.0483748  -0.02317634 -0.05466368 -0.00628347
+     -0.06936521 -0.06271482  0.00500453 -0.04129516  0.01160167 -0.04566887
+      0.02773606 -0.04745081 -0.06555958  0.00411041 -0.02365758  0.04201781
+     -0.06258721 -0.00577203 -0.01704673  0.01889912  0.04837367 -0.00619665
+      0.02614878  0.01605906  0.07285248  0.0379419  -0.0283509   0.02107766
+     -0.01478508  0.05798338  0.05910319  0.03409204 -0.05160711 -0.04472215
+     -0.07365095  0.04046992  0.01024232 -0.04927742  0.07710335 -0.07088924
+      0.01531921 -0.05522642  0.05740457 -0.01346224 -0.01329934 -0.07674375
+      0.02388921 -0.040433   -0.05591584 -0.03715642  0.02376054  0.02959199
+     -0.04881466 -0.01823488 -0.01824399  0.04357    -0.07166452  0.00840077
+      0.00098459 -0.00247648 -0.04364586 -0.04615242 -0.03177207  0.05448828
+      0.01465963 -0.03656979 -0.06917886 -0.05253936  0.02594306  0.07820571
+      0.06673191 -0.00256606  0.04285944  0.06004287 -0.02713689 -0.03663595
+     -0.0310873   0.06888737  0.0343462   0.0313268  -0.049203    0.06942404
+     -0.07673703  0.0602483   0.01684608 -0.06147083 -0.01759119 -0.06714571
+      0.05348786 -0.05480853  0.05088906  0.05817876  0.01446326  0.04168681
+      0.0077525  -0.04761557 -0.04279744 -0.05798563  0.06405424 -0.05190267
+     -0.06436147 -0.06057622 -0.07461155 -0.04222599 -0.07217864 -0.03697427
+     -0.02096592  0.04226105  0.06492008 -0.06692387  0.00926001  0.0138763
+      0.07231332  0.02603806  0.02273759 -0.00857977 -0.00488686 -0.03683521
+      0.01489123  0.04045784 -0.05820299 -0.06682371 -0.02228186 -0.06135305
+     -0.01000855 -0.05706303  0.0782282  -0.05021447  0.02071947  0.06907023
+     -0.03429902 -0.00119103  0.05301087 -0.02616852 -0.024908   -0.02819091
+      0.06957974 -0.02587058 -0.04717125  0.04558295  0.04095564  0.00593362
+     -0.04767918 -0.03579942 -0.03175095  0.06806615  0.07167613  0.07341167
+      0.04470375  0.02985043 -0.01142076 -0.07169252  0.0419479  -0.00477881
+      0.04641821 -0.04670449  0.00157692 -0.02617471 -0.02453358  0.01629492
+     -0.07304903 -0.03545947 -0.02758045  0.04102558 -0.03854948 -0.00176723
+     -0.05074076 -0.05868213  0.02295039 -0.0779191   0.00753643  0.04240848
+     -0.0449448  -0.01627814 -0.03864083  0.04569025 -0.0215541  -0.00385933
+      0.0687096  -0.00038805  0.06731253  0.00203905 -0.02522428  0.03640829
+     -0.06817984  0.02590258  0.06238135  0.02559368 -0.00472497 -0.00768843
+     -0.02542115 -0.0396123   0.04834259 -0.03672076 -0.00461542 -0.04150703
+      0.04825861  0.03033854 -0.05819327 -0.02407195  0.04944583  0.02262879
+      0.00537716 -0.01742457  0.01463452  0.06018772  0.01764123  0.04064748
+     -0.03416735  0.03101878 -0.05000495 -0.03750736 -0.04026246  0.05893917
+     -0.03406354 -0.04039322  0.0068501  -0.03224698  0.0422332  -0.00174747
+      0.03877247  0.03151488 -0.04211442  0.06551541  0.01918465 -0.06001789
+     -0.00637987 -0.07045291  0.03122615 -0.00347115  0.0119053   0.06561846
+     -0.03955285  0.0098134   0.03993066  0.06143269 -0.05930713  0.04833847
+      0.03384694  0.00298179 -0.00459251  0.02913976  0.05558946  0.00083254
+     -0.04760565 -0.07094654  0.05547972  0.07688119 -0.01018946 -0.07702006
+     -0.00581692  0.01322428 -0.06336655  0.03551421 -0.03503459  0.02975735
+     -0.02781365 -0.04372307]
     
     Panjang dari kata setelah embedding: 512
     
@@ -2338,16 +1875,11 @@ plot_model(model_2, show_shapes=True)
 
 
 ```python
-# Evaluate model_2
+# Evaluasi model_2
 model_2.evaluate(test_kata_dataset)
 ```
 
-    355/355 [==============================] - 21s 52ms/step - loss: 0.1921 - accuracy: 0.9389
-    
-
-
-
-
+    355/355 [==============================] - 19s 45ms/step - loss: 0.1921 - accuracy: 0.9389
     [0.19213275611400604, 0.9388599991798401]
 
 
@@ -2421,18 +1953,13 @@ plot_conf_matrix(target_label=test_target,
                  akurasi=model_2_metrik['akurasi'],
                  label_titik_x=['bukan_warna', 'warna'],
                  label_titik_y=['bukan_warna', 'warna'])
+plt.figure(facecolor='w')
+plt.show()
 ```
 
 
-
-
-    <AxesSubplot:title={'center':'Confusion Matrix\nmodel_2_Conv1D_USE_embed\nAkurasi 93.89%'}, xlabel='Prediksi Label', ylabel='Target Label'>
-
-
-
-
     
-![png](ColorSkim_AI_files/ColorSkim_AI_75_1.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_75_0.png)
     
 
 
@@ -2445,707 +1972,709 @@ df_kesalahan_prediksi(label_encoder=label_encoder,
                       probabilitas_prediksi=model_2_pred_prob,
                       order_ulang_header=['brand',
                                           'kata',
+                                          'nama_artikel',
                                           'urut_kata',
                                           'total_kata',
                                           'label'])
 ```
 
-    |       | brand   | kata          |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
-    |------:|:--------|:--------------|------------:|-------------:|:------------|:------------|:---------------|
-    | 16829 | ADI     | SESOYE        |           5 |            6 | warna       | bukan_warna | 46.29%         |
-    | 28490 | NIK     | TIEMPO        |           1 |            8 | bukan_warna | warna       | 74.9%          |
-    | 55259 | STN     | AQUA          |           3 |            3 | warna       | bukan_warna | 2.84%          |
-    | 47519 | NIK     | 3PPK          |           2 |            9 | bukan_warna | warna       | 53.58%         |
-    |  2899 | ADI     | SOBAKOV       |           1 |            4 | bukan_warna | warna       | 76.76%         |
-    | 26661 | NIK     | BROWN         |           9 |            9 | warna       | bukan_warna | 39.65%         |
-    | 14773 | ADI     | TIRO          |           1 |            3 | bukan_warna | warna       | 58.89%         |
-    | 47562 | NIK     | 3PPK          |           2 |           10 | bukan_warna | warna       | 53.58%         |
-    | 15999 | ADI     | SPECTOO       |           2 |            4 | warna       | bukan_warna | 14.74%         |
-    |  2639 | ADI     | CWHITE        |           5 |            5 | warna       | bukan_warna | 34.19%         |
-    |  5166 | ADI     | FEF           |           1 |            5 | bukan_warna | warna       | 50.67%         |
-    |  8219 | ADI     | OWHITE        |           5 |            7 | warna       | bukan_warna | 22.71%         |
-    |    12 | ADI     | BASKETBALL    |           5 |            6 | warna       | bukan_warna | 9.97%          |
-    | 27594 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
-    | 23355 | NIC     | 7             |          11 |           11 | warna       | bukan_warna | 7.83%          |
-    | 34040 | NIK     | SUPRFLY       |           2 |            8 | bukan_warna | warna       | 93.28%         |
-    | 21620 | HER     | PINE          |           2 |            4 | warna       | bukan_warna | 6.69%          |
-    |  7564 | ADI     | OWHITE        |           3 |            5 | warna       | bukan_warna | 22.71%         |
-    | 25404 | NIK     | NAVY          |           8 |            9 | warna       | bukan_warna | 8.11%          |
-    | 15182 | ADI     | FBIRD         |           1 |            3 | bukan_warna | warna       | 64.54%         |
-    |  4084 | ADI     | ICEPNK        |           5 |            6 | warna       | bukan_warna | 36.66%         |
-    | 29951 | NIK     | MERCURIALX    |           1 |           10 | bukan_warna | warna       | 64.81%         |
-    | 10768 | ADI     | FORTARUN      |           1 |            7 | bukan_warna | warna       | 63.57%         |
-    | 55505 | STN     | JOVEN         |           2 |            6 | bukan_warna | warna       | 86.25%         |
-    | 50284 | PUM     | TISHATSU      |           1 |            7 | bukan_warna | warna       | 73.17%         |
-    | 12291 | ADI     | STARLANCER    |           1 |            4 | bukan_warna | warna       | 66.83%         |
-    | 21145 | HER     | ECLIPSE       |           2 |            3 | warna       | bukan_warna | 0.64%          |
-    | 56008 | VAP     | 0.7L          |           1 |            3 | bukan_warna | warna       | 50.0%          |
-    | 20470 | CAO     | 3ADR          |           3 |            3 | bukan_warna | warna       | 71.37%         |
-    | 20664 | CAO     | GBD8002DRNS   |           1 |            1 | bukan_warna | warna       | 70.19%         |
-    | 36580 | NIK     | GLOW          |          11 |           11 | warna       | bukan_warna | 17.97%         |
-    | 55857 | STN     | BROWN         |           2 |            2 | warna       | bukan_warna | 39.65%         |
-    | 10071 | ADI     | BROWN         |           5 |            5 | warna       | bukan_warna | 39.65%         |
-    |  1605 | ADI     | GOLDMT        |           6 |            6 | warna       | bukan_warna | 23.74%         |
-    |   457 | ADI     | TC1P          |           4 |            7 | bukan_warna | warna       | 52.46%         |
-    |  1706 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
-    | 11061 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 33862 | NIK     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
-    |  3218 | ADI     | CONAVY        |           3 |            5 | warna       | bukan_warna | 18.74%         |
-    | 48060 | PTG     | VINKA         |           1 |            3 | bukan_warna | warna       | 51.67%         |
-    |  9750 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
-    |  2896 | ADI     | CLEORA        |           2 |            4 | warna       | bukan_warna | 15.4%          |
-    | 56444 | WAR     | OREO          |           2 |            3 | warna       | bukan_warna | 5.74%          |
-    | 42406 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
-    | 30205 | NIK     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
-    | 17080 | ADI     | WHT           |           6 |            6 | warna       | bukan_warna | 20.68%         |
-    |  1741 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
-    | 13176 | ADI     | MUTATOR       |           2 |            7 | bukan_warna | warna       | 82.25%         |
-    |  3421 | ADI     | CBROWN        |           6 |            6 | warna       | bukan_warna | 19.14%         |
-    | 46960 | NIK     | FTR10PURE     |           2 |            7 | warna       | bukan_warna | 27.53%         |
-    | 20310 | CAO     | 100BT         |           2 |            4 | bukan_warna | warna       | 74.83%         |
-    |  9791 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 12007 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 30760 | NIK     | CARBON        |           9 |           10 | warna       | bukan_warna | 1.97%          |
-    |  3962 | ADI     | TIRO          |           1 |            5 | bukan_warna | warna       | 58.89%         |
-    | 24919 | NIK     | YTH           |           2 |           11 | bukan_warna | warna       | 69.09%         |
-    |  7175 | ADI     | HIRAQU        |           3 |            4 | warna       | bukan_warna | 42.26%         |
-    |  1334 | ADI     | SUBGRN        |           8 |            8 | warna       | bukan_warna | 33.45%         |
-    | 21092 | HER     | NAVY          |           5 |            6 | warna       | bukan_warna | 8.11%          |
-    | 55487 | STN     | JOVEN         |           2 |            6 | bukan_warna | warna       | 86.25%         |
-    |  4054 | ADI     | TRAPNK        |           7 |            7 | warna       | bukan_warna | 48.93%         |
-    | 45615 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
-    |  9282 | ADI     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
-    | 12340 | ADI     | TOPLOADER     |           2 |            5 | bukan_warna | warna       | 64.02%         |
-    |  6830 | ADI     | OWHITE        |           6 |            6 | warna       | bukan_warna | 22.71%         |
-    | 36182 | NIK     | BROWN         |          11 |           11 | warna       | bukan_warna | 39.65%         |
-    |  3315 | ADI     | CARBON        |           3 |            4 | warna       | bukan_warna | 1.97%          |
-    | 24527 | NIK     | GENICCO       |           2 |            8 | bukan_warna | warna       | 52.37%         |
-    | 20530 | CAO     | 700SK         |           2 |            3 | bukan_warna | warna       | 97.71%         |
-    | 48125 | PTG     | TANNE         |           1 |            3 | bukan_warna | warna       | 78.4%          |
-    |  2014 | ADI     | TIRO          |           1 |            5 | bukan_warna | warna       | 58.89%         |
-    |   325 | ADI     | BRBLUE        |           6 |            6 | warna       | bukan_warna | 34.32%         |
-    | 34704 | NIK     | EBERNON       |           2 |            7 | bukan_warna | warna       | 68.67%         |
-    | 13918 | ADI     | CARDBOARD     |           2 |            2 | warna       | bukan_warna | 4.66%          |
-    | 56043 | VAP     | VAPUR         |           1 |            3 | bukan_warna | warna       | 60.88%         |
-    | 27450 | NIK     | GLOW          |           7 |            9 | warna       | bukan_warna | 17.97%         |
-    | 16994 | ADI     | MGREYH        |           4 |            4 | warna       | bukan_warna | 40.59%         |
-    | 12737 | ADI     | LACELESS      |           2 |            4 | bukan_warna | warna       | 52.25%         |
-    | 16521 | ADI     | RUNWHT        |           3 |            5 | warna       | bukan_warna | 46.17%         |
-    | 29512 | NIK     | NAVY          |           9 |           11 | warna       | bukan_warna | 8.11%          |
-    | 34903 | NIK     | NAVY          |           7 |           11 | warna       | bukan_warna | 8.11%          |
-    |  1799 | ADI     | SOBAKOV       |           1 |            4 | bukan_warna | warna       | 76.76%         |
-    | 54580 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
-    | 55642 | STN     | MOUSEKETEER   |           2 |            6 | bukan_warna | warna       | 89.19%         |
-    | 22729 | KIP     | BEIGE         |           2 |            4 | warna       | bukan_warna | 12.74%         |
-    | 37378 | NIK     | ACDMY         |           2 |            6 | bukan_warna | warna       | 74.72%         |
-    | 32120 | NIK     | OBRAX         |           1 |           10 | bukan_warna | warna       | 80.22%         |
-    |  5892 | ADI     | ASHSIL        |           3 |            5 | warna       | bukan_warna | 24.08%         |
-    | 22453 | KIP     | RS46          |           1 |            5 | bukan_warna | warna       | 71.93%         |
-    | 54596 | REL     | 35            |           5 |            5 | warna       | bukan_warna | 4.4%           |
-    |  5908 | ADI     | BLUSPI        |           5 |            5 | warna       | bukan_warna | 2.56%          |
-    | 27060 | NIK     | ONDA          |           2 |            8 | bukan_warna | warna       | 73.03%         |
-    | 20326 | CAO     | 5ADR          |           3 |            4 | bukan_warna | warna       | 58.48%         |
-    | 48089 | PTG     | VERMI         |           1 |            3 | bukan_warna | warna       | 56.81%         |
-    |  9207 | ADI     | CONAVY        |           3 |            4 | warna       | bukan_warna | 18.74%         |
-    |  4248 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
-    | 15946 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 27050 | NIK     | ONDA          |           2 |            8 | bukan_warna | warna       | 73.03%         |
-    |  1749 | ADI     | DKBLUE        |           4 |            5 | warna       | bukan_warna | 13.2%          |
-    |   681 | ADI     | GOLDMT        |           6 |            6 | warna       | bukan_warna | 23.74%         |
-    |  6952 | ADI     | DEERUPT       |           1 |            6 | bukan_warna | warna       | 77.13%         |
-    | 56037 | VAP     | 0.7L          |           1 |            3 | bukan_warna | warna       | 50.0%          |
-    |  1270 | ADI     | SHOLIM        |           4 |            4 | warna       | bukan_warna | 23.63%         |
-    |  3544 | ADI     | GYMSACK       |           1 |            3 | bukan_warna | warna       | 84.56%         |
-    | 27364 | NIK     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
-    |  5630 | ADI     | BROWN         |           5 |            5 | warna       | bukan_warna | 39.65%         |
-    | 16229 | ADI     | CLSC          |           1 |            4 | bukan_warna | warna       | 75.23%         |
-    |   518 | ADI     | SCARLE        |           5 |            6 | warna       | bukan_warna | 28.57%         |
-    | 56041 | VAP     | VAPUR         |           1 |            3 | bukan_warna | warna       | 60.88%         |
-    |  3535 | ADI     | POWRED        |           4 |            5 | warna       | bukan_warna | 10.18%         |
-    | 22744 | KIP     | TAUPE         |           2 |            4 | warna       | bukan_warna | 10.94%         |
-    |  8187 | ADI     | OWHITE        |           6 |            6 | warna       | bukan_warna | 22.71%         |
-    | 37442 | NIK     | ELMNTL        |           2 |           10 | bukan_warna | warna       | 76.67%         |
-    | 20491 | CAO     | 1BDR          |           3 |            3 | bukan_warna | warna       | 62.83%         |
-    | 17300 | AGL     | L750          |           1 |            4 | bukan_warna | warna       | 64.14%         |
-    |  2613 | ADI     | ENEBLU        |           6 |            6 | warna       | bukan_warna | 27.69%         |
-    |  5289 | ADI     | GREFIV        |           5 |            7 | warna       | bukan_warna | 10.86%         |
-    |  9201 | ADI     | GYMSACK       |           1 |            4 | bukan_warna | warna       | 84.56%         |
-    |  9671 | ADI     | CARBON        |           4 |            4 | warna       | bukan_warna | 1.97%          |
-    | 21242 | HER     | WINE          |           2 |            3 | warna       | bukan_warna | 3.68%          |
-    | 52163 | PUM     | FTR           |           2 |            9 | bukan_warna | warna       | 67.71%         |
-    |   774 | ADI     | TRAPNK        |           6 |            6 | warna       | bukan_warna | 48.93%         |
-    | 18880 | BBC     | OVERDYED      |           1 |            6 | bukan_warna | warna       | 83.76%         |
-    | 26315 | NIK     | MERCURIALX    |           1 |            9 | bukan_warna | warna       | 64.81%         |
-    | 25788 | NIK     | GLOW          |           7 |           11 | warna       | bukan_warna | 17.97%         |
-    | 27017 | NIK     | NAVY          |           6 |            7 | warna       | bukan_warna | 8.11%          |
-    |  2673 | ADI     | CONAVY        |           2 |            4 | warna       | bukan_warna | 18.74%         |
-    | 22680 | KIP     | FS64          |           1 |            5 | bukan_warna | warna       | 77.84%         |
-    |  7623 | ADI     | ORCTIN        |           5 |            6 | warna       | bukan_warna | 21.4%          |
-    |  5757 | ADI     | ALTARUN       |           1 |            5 | bukan_warna | warna       | 88.32%         |
-    | 15871 | ADI     | CARBON        |           2 |            2 | warna       | bukan_warna | 1.97%          |
-    | 12104 | ADI     | GLOW          |           5 |            5 | warna       | bukan_warna | 17.97%         |
-    | 32951 | NIK     | HYPERVENOM    |           2 |           10 | bukan_warna | warna       | 94.85%         |
-    | 10929 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    |  5151 | ADI     | GREFOU        |           6 |            6 | warna       | bukan_warna | 11.85%         |
-    | 43160 | NIK     | GLOW          |          11 |           11 | warna       | bukan_warna | 17.97%         |
-    |  5964 | ADI     | CLOUD         |           2 |            3 | warna       | bukan_warna | 1.68%          |
-    |  2801 | ADI     | CROYAL        |           6 |            7 | warna       | bukan_warna | 39.06%         |
-    | 10233 | ADI     | BYW           |           2 |            5 | bukan_warna | warna       | 57.86%         |
-    |  1562 | ADI     | RAWGRE        |           3 |            5 | warna       | bukan_warna | 27.69%         |
-    | 37431 | NIK     | ELMNTL        |           2 |            8 | bukan_warna | warna       | 76.67%         |
-    | 21248 | HER     | LILAMER       |           2 |            7 | bukan_warna | warna       | 76.38%         |
-    | 16594 | ADI     | X9000L4       |           1 |            4 | bukan_warna | warna       | 72.17%         |
-    |  5099 | ADI     | EQTGRN        |           5 |            5 | warna       | bukan_warna | 6.68%          |
-    |  2168 | ADI     | DKBLUE        |           6 |            6 | warna       | bukan_warna | 13.2%          |
-    |  2884 | ADI     | LGSOGR        |           6 |            6 | warna       | bukan_warna | 16.81%         |
-    | 20182 | CAO     | 5600HR        |           2 |            3 | bukan_warna | warna       | 70.09%         |
-    |  9222 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
-    | 22752 | KIP     | METRO         |           2 |            4 | warna       | bukan_warna | 2.3%           |
-    |  6898 | ADI     | CWHITE        |           5 |            7 | warna       | bukan_warna | 34.19%         |
-    |  6439 | ADI     | ALTASWIM      |           1 |            5 | bukan_warna | warna       | 60.68%         |
-    | 34540 | NIK     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
-    |  2279 | ADI     | CBROWN        |           5 |            5 | warna       | bukan_warna | 19.14%         |
-    | 23381 | NIC     | NAVY          |          10 |           11 | warna       | bukan_warna | 8.11%          |
-    |  6865 | ADI     | BLUSPI        |           6 |            6 | warna       | bukan_warna | 2.56%          |
-    |  2066 | ADI     | CRYWHT        |           5 |            5 | warna       | bukan_warna | 15.21%         |
-    | 12118 | ADI     | CONAVY        |           6 |            6 | warna       | bukan_warna | 18.74%         |
-    |  1126 | ADI     | GUM4          |           5 |            5 | warna       | bukan_warna | 34.82%         |
-    |  8629 | ADI     | CARBON        |           4 |            4 | warna       | bukan_warna | 1.97%          |
-    | 37005 | NIK     | ELMNTL        |           2 |            7 | bukan_warna | warna       | 76.67%         |
-    |  1466 | ADI     | CARBON        |           5 |            5 | warna       | bukan_warna | 1.97%          |
-    | 35687 | NIK     | BROWN         |          13 |           13 | warna       | bukan_warna | 39.65%         |
-    |  1796 | ADI     | REAMAG        |           3 |            5 | warna       | bukan_warna | 9.48%          |
-    | 12189 | ADI     | PARKHOOD      |           1 |            3 | bukan_warna | warna       | 80.63%         |
-    | 41017 | NIK     | CARBON        |           8 |           10 | warna       | bukan_warna | 1.97%          |
-    |  3658 | ADI     | VIVTEA        |           5 |            6 | warna       | bukan_warna | 26.08%         |
-    |  6992 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
-    |  9197 | ADI     | ANK           |           2 |            4 | bukan_warna | warna       | 90.51%         |
-    |  6913 | ADI     | OWHITE        |           5 |            5 | warna       | bukan_warna | 22.71%         |
-    | 26544 | NIK     | ACDMY         |           3 |           10 | bukan_warna | warna       | 74.72%         |
-    | 55064 | SOC     | NAVY          |           3 |            4 | warna       | bukan_warna | 8.11%          |
-    |  3906 | ADI     | REARED        |           4 |            6 | warna       | bukan_warna | 8.44%          |
-    | 54866 | SAU     | NAVY          |           3 |            4 | warna       | bukan_warna | 8.11%          |
-    |  1798 | ADI     | CLPINK        |           5 |            5 | warna       | bukan_warna | 31.94%         |
-    | 48138 | PTG     | NAVY          |           2 |            3 | warna       | bukan_warna | 8.11%          |
-    | 21095 | HER     | NAVY          |           6 |            7 | warna       | bukan_warna | 8.11%          |
-    | 32944 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
-    | 15571 | ADI     | SAND          |           2 |            2 | warna       | bukan_warna | 8.78%          |
-    | 13811 | ADI     | OWNTHEGAME    |           1 |            3 | bukan_warna | warna       | 74.23%         |
-    | 10340 | ADI     | VALASION      |           2 |            4 | bukan_warna | warna       | 54.7%          |
-    | 51324 | PUM     | BROWN         |           5 |            6 | warna       | bukan_warna | 39.65%         |
-    | 27162 | NIK     | GLOW          |           8 |            9 | warna       | bukan_warna | 17.97%         |
-    |  4275 | ADI     | MGREYH        |           5 |            7 | warna       | bukan_warna | 40.59%         |
-    | 55981 | STN     | OATMEAL       |           2 |            2 | warna       | bukan_warna | 1.98%          |
-    |  5570 | ADI     | ALPHAEDGE     |           1 |            5 | bukan_warna | warna       | 66.83%         |
-    |   540 | ADI     | REATEA        |           4 |            5 | warna       | bukan_warna | 23.55%         |
-    | 20762 | CAO     | 1BDR          |           3 |            3 | bukan_warna | warna       | 62.83%         |
-    | 33831 | NIK     | EXPX14WHITE   |           2 |            4 | warna       | bukan_warna | 20.9%          |
-    | 20191 | CAO     | 5600MS        |           2 |            3 | bukan_warna | warna       | 50.62%         |
-    | 54157 | PUM     | FIGC          |           1 |            7 | bukan_warna | warna       | 95.07%         |
-    | 54576 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
-    |  8858 | ADI     | ONIX          |           4 |            4 | warna       | bukan_warna | 2.87%          |
-    | 22756 | KIP     | METRO         |           2 |            4 | warna       | bukan_warna | 2.3%           |
-    | 38254 | NIK     | NAVY          |           8 |           11 | warna       | bukan_warna | 8.11%          |
-    | 20473 | CAO     | 5ADR          |           3 |            3 | bukan_warna | warna       | 58.48%         |
-    | 11354 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
-    | 36024 | NIK     | N110          |           2 |           12 | bukan_warna | warna       | 52.47%         |
-    | 12807 | ADI     | SAMBAROSE     |           1 |            4 | bukan_warna | warna       | 72.5%          |
-    | 56746 | WAR     | PAISLEY       |           2 |            4 | warna       | bukan_warna | 10.4%          |
-    | 26324 | NIK     | MERCURIALX    |           1 |           10 | bukan_warna | warna       | 64.81%         |
-    |  1405 | ADI     | PK            |           2 |            4 | warna       | bukan_warna | 7.75%          |
-    |  4010 | ADI     | MANAZERO      |           1 |            5 | bukan_warna | warna       | 52.65%         |
-    | 17275 | AGL     | 5             |           5 |            6 | warna       | bukan_warna | 11.46%         |
-    | 21507 | HER     | FOREST        |           2 |            5 | warna       | bukan_warna | 1.72%          |
-    | 54562 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
-    | 15616 | ADI     | EDGE.3        |           2 |            5 | bukan_warna | warna       | 94.49%         |
-    |  8091 | ADI     | CLEORA        |           6 |            7 | warna       | bukan_warna | 15.4%          |
-    |   762 | ADI     | MSILVE        |           6 |            6 | warna       | bukan_warna | 17.38%         |
-    | 32754 | NIK     | NAVY          |           9 |           12 | warna       | bukan_warna | 8.11%          |
-    |  7272 | ADI     | GREFIV        |           4 |            4 | warna       | bukan_warna | 10.86%         |
-    |  7336 | ADI     | FORTARUN      |           1 |            6 | bukan_warna | warna       | 63.57%         |
-    |  6861 | ADI     | DEERUPT       |           1 |            6 | bukan_warna | warna       | 77.13%         |
-    | 26752 | NIK     | PEELORANGE    |           6 |            7 | warna       | bukan_warna | 8.1%           |
-    | 55804 | STN     | VOLT          |           2 |            2 | warna       | bukan_warna | 8.05%          |
-    | 38091 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
-    |  2304 | ADI     | ALTASWIM      |           1 |            5 | bukan_warna | warna       | 60.68%         |
-    | 44843 | NIK     | NAVY          |           8 |           11 | warna       | bukan_warna | 8.11%          |
-    | 12023 | ADI     | LEGEND        |           2 |            3 | warna       | bukan_warna | 2.54%          |
-    |  6095 | ADI     | CONAVY        |           5 |            6 | warna       | bukan_warna | 18.74%         |
-    | 38387 | NIK     | CARBON        |          10 |           13 | warna       | bukan_warna | 1.97%          |
-    | 10776 | ADI     | CRYSTAL       |           2 |            3 | warna       | bukan_warna | 1.25%          |
-    | 21519 | HER     | PRPL          |           2 |            3 | warna       | bukan_warna | 17.27%         |
-    | 31880 | NIK     | CARBON        |           5 |            8 | warna       | bukan_warna | 1.97%          |
-    | 49108 | PUM     | LALIGA        |           1 |            9 | bukan_warna | warna       | 78.92%         |
-    | 32109 | NIK     | OBRAX         |           1 |           11 | bukan_warna | warna       | 80.22%         |
-    |  1079 | ADI     | SAMBAROSE     |           1 |            5 | bukan_warna | warna       | 72.5%          |
-    | 20708 | CAO     | 5600B         |           2 |            3 | bukan_warna | warna       | 77.72%         |
-    | 27568 | NIK     | HYPERVENOM    |           1 |           10 | bukan_warna | warna       | 94.85%         |
-    |  2055 | ADI     | TECINK        |           5 |            6 | warna       | bukan_warna | 32.44%         |
-    | 13382 | ADI     | ULTIMASHOW    |           1 |            3 | bukan_warna | warna       | 64.8%          |
-    |  1656 | ADI     | ONIX          |           8 |            8 | warna       | bukan_warna | 2.87%          |
-    | 41355 | NIK     | NJR           |           1 |           10 | bukan_warna | warna       | 58.31%         |
-    | 46057 | NIK     | NAVY          |           9 |           11 | warna       | bukan_warna | 8.11%          |
-    | 14748 | ADI     | NAVY          |           7 |            7 | warna       | bukan_warna | 8.11%          |
-    | 51425 | PUM     | SCARLE        |           7 |            7 | warna       | bukan_warna | 28.57%         |
-    |  6570 | ADI     | CRYWHT        |           5 |            6 | warna       | bukan_warna | 15.21%         |
-    |  6786 | ADI     | RAWGRE        |           5 |            7 | warna       | bukan_warna | 27.69%         |
-    | 13531 | ADI     | NAVY          |           7 |            7 | warna       | bukan_warna | 8.11%          |
-    |  8185 | ADI     | OWHITE        |           4 |            6 | warna       | bukan_warna | 22.71%         |
-    | 20418 | CAO     | 2000SU        |           2 |            3 | bukan_warna | warna       | 59.95%         |
-    | 26015 | NIK     | WHT           |          11 |           11 | warna       | bukan_warna | 20.68%         |
-    |   399 | ADI     | POWRED        |           6 |            6 | warna       | bukan_warna | 10.18%         |
-    | 21264 | HER     | FROG          |           2 |            3 | warna       | bukan_warna | 2.64%          |
-    | 55478 | STN     | UMPQUA        |           2 |            8 | bukan_warna | warna       | 64.32%         |
-    |  3992 | ADI     | TRACAR        |           5 |            6 | warna       | bukan_warna | 41.94%         |
-    |  8759 | ADI     | ACTIVE        |           3 |            7 | warna       | bukan_warna | 2.2%           |
-    | 37425 | NIK     | ELMNTL        |           2 |            7 | bukan_warna | warna       | 76.67%         |
-    |   790 | ADI     | SUPPNK        |           4 |            6 | warna       | bukan_warna | 17.73%         |
-    |  5935 | ADI     | TRACAR        |           4 |            5 | warna       | bukan_warna | 41.94%         |
-    | 11694 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    |  2027 | ADI     | MSILVE        |           5 |            5 | warna       | bukan_warna | 17.38%         |
-    | 22760 | KIP     | ARMOR         |           2 |            4 | warna       | bukan_warna | 3.96%          |
-    | 10067 | ADI     | BYW           |           2 |            5 | bukan_warna | warna       | 57.86%         |
-    | 32507 | NIK     | METCON        |           2 |            5 | bukan_warna | warna       | 83.89%         |
-    |   256 | ADI     | TECINK        |           4 |            6 | warna       | bukan_warna | 32.44%         |
-    |  4318 | ADI     | DKBLUE        |           4 |            6 | warna       | bukan_warna | 13.2%          |
-    | 10573 | ADI     | METAL         |           2 |            3 | warna       | bukan_warna | 1.74%          |
-    | 56484 | WAR     | NEON          |           2 |            5 | warna       | bukan_warna | 1.01%          |
-    | 31743 | NIK     | CARBON        |           7 |           10 | warna       | bukan_warna | 1.97%          |
-    | 33469 | NIK     | BROWN         |           9 |            9 | warna       | bukan_warna | 39.65%         |
-    | 14254 | ADI     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
-    |  1919 | ADI     | QTFLEX        |           1 |            4 | bukan_warna | warna       | 71.42%         |
-    | 13304 | ADI     | X9000L4       |           1 |            4 | bukan_warna | warna       | 72.17%         |
-    | 24677 | NIK     | FUTSLIDE      |           1 |            8 | bukan_warna | warna       | 50.7%          |
-    | 24214 | NIK     | OKWAHN        |           1 |            9 | bukan_warna | warna       | 89.27%         |
-    | 12386 | ADI     | TRF           |           1 |            4 | bukan_warna | warna       | 55.14%         |
-    | 19482 | BBC     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
-    | 54571 | REL     | 49            |           8 |            8 | warna       | bukan_warna | 0.95%          |
-    |  3774 | ADI     | PETNIT        |           5 |            5 | warna       | bukan_warna | 7.57%          |
-    | 11431 | ADI     | CONAVY        |           3 |            3 | warna       | bukan_warna | 18.74%         |
-    | 40860 | NIK     | NAVY          |          10 |           10 | warna       | bukan_warna | 8.11%          |
-    | 45302 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
-    |  4155 | ADI     | MYSINK        |           4 |            5 | warna       | bukan_warna | 48.24%         |
-    | 13173 | ADI     | SENSE.4       |           2 |            5 | bukan_warna | warna       | 54.74%         |
-    | 45336 | NIK     | ELMNTL        |           2 |            8 | bukan_warna | warna       | 76.67%         |
-    | 53690 | PUM     | NJR           |           1 |            6 | bukan_warna | warna       | 58.31%         |
-    | 11185 | ADI     | X9000L3       |           1 |            4 | bukan_warna | warna       | 72.55%         |
-    |   331 | ADI     | HIRAQU        |           6 |            7 | warna       | bukan_warna | 42.26%         |
-    | 28741 | NIK     | ARROWZ        |           2 |            6 | bukan_warna | warna       | 75.17%         |
-    | 27626 | NIK     | METCON        |           2 |            7 | bukan_warna | warna       | 83.89%         |
-    | 21043 | HER     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
-    |  7699 | ADI     | CARBON        |           7 |            7 | warna       | bukan_warna | 1.97%          |
-    | 32222 | NIK     | VAPORX        |           2 |           10 | bukan_warna | warna       | 51.13%         |
-    |  6701 | ADI     | CRYWHT        |           6 |            6 | warna       | bukan_warna | 15.21%         |
-    | 51188 | PUM     | BROWN         |           8 |            9 | warna       | bukan_warna | 39.65%         |
-    | 50514 | PUM     | PEACOAT       |           2 |            3 | warna       | bukan_warna | 29.83%         |
-    | 16925 | ADI     | ENEBLU        |           6 |            7 | warna       | bukan_warna | 27.69%         |
-    | 11997 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    |  6039 | ADI     | GREFOU        |           4 |            6 | warna       | bukan_warna | 11.85%         |
-    |  1716 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
-    | 17926 | AGL     | TACOLOCAL     |           1 |            3 | bukan_warna | warna       | 70.23%         |
-    |  3555 | ADI     | CONAVY        |           6 |            7 | warna       | bukan_warna | 18.74%         |
-    |  9541 | ADI     | CONAVY        |           2 |            3 | warna       | bukan_warna | 18.74%         |
-    | 21167 | HER     | FOREST        |           2 |            2 | warna       | bukan_warna | 1.72%          |
-    | 12464 | ADI     | BOTTL         |           2 |            4 | bukan_warna | warna       | 67.36%         |
-    | 12017 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 21457 | HER     | ARROWWOOD     |           2 |            2 | warna       | bukan_warna | 37.38%         |
-    | 42357 | NIK     | ONDECK        |           2 |            7 | bukan_warna | warna       | 69.73%         |
-    |   836 | ADI     | CONAVY        |           5 |            6 | warna       | bukan_warna | 18.74%         |
-    | 29739 | NIK     | BROWN         |           8 |            8 | warna       | bukan_warna | 39.65%         |
-    | 29082 | NIK     | CARBON        |           5 |           10 | warna       | bukan_warna | 1.97%          |
-    | 42835 | NIK     | NAVY          |           9 |           12 | warna       | bukan_warna | 8.11%          |
-    | 12005 | ADI     | RAW           |           2 |            3 | warna       | bukan_warna | 10.17%         |
-    |  1759 | ADI     | BRBLUE        |           3 |            5 | warna       | bukan_warna | 34.32%         |
-    | 11286 | ADI     | RETRORUN      |           1 |            3 | bukan_warna | warna       | 92.55%         |
-    |  3406 | ADI     | BROWN         |           4 |            4 | warna       | bukan_warna | 39.65%         |
-    |   190 | ADI     | DKBLUE        |           4 |            5 | warna       | bukan_warna | 13.2%          |
-    | 46940 | NIK     | REACTBRIGHT   |           2 |            7 | warna       | bukan_warna | 31.82%         |
-    |  1746 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
-    |  2547 | ADI     | CWHITE        |           6 |            6 | warna       | bukan_warna | 34.19%         |
-    |  6798 | ADI     | CWHITE        |           8 |            8 | warna       | bukan_warna | 34.19%         |
-    |  6076 | ADI     | CARBON        |           5 |            5 | warna       | bukan_warna | 1.97%          |
-    | 28470 | NIK     | TIEMPO        |           1 |            7 | bukan_warna | warna       | 74.9%          |
-    |  8054 | ADI     | TRAPNK        |           7 |            7 | warna       | bukan_warna | 48.93%         |
-    | 15761 | ADI     | ALUMINA       |           3 |            3 | warna       | bukan_warna | 2.21%          |
-    | 11107 | ADI     | MULTICOLOR    |           2 |            4 | bukan_warna | warna       | 72.86%         |
-    | 29763 | NIK     | DUALTONE      |           2 |            7 | bukan_warna | warna       | 62.25%         |
-    |  4355 | ADI     | ICEPNK        |           4 |            6 | warna       | bukan_warna | 36.66%         |
-    | 55911 | STN     | MELANGE       |           2 |            3 | warna       | bukan_warna | 4.09%          |
-    |  8292 | ADI     | CLEORA        |           6 |            8 | warna       | bukan_warna | 15.4%          |
-    |  2698 | ADI     | CARBON        |           6 |            6 | warna       | bukan_warna | 1.97%          |
-    | 12263 | ADI     | CLSC          |           1 |            4 | bukan_warna | warna       | 75.23%         |
-    | 15600 | ADI     | SPEEDFLOW.3   |           2 |            5 | bukan_warna | warna       | 89.42%         |
-    | 19926 | CAO     | 2B1DR         |           3 |            3 | bukan_warna | warna       | 73.21%         |
-    | 54184 | PUM     | FIGC          |           1 |            7 | bukan_warna | warna       | 95.07%         |
-    |  2828 | ADI     | SOBAKOV       |           1 |            4 | bukan_warna | warna       | 76.76%         |
-    |  1478 | ADI     | LACELESS      |           2 |            4 | bukan_warna | warna       | 52.25%         |
-    |  1387 | ADI     | SBROWN        |           2 |            4 | warna       | bukan_warna | 32.06%         |
-    |   969 | ADI     | SHOYEL        |           6 |            7 | warna       | bukan_warna | 28.61%         |
-    | 10249 | ADI     | GLOW          |           2 |            3 | warna       | bukan_warna | 17.97%         |
-    | 45362 | NIK     | BROWN         |           6 |           10 | warna       | bukan_warna | 39.65%         |
-    | 54527 | REL     | 49            |           7 |            7 | warna       | bukan_warna | 0.95%          |
-    |  2197 | ADI     | EASGRN        |           7 |            7 | warna       | bukan_warna | 32.5%          |
-    | 21469 | HER     | IVY           |           2 |            5 | warna       | bukan_warna | 5.67%          |
-    | 10134 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    |  1403 | ADI     | F17           |           4 |            4 | warna       | bukan_warna | 41.01%         |
-    | 30229 | NIK     | LUNARCHARGE   |           2 |            8 | bukan_warna | warna       | 88.03%         |
-    | 36821 | NIK     | NAVY          |           5 |            7 | warna       | bukan_warna | 8.11%          |
-    | 14131 | ADI     | X9000L4       |           1 |            5 | bukan_warna | warna       | 72.17%         |
-    | 30705 | NIK     | CARBON        |           9 |           10 | warna       | bukan_warna | 1.97%          |
-    | 10424 | ADI     | CORE          |           2 |            7 | warna       | bukan_warna | 12.15%         |
-    |  5372 | ADI     | CARBON        |           6 |            6 | warna       | bukan_warna | 1.97%          |
-    | 11241 | ADI     | S.RDY         |           2 |            5 | bukan_warna | warna       | 55.58%         |
-    | 52652 | PUM     | GLOW          |           4 |            6 | warna       | bukan_warna | 17.97%         |
-    |  7565 | ADI     | VAPGRE        |           5 |            5 | warna       | bukan_warna | 10.29%         |
-    | 54557 | REL     | 49            |           6 |            6 | warna       | bukan_warna | 0.95%          |
-    | 10029 | ADI     | ASH           |           3 |            4 | warna       | bukan_warna | 1.12%          |
-    |   479 | ADI     | CCMELS        |           3 |            3 | warna       | bukan_warna | 18.28%         |
-    | 16247 | ADI     | MULTICOLOR    |           2 |            2 | bukan_warna | warna       | 72.86%         |
-    | 21042 | HER     | 600D          |           2 |            4 | warna       | bukan_warna | 20.88%         |
-    | 35206 | NIK     | BROWN         |          12 |           12 | warna       | bukan_warna | 39.65%         |
-    | 44628 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
-    | 22789 | KIP     | BROWN         |           3 |            4 | warna       | bukan_warna | 39.65%         |
-    |  5488 | ADI     | CBROWN        |           4 |            6 | warna       | bukan_warna | 19.14%         |
-    |  2592 | ADI     | ICEPUR        |           2 |            4 | warna       | bukan_warna | 11.32%         |
-    |  5265 | ADI     | CONAVY        |           4 |            6 | warna       | bukan_warna | 18.74%         |
-    |  7372 | ADI     | SGREEN        |           2 |            4 | warna       | bukan_warna | 9.32%          |
-    | 13706 | ADI     | SPEEDFLOW.3   |           2 |            5 | bukan_warna | warna       | 89.42%         |
-    | 56715 | WAR     | MINT          |           2 |            5 | warna       | bukan_warna | 8.9%           |
-    | 27571 | NIK     | HYPERVENOM    |           1 |           10 | bukan_warna | warna       | 94.85%         |
-    |  1697 | ADI     | CONAVY        |           4 |            4 | warna       | bukan_warna | 18.74%         |
-    |  8701 | ADI     | CONAVY        |           4 |            5 | warna       | bukan_warna | 18.74%         |
-    | 25205 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
-    |   319 | ADI     | CLEMIN        |           6 |            6 | warna       | bukan_warna | 20.49%         |
-    |  8451 | ADI     | ASH           |           3 |            5 | warna       | bukan_warna | 1.12%          |
-    | 20727 | CAO     | S6900MC       |           2 |            3 | bukan_warna | warna       | 63.97%         |
-    | 55080 | SOC     | SNIPPLE       |           1 |            5 | bukan_warna | warna       | 86.55%         |
-    |  2827 | ADI     | CHACOR        |           5 |            5 | warna       | bukan_warna | 15.05%         |
-    |  4501 | ADI     | SUBGRN        |           6 |            6 | warna       | bukan_warna | 33.45%         |
-    | 15466 | ADI     | SAVANNAH      |           2 |            2 | warna       | bukan_warna | 4.09%          |
-    | 54951 | SAU     | TAN           |           2 |            3 | warna       | bukan_warna | 14.28%         |
-    | 22780 | KIP     | SHADOW        |           2 |            4 | warna       | bukan_warna | 1.52%          |
-    |  8171 | ADI     | ASHSIL        |           6 |            7 | warna       | bukan_warna | 24.08%         |
-    | 15766 | ADI     | CHALK         |           2 |            3 | warna       | bukan_warna | 8.35%          |
-    |  1914 | ADI     | DKBLUE        |           3 |            5 | warna       | bukan_warna | 13.2%          |
-    | 56226 | WAR     | ORANGE        |           2 |            5 | bukan_warna | warna       | 81.34%         |
-    | 20660 | CAO     | 200RD         |           2 |            3 | bukan_warna | warna       | 76.47%         |
-    |  7638 | ADI     | QTFLEX        |           2 |            6 | bukan_warna | warna       | 71.42%         |
-    | 56112 | WAR     | RED           |           1 |            7 | bukan_warna | warna       | 97.51%         |
-    |  9134 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
-    |  7748 | ADI     | LTPINK        |           5 |            6 | warna       | bukan_warna | 33.09%         |
-    |  4385 | ADI     | GREFIV        |           4 |            5 | warna       | bukan_warna | 10.86%         |
-    | 32645 | NIK     | BROWN         |           5 |            9 | warna       | bukan_warna | 39.65%         |
-    |  3245 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
-    | 56014 | VAP     | 0.7L          |           1 |            5 | bukan_warna | warna       | 50.0%          |
-    | 10359 | ADI     | FORTARUN      |           1 |            5 | bukan_warna | warna       | 63.57%         |
-    | 11491 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
-    | 28249 | NIK     | GLOW          |          10 |           12 | warna       | bukan_warna | 17.97%         |
-    |  7677 | ADI     | CRYWHT        |           6 |            7 | warna       | bukan_warna | 15.21%         |
-    | 14005 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
-    |  1018 | ADI     | REDNIT        |           5 |            5 | warna       | bukan_warna | 43.67%         |
-    |  1063 | ADI     | SAMBAROSE     |           1 |            5 | bukan_warna | warna       | 72.5%          |
-    | 12260 | ADI     | CLSC          |           1 |            4 | bukan_warna | warna       | 75.23%         |
-    | 17198 | AGL     | YELLOW        |           2 |            5 | bukan_warna | warna       | 89.07%         |
-    | 11359 | ADI     | C40           |           2 |            4 | bukan_warna | warna       | 59.72%         |
-    | 20466 | CAO     | 2110ET        |           2 |            3 | bukan_warna | warna       | 70.88%         |
-    | 16824 | ADI     | ICEPNK        |           5 |            6 | warna       | bukan_warna | 36.66%         |
-    | 50395 | PUM     | PUMA          |           2 |            5 | warna       | bukan_warna | 4.21%          |
-    |  6090 | ADI     | GREFIV        |           5 |            6 | warna       | bukan_warna | 10.86%         |
-    | 34700 | NIK     | EBERNON       |           2 |            5 | bukan_warna | warna       | 68.67%         |
-    | 32998 | NIK     | 23            |          10 |           11 | warna       | bukan_warna | 1.88%          |
-    |  1686 | ADI     | ORCTIN        |           5 |            6 | warna       | bukan_warna | 21.4%          |
-    | 20168 | CAO     | 8DR           |           3 |            3 | bukan_warna | warna       | 88.99%         |
-    |  1257 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
-    | 31343 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
-    |   895 | ADI     | CONFED        |           1 |            6 | bukan_warna | warna       | 81.99%         |
-    | 12714 | ADI     | CTY           |           2 |            4 | bukan_warna | warna       | 59.04%         |
-    | 48075 | PTG     | ORANGE        |           2 |            3 | bukan_warna | warna       | 81.34%         |
-    | 20988 | HER     | NAVY          |           4 |            5 | warna       | bukan_warna | 8.11%          |
-    |  8818 | ADI     | CONEXT19      |           1 |            3 | bukan_warna | warna       | 68.85%         |
-    |  3965 | ADI     | CONAVY        |           4 |            5 | warna       | bukan_warna | 18.74%         |
-    |  6891 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
-    |  5718 | ADI     | ALTARUN       |           1 |            7 | bukan_warna | warna       | 88.32%         |
-    | 28969 | NIK     | CARBON        |           8 |           10 | warna       | bukan_warna | 1.97%          |
-    | 20987 | HER     | 600D          |           2 |            5 | warna       | bukan_warna | 20.88%         |
-    |  2834 | ADI     | SHOPNK        |           6 |            7 | warna       | bukan_warna | 17.0%          |
-    | 25550 | NIK     | MERCURIALX    |           1 |           12 | bukan_warna | warna       | 64.81%         |
-    | 22828 | KIP     | VANILLA       |           2 |            4 | warna       | bukan_warna | 3.61%          |
-    | 12025 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    |  9534 | ADI     | CONAVY        |           2 |            2 | warna       | bukan_warna | 18.74%         |
-    |  4237 | ADI     | GREFIV        |           5 |            5 | warna       | bukan_warna | 10.86%         |
-    | 10938 | ADI     | STEPBACK      |           2 |            4 | bukan_warna | warna       | 59.97%         |
-    |  9537 | ADI     | CONAVY        |           3 |            3 | warna       | bukan_warna | 18.74%         |
-    | 19829 | CAO     | AW5914ADR     |           2 |            3 | bukan_warna | warna       | 58.17%         |
-    | 54953 | SAU     | BRN           |           2 |            3 | warna       | bukan_warna | 5.43%          |
-    |  1810 | ADI     | REAMAG        |           3 |            5 | warna       | bukan_warna | 9.48%          |
-    | 42240 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
-    | 45351 | NIK     | NAVY          |           9 |           10 | warna       | bukan_warna | 8.11%          |
-    | 56661 | WAR     | THE           |           2 |            5 | warna       | bukan_warna | 18.78%         |
-    |  9480 | ADI     | ANK           |           2 |            4 | bukan_warna | warna       | 90.51%         |
-    | 46828 | NIK     | BROWN         |           7 |           10 | warna       | bukan_warna | 39.65%         |
-    |  3866 | ADI     | REARED        |           4 |            5 | warna       | bukan_warna | 8.44%          |
-    |  1751 | ADI     | FORTARUN      |           1 |            7 | bukan_warna | warna       | 63.57%         |
-    | 20233 | CAO     | 5900RS        |           2 |            3 | bukan_warna | warna       | 67.28%         |
-    | 21032 | HER     | NAVY          |           3 |            6 | warna       | bukan_warna | 8.11%          |
-    |  7864 | ADI     | CARBON        |           4 |            6 | warna       | bukan_warna | 1.97%          |
-    |  8313 | ADI     | OWHITE        |           5 |            7 | warna       | bukan_warna | 22.71%         |
-    |  9502 | ADI     | ANK           |           2 |            4 | bukan_warna | warna       | 90.51%         |
-    |  4222 | ADI     | SESAME        |           5 |            7 | warna       | bukan_warna | 3.41%          |
-    |  5715 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
-    | 29687 | NIK     | BROWN         |           8 |            8 | warna       | bukan_warna | 39.65%         |
-    | 28452 | NIK     | TIEMPO        |           2 |           11 | bukan_warna | warna       | 74.9%          |
-    | 10996 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 32901 | NIK     | HYPERVENOM    |           1 |           10 | bukan_warna | warna       | 94.85%         |
-    |  9636 | ADI     | INF           |           2 |            3 | bukan_warna | warna       | 65.23%         |
-    |  6806 | ADI     | CARBON        |           6 |            8 | warna       | bukan_warna | 1.97%          |
-    | 54017 | PUM     | FIGC          |           1 |            6 | bukan_warna | warna       | 95.07%         |
-    |  7049 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
-    |  3677 | ADI     | REARED        |           5 |            7 | warna       | bukan_warna | 8.44%          |
-    | 23451 | NIC     | NAVY          |          10 |           14 | warna       | bukan_warna | 8.11%          |
-    | 56022 | VAP     | 0.7L          |           1 |            4 | bukan_warna | warna       | 50.0%          |
-    |  5509 | ADI     | SCARLE        |           5 |            7 | warna       | bukan_warna | 28.57%         |
-    |  4532 | ADI     | CWHITE        |           6 |            6 | warna       | bukan_warna | 34.19%         |
-    | 46128 | NIK     | BROWN         |           8 |           10 | warna       | bukan_warna | 39.65%         |
-    |   725 | ADI     | CLEORA        |           6 |            7 | warna       | bukan_warna | 15.4%          |
-    | 13687 | ADI     | X9000L4       |           1 |            3 | bukan_warna | warna       | 72.17%         |
-    | 14544 | ADI     | WHT           |           3 |            3 | warna       | bukan_warna | 20.68%         |
-    | 16588 | ADI     | X9000L4       |           1 |            4 | bukan_warna | warna       | 72.17%         |
-    |  2569 | ADI     | OWHITE        |           4 |            6 | warna       | bukan_warna | 22.71%         |
-    |  6760 | ADI     | TRACAR        |           4 |            4 | warna       | bukan_warna | 41.94%         |
-    | 24924 | NIK     | YTH           |           2 |            9 | bukan_warna | warna       | 69.09%         |
-    |  1407 | ADI     | CARGO         |           4 |            4 | warna       | bukan_warna | 9.55%          |
-    |  2001 | ADI     | NGTCAR        |           4 |            6 | warna       | bukan_warna | 42.73%         |
-    | 21603 | HER     | DARK          |           2 |            5 | warna       | bukan_warna | 27.8%          |
-    |  7274 | ADI     | SESAME        |           2 |            4 | warna       | bukan_warna | 3.41%          |
-    |  4879 | ADI     | HIRERE        |           4 |            6 | warna       | bukan_warna | 10.23%         |
-    | 26239 | NIK     | MERCURIALX    |           2 |           10 | bukan_warna | warna       | 64.81%         |
-    |  7870 | ADI     | VAPGRE        |           7 |            7 | warna       | bukan_warna | 10.29%         |
-    | 47559 | NIK     | 3PPK          |           2 |           10 | bukan_warna | warna       | 53.58%         |
-    | 36627 | NIK     | NAVY          |           5 |            8 | warna       | bukan_warna | 8.11%          |
-    | 55463 | STN     | JOVEN         |           2 |            4 | bukan_warna | warna       | 86.25%         |
-    | 46663 | NIK     | ASUNK         |           1 |            8 | bukan_warna | warna       | 71.18%         |
-    | 21604 | HER     | BROWN         |           5 |            5 | warna       | bukan_warna | 39.65%         |
-    | 19524 | BBC     | BLEACHED      |           1 |            6 | bukan_warna | warna       | 71.67%         |
-    | 46829 | NIK     | BROWN         |           9 |           10 | warna       | bukan_warna | 39.65%         |
-    | 13069 | ADI     | BROWN         |           4 |            4 | warna       | bukan_warna | 39.65%         |
-    | 54661 | REL     | 35            |           5 |            5 | warna       | bukan_warna | 4.4%           |
-    | 10576 | ADI     | SAND          |           2 |            2 | warna       | bukan_warna | 8.78%          |
-    |  3490 | ADI     | SHOCK         |           2 |            3 | warna       | bukan_warna | 7.61%          |
-    | 20547 | CAO     | 1A2DR         |           3 |            3 | bukan_warna | warna       | 63.21%         |
-    |  9936 | ADI     | MAGMUR        |           1 |            6 | bukan_warna | warna       | 61.4%          |
-    | 21085 | HER     | POLY          |           2 |            5 | warna       | bukan_warna | 8.66%          |
-    | 10316 | ADI     | OWNTHEGAME    |           1 |            3 | bukan_warna | warna       | 74.23%         |
-    |  5879 | ADI     | NOBMAR        |           5 |            6 | warna       | bukan_warna | 4.71%          |
-    |  1563 | ADI     | RAWGRE        |           4 |            5 | warna       | bukan_warna | 27.69%         |
-    | 21685 | HER     | NIGHT         |           2 |            3 | warna       | bukan_warna | 1.85%          |
-    | 16626 | ADI     | OWHITE        |           7 |            7 | warna       | bukan_warna | 22.71%         |
-    |   800 | ADI     | CONAVY        |           3 |            5 | warna       | bukan_warna | 18.74%         |
-    | 45342 | NIK     | ELMNTL        |           2 |           10 | bukan_warna | warna       | 76.67%         |
-    | 21037 | HER     | 600D          |           2 |            4 | warna       | bukan_warna | 20.88%         |
-    |  3750 | ADI     | AFA           |           1 |            6 | bukan_warna | warna       | 59.08%         |
-    |  7052 | ADI     | CRYWHT        |           4 |            6 | warna       | bukan_warna | 15.21%         |
-    | 23757 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
-    | 24983 | NIK     | MERCURIALX    |           2 |           12 | bukan_warna | warna       | 64.81%         |
-    |  4815 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
-    |  7740 | ADI     | RAWGRE        |           6 |            6 | warna       | bukan_warna | 27.69%         |
-    |  1592 | ADI     | CWHITE        |           4 |            5 | warna       | bukan_warna | 34.19%         |
-    | 30907 | NIK     | BROWN         |          11 |           12 | warna       | bukan_warna | 39.65%         |
-    | 18208 | BBC     | CLEAR         |           2 |            8 | bukan_warna | warna       | 50.35%         |
-    | 54031 | PUM     | BORUSSE       |           2 |            7 | bukan_warna | warna       | 69.45%         |
-    | 10910 | ADI     | MUTATOR       |           2 |            7 | bukan_warna | warna       | 82.25%         |
-    |  5159 | ADI     | SHOEBAG       |           2 |            4 | bukan_warna | warna       | 57.34%         |
-    |  6852 | ADI     | PROPHERE      |           1 |            5 | bukan_warna | warna       | 75.27%         |
-    | 20480 | CAO     | CSWGYOSAD     |           1 |            3 | bukan_warna | warna       | 64.98%         |
-    | 15190 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
-    | 14069 | ADI     | SAMBAROSE     |           1 |            4 | bukan_warna | warna       | 72.5%          |
-    |  8479 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 54612 | REL     | 35            |           7 |            7 | warna       | bukan_warna | 4.4%           |
-    | 28689 | NIK     | GLOW          |           9 |           11 | warna       | bukan_warna | 17.97%         |
-    | 12923 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 20513 | CAO     | 3ADR          |           3 |            3 | bukan_warna | warna       | 71.37%         |
-    |  6772 | ADI     | OWHITE        |           7 |            7 | warna       | bukan_warna | 22.71%         |
-    | 14727 | ADI     | LEGEND        |           2 |            3 | warna       | bukan_warna | 2.54%          |
-    |  6770 | ADI     | CBROWN        |           5 |            7 | warna       | bukan_warna | 19.14%         |
-    |  1899 | ADI     | HIRAQU        |           3 |            5 | warna       | bukan_warna | 42.26%         |
-    |  4254 | ADI     | CONAVY        |           6 |            6 | warna       | bukan_warna | 18.74%         |
-    |  1900 | ADI     | HIRAQU        |           4 |            5 | warna       | bukan_warna | 42.26%         |
-    | 33814 | NIK     | EXPZ07WHITE   |           2 |            3 | warna       | bukan_warna | 34.37%         |
-    |  7119 | ADI     | CWHITE        |           4 |            6 | warna       | bukan_warna | 34.19%         |
-    |  7805 | ADI     | CARBON        |           4 |            6 | warna       | bukan_warna | 1.97%          |
-    | 20775 | CIT     | AF            |           3 |            5 | bukan_warna | warna       | 64.09%         |
-    |  2207 | ADI     | TURBO         |           6 |            6 | warna       | bukan_warna | 0.94%          |
-    | 22457 | KIP     | RS46          |           1 |            5 | bukan_warna | warna       | 71.93%         |
-    | 21386 | HER     | BRBDSCHRY     |           2 |            3 | warna       | bukan_warna | 45.77%         |
-    |  2424 | ADI     | TURBO         |           7 |            7 | warna       | bukan_warna | 0.94%          |
-    | 46731 | NIK     | CARBON        |           5 |           10 | warna       | bukan_warna | 1.97%          |
-    |  6886 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
-    |  5204 | ADI     | TRAPNK        |           5 |            6 | warna       | bukan_warna | 48.93%         |
-    |  7371 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
-    | 11314 | ADI     | MUTATOR       |           2 |            6 | bukan_warna | warna       | 82.25%         |
-    | 10320 | ADI     | CORE          |           2 |            7 | warna       | bukan_warna | 12.15%         |
-    |  3183 | ADI     | MYSINK        |           7 |            7 | warna       | bukan_warna | 48.24%         |
-    | 35213 | NIK     | GLOW          |          10 |           10 | warna       | bukan_warna | 17.97%         |
-    |  5170 | ADI     | FEF           |           1 |            5 | bukan_warna | warna       | 50.67%         |
-    | 16112 | ADI     | VAPOUR        |           2 |            3 | warna       | bukan_warna | 14.01%         |
-    |  1911 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
-    | 27055 | NIK     | ONDA          |           2 |            9 | bukan_warna | warna       | 73.03%         |
-    | 11545 | ADI     | ACTIVE        |           3 |            4 | warna       | bukan_warna | 2.2%           |
-    |  9705 | ADI     | ASH           |           3 |            5 | warna       | bukan_warna | 1.12%          |
-    | 43926 | NIK     | NAVY          |           8 |            8 | warna       | bukan_warna | 8.11%          |
-    |  4659 | ADI     | BOAQUA        |           2 |            4 | warna       | bukan_warna | 15.24%         |
-    | 38771 | NIK     | BROWN         |          10 |           10 | warna       | bukan_warna | 39.65%         |
-    | 54733 | REL     | 49            |           7 |            8 | warna       | bukan_warna | 0.95%          |
-    |  2588 | ADI     | CONAVY        |           2 |            4 | warna       | bukan_warna | 18.74%         |
-    | 29699 | NIK     | DUALTONE      |           2 |            8 | bukan_warna | warna       | 62.25%         |
-    |  6884 | ADI     | GREFOU        |           4 |            5 | warna       | bukan_warna | 11.85%         |
-    |  4083 | ADI     | ICEPNK        |           4 |            6 | warna       | bukan_warna | 36.66%         |
-    | 22824 | KIP     | VANILLA       |           2 |            4 | warna       | bukan_warna | 3.61%          |
-    | 46230 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
-    |   577 | ADI     | HIRAQU        |           6 |            6 | warna       | bukan_warna | 42.26%         |
-    | 21106 | HER     | POLY          |           2 |            4 | warna       | bukan_warna | 8.66%          |
-    | 48162 | PTG     | GREEN         |           2 |            3 | bukan_warna | warna       | 94.05%         |
-    |  6086 | ADI     | HIRERE        |           6 |            6 | warna       | bukan_warna | 10.23%         |
-    |  5236 | ADI     | C40           |           1 |            8 | bukan_warna | warna       | 59.72%         |
-    | 47555 | NIK     | 3PPK          |           3 |            7 | bukan_warna | warna       | 53.58%         |
-    | 21982 | HER     | FLORAL        |           2 |            3 | warna       | bukan_warna | 12.21%         |
-    |  2268 | ADI     | MYSINK        |           6 |            7 | warna       | bukan_warna | 48.24%         |
-    | 42234 | NIK     | NAVY          |           6 |           10 | warna       | bukan_warna | 8.11%          |
-    |  4065 | ADI     | SESOYE        |           6 |            6 | warna       | bukan_warna | 46.29%         |
-    | 24523 | NIK     | ANTHRACITE    |           3 |            5 | warna       | bukan_warna | 5.65%          |
-    |   778 | ADI     | SCARLE        |           4 |            6 | warna       | bukan_warna | 28.57%         |
-    |  9776 | ADI     | ANK           |           2 |            5 | bukan_warna | warna       | 90.51%         |
-    | 17938 | AND     | BROWN         |           4 |            4 | warna       | bukan_warna | 39.65%         |
-    | 11697 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 54636 | REL     | 35            |           6 |            6 | warna       | bukan_warna | 4.4%           |
-    |  2910 | ADI     | ONIX          |           4 |            5 | warna       | bukan_warna | 2.87%          |
-    |  3701 | ADI     | CROYAL        |           5 |            5 | warna       | bukan_warna | 39.06%         |
-    | 23016 | KIP     | NAVY          |           3 |            4 | warna       | bukan_warna | 8.11%          |
-    |  2909 | ADI     | CARBON        |           3 |            5 | warna       | bukan_warna | 1.97%          |
-    |  4889 | ADI     | STARLANCER    |           1 |            5 | bukan_warna | warna       | 66.83%         |
-    |  6845 | ADI     | OWHITE        |           6 |            7 | warna       | bukan_warna | 22.71%         |
-    | 52023 | PUM     | ANZARUN       |           1 |            6 | bukan_warna | warna       | 83.68%         |
-    |  6881 | ADI     | DEERUPT       |           1 |            5 | bukan_warna | warna       | 77.13%         |
-    | 22725 | KIP     | FS68          |           1 |            4 | bukan_warna | warna       | 79.76%         |
-    | 47705 | NIK     | 3PPK          |           3 |            7 | bukan_warna | warna       | 53.58%         |
-    |  6943 | ADI     | HIRERE        |           4 |            6 | warna       | bukan_warna | 10.23%         |
-    | 12683 | ADI     | NAVY          |           3 |            3 | warna       | bukan_warna | 8.11%          |
-    | 13709 | ADI     | SPEEDFLOW.3   |           2 |            5 | bukan_warna | warna       | 89.42%         |
-    | 32639 | NIK     | BROWN         |           9 |            9 | warna       | bukan_warna | 39.65%         |
-    |   588 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
-    |   777 | ADI     | INF           |           3 |            6 | bukan_warna | warna       | 65.23%         |
-    | 48114 | PTG     | NAVY          |           8 |            8 | warna       | bukan_warna | 8.11%          |
-    | 40901 | NIK     | GLOW          |          11 |           11 | warna       | bukan_warna | 17.97%         |
-    | 14243 | ADI     | CORE          |           2 |            7 | warna       | bukan_warna | 12.15%         |
-    | 20256 | CAO     | 8DR           |           3 |            4 | bukan_warna | warna       | 88.99%         |
-    | 39749 | NIK     | ATSUMA        |           2 |            8 | bukan_warna | warna       | 66.4%          |
-    |  9908 | ADI     | FUTUREPACER   |           1 |            3 | bukan_warna | warna       | 53.18%         |
-    |  7278 | ADI     | CWHITE        |           2 |            4 | warna       | bukan_warna | 34.19%         |
-    |  7116 | ADI     | POWRED        |           5 |            5 | warna       | bukan_warna | 10.18%         |
-    | 10328 | ADI     | ACTIVE        |           2 |            3 | warna       | bukan_warna | 2.2%           |
-    | 19919 | CAO     | 150FL         |           2 |            3 | bukan_warna | warna       | 53.1%          |
-    | 15225 | ADI     | NAVY          |           6 |            6 | warna       | bukan_warna | 8.11%          |
-    | 54549 | REL     | 49            |           8 |            8 | warna       | bukan_warna | 0.95%          |
-    | 27543 | NIK     | MERCURIALX    |           1 |           11 | bukan_warna | warna       | 64.81%         |
-    |  9135 | ADI     | GYMSACK       |           1 |            3 | bukan_warna | warna       | 84.56%         |
-    |  3316 | ADI     | BLUSPI        |           4 |            4 | warna       | bukan_warna | 2.56%          |
-    | 33002 | NIK     | NAVY          |          10 |           11 | warna       | bukan_warna | 8.11%          |
-    |  2704 | ADI     | ASHPEA        |           3 |            5 | warna       | bukan_warna | 37.38%         |
-    | 48475 | PUM     | EVOSPEED      |           1 |            8 | bukan_warna | warna       | 64.06%         |
-    |   263 | ADI     | BLUSPI        |           5 |            5 | warna       | bukan_warna | 2.56%          |
-    |   244 | ADI     | CARBON        |           3 |            4 | warna       | bukan_warna | 1.97%          |
-    |  8771 | ADI     | CONEXT19      |           1 |            3 | bukan_warna | warna       | 68.85%         |
-    | 16288 | ADI     | BLK           |           2 |            5 | bukan_warna | warna       | 90.16%         |
-    | 13114 | ADI     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
-    | 22701 | KIP     | FS66          |           1 |            5 | bukan_warna | warna       | 67.33%         |
-    | 21174 | HER     | RED           |           4 |            8 | bukan_warna | warna       | 97.51%         |
-    |  5607 | ADI     | SUPPNK        |           4 |            6 | warna       | bukan_warna | 17.73%         |
-    |  5285 | ADI     | BLUSPI        |           5 |            5 | warna       | bukan_warna | 2.56%          |
-    | 35941 | NIK     | GLOW          |           9 |            9 | warna       | bukan_warna | 17.97%         |
-    | 17081 | ADI     | ADISOCK       |           1 |            4 | bukan_warna | warna       | 81.34%         |
-    |  4283 | ADI     | SCARLE        |           6 |            6 | warna       | bukan_warna | 28.57%         |
-    | 11176 | ADI     | X9000L3       |           1 |            4 | bukan_warna | warna       | 72.55%         |
-    | 40776 | NIK     | BROWN         |          11 |           11 | warna       | bukan_warna | 39.65%         |
-    | 21034 | HER     | 600D          |           2 |            5 | warna       | bukan_warna | 20.88%         |
-    | 13299 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    |  1715 | ADI     | OWHITE        |           5 |            5 | warna       | bukan_warna | 22.71%         |
-    | 29098 | NIK     | 8ASHEN        |           3 |            6 | warna       | bukan_warna | 12.62%         |
-    | 40232 | NIK     | GLOW          |           7 |           11 | warna       | bukan_warna | 17.97%         |
-    |  7006 | ADI     | VIRAL2        |           2 |            6 | bukan_warna | warna       | 50.53%         |
-    | 54901 | SAU     | LOWPRO        |           2 |            4 | bukan_warna | warna       | 54.57%         |
-    | 16035 | ADI     | OWNTHEGAME    |           1 |            4 | bukan_warna | warna       | 74.23%         |
-    |  8669 | ADI     | CARBON        |           4 |            5 | warna       | bukan_warna | 1.97%          |
-    |  6764 | ADI     | CARBON        |           5 |            7 | warna       | bukan_warna | 1.97%          |
-    |  1527 | ADI     | CARBON        |           5 |            6 | warna       | bukan_warna | 1.97%          |
-    | 31116 | NIK     | ANTHRACITE    |           3 |            6 | warna       | bukan_warna | 5.65%          |
-    | 31261 | NIK     | VARSITY       |           2 |            6 | warna       | bukan_warna | 2.61%          |
-    | 18808 | BBC     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
-    |  9246 | ADI     | 2PP           |           3 |            5 | bukan_warna | warna       | 55.75%         |
-    | 27576 | NIK     | HYPERVENOM    |           1 |            9 | bukan_warna | warna       | 94.85%         |
-    | 55555 | STN     | LOGOMAN       |           2 |            5 | bukan_warna | warna       | 71.27%         |
-    | 21384 | HER     | ASH           |           2 |            3 | warna       | bukan_warna | 1.12%          |
-    | 32114 | NIK     | OBRAX         |           1 |           10 | bukan_warna | warna       | 80.22%         |
-    |  3783 | ADI     | EQTGRN        |           4 |            6 | warna       | bukan_warna | 6.68%          |
-    | 54724 | REL     | 35            |           5 |            6 | warna       | bukan_warna | 4.4%           |
-    |  2403 | ADI     | OWHITE        |           8 |            8 | warna       | bukan_warna | 22.71%         |
-    | 55759 | STN     | RASTA         |           2 |            2 | warna       | bukan_warna | 5.01%          |
-    |  2267 | ADI     | MYSINK        |           5 |            7 | warna       | bukan_warna | 48.24%         |
-    |  3843 | ADI     | PETNIT        |           4 |            6 | warna       | bukan_warna | 7.57%          |
-    | 13308 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 13296 | ADI     | X9000L4       |           1 |            3 | bukan_warna | warna       | 72.17%         |
-    |  3088 | ADI     | OWHITE        |           6 |            7 | warna       | bukan_warna | 22.71%         |
-    |  3715 | ADI     | GREFIV        |           6 |            6 | warna       | bukan_warna | 10.86%         |
-    | 16063 | ADI     | PRIMEBLUE     |           2 |            4 | warna       | bukan_warna | 22.63%         |
-    |  2227 | ADI     | MYSINK        |           4 |            6 | warna       | bukan_warna | 48.24%         |
-    |   656 | ADI     | BGREEN        |           7 |            7 | warna       | bukan_warna | 20.2%          |
-    |  1386 | ADI     | PROPHERE      |           1 |            4 | bukan_warna | warna       | 75.27%         |
-    |   873 | ADI     | VAPGRE        |           4 |            6 | warna       | bukan_warna | 10.29%         |
-    |  5248 | ADI     | CORBLU        |           4 |            6 | warna       | bukan_warna | 10.96%         |
-    | 14406 | ADI     | MICROPACER_R1 |           1 |            3 | bukan_warna | warna       | 90.84%         |
-    | 32893 | NIK     | HYPERVENOM    |           1 |           13 | bukan_warna | warna       | 94.85%         |
-    | 21428 | HER     | ASH           |           2 |            3 | warna       | bukan_warna | 1.12%          |
-    | 42214 | NIK     | NAVY          |           7 |            9 | warna       | bukan_warna | 8.11%          |
-    |   235 | ADI     | ASHSIL        |           6 |            7 | warna       | bukan_warna | 24.08%         |
-    | 24199 | NIK     | BROWN         |           5 |            6 | warna       | bukan_warna | 39.65%         |
-    |  3977 | ADI     | CLONIX        |           8 |            8 | warna       | bukan_warna | 14.34%         |
-    | 11634 | ADI     | ALTASWIM      |           1 |            9 | bukan_warna | warna       | 60.68%         |
-    |  7279 | ADI     | CWHITE        |           3 |            4 | warna       | bukan_warna | 34.19%         |
-    | 23752 | NIK     | NAVY          |           6 |           10 | warna       | bukan_warna | 8.11%          |
-    |  6532 | ADI     | SESAME        |           6 |            7 | warna       | bukan_warna | 3.41%          |
-    |  6870 | ADI     | BLUBIR        |           5 |            5 | warna       | bukan_warna | 25.92%         |
-    | 32913 | NIK     | HYPERVENOM    |           1 |            8 | bukan_warna | warna       | 94.85%         |
-    | 25371 | NIK     | 23            |           6 |            6 | warna       | bukan_warna | 1.88%          |
-    | 13895 | ADI     | FORTARUN      |           1 |            7 | bukan_warna | warna       | 63.57%         |
-    | 21687 | HER     | DARK          |           2 |            4 | warna       | bukan_warna | 27.8%          |
-    | 22291 | KIP     | BROWN         |           3 |            4 | warna       | bukan_warna | 39.65%         |
-    |  3981 | ADI     | GREFIV        |           5 |            6 | warna       | bukan_warna | 10.86%         |
-    | 22804 | KIP     | POWDER        |           2 |            4 | warna       | bukan_warna | 5.1%           |
-    | 35787 | NIK     | VARSITY       |           2 |           10 | warna       | bukan_warna | 2.61%          |
-    | 15445 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
-    | 25943 | NIK     | ESSENTIALIST  |           2 |            7 | bukan_warna | warna       | 56.6%          |
-    |  1673 | ADI     | SHOPNK        |           4 |            6 | warna       | bukan_warna | 17.0%          |
-    |  3487 | ADI     | FUTUREPACER   |           1 |            4 | bukan_warna | warna       | 53.18%         |
-    | 47988 | PSB     | PERSIB        |           2 |            4 | bukan_warna | warna       | 77.61%         |
-    |  5873 | ADI     | ASHSIL        |           5 |            7 | warna       | bukan_warna | 24.08%         |
-    | 22176 | KIP     | BROWN         |           3 |            4 | warna       | bukan_warna | 39.65%         |
-    | 30182 | NIK     | NAVY          |           5 |            9 | warna       | bukan_warna | 8.11%          |
-    | 24674 | NIK     | FUTSLIDE      |           1 |            8 | bukan_warna | warna       | 50.7%          |
-    |  8776 | ADI     | CONEXT19      |           1 |            4 | bukan_warna | warna       | 68.85%         |
-    | 10083 | ADI     | NAVY          |           3 |            3 | warna       | bukan_warna | 8.11%          |
-    |  1664 | ADI     | ONIX          |           8 |            8 | warna       | bukan_warna | 2.87%          |
-    | 21051 | HER     | NAVY          |           4 |            4 | warna       | bukan_warna | 8.11%          |
-    |  7370 | ADI     | SHOYEL        |           5 |            5 | warna       | bukan_warna | 28.61%         |
-    |  5576 | ADI     | RAWGRE        |           4 |            6 | warna       | bukan_warna | 27.69%         |
-    |  3844 | ADI     | PETNIT        |           5 |            6 | warna       | bukan_warna | 7.57%          |
-    | 15727 | ADI     | NAVY          |           5 |            5 | warna       | bukan_warna | 8.11%          |
-    |  7241 | ADI     | CWHITE        |           4 |            5 | warna       | bukan_warna | 34.19%         |
-    | 15367 | ADI     | TIRO          |           1 |            3 | bukan_warna | warna       | 58.89%         |
-    |  4623 | ADI     | SBROWN        |           3 |            5 | warna       | bukan_warna | 32.06%         |
-    |   652 | ADI     | STLT          |           3 |            7 | bukan_warna | warna       | 62.02%         |
-    |  8894 | ADI     | ONIX          |           6 |            8 | warna       | bukan_warna | 2.87%          |
-    |  7170 | ADI     | SHOYEL        |           3 |            5 | warna       | bukan_warna | 28.61%         |
-    |  1017 | ADI     | NTGREY        |           4 |            5 | warna       | bukan_warna | 44.82%         |
-    | 37383 | NIK     | ACDMY         |           2 |            8 | bukan_warna | warna       | 74.72%         |
-    | 13380 | ADI     | CORE          |           2 |            3 | warna       | bukan_warna | 12.15%         |
+|       | brand   | kata          | nama_artikel                                                                             |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
+|------:|:--------|:--------------|:-----------------------------------------------------------------------------------------|------------:|-------------:|:------------|:------------|:---------------|
+| 20530 | CAO     | 700SK         | GA-700SK-1ADR                                                                            |           2 |            3 | bukan_warna | warna       | 97.71%         |
+| 56112 | WAR     | RED           | RED BLACK FLAT NON REFLECTIVE-RED/BLACK                                                  |           1 |            7 | bukan_warna | warna       | 97.51%         |
+| 21174 | HER     | RED           | HER-HERITAGE-BOSTON RED SOX-(21L)-BAG-US                                                 |           4 |            8 | bukan_warna | warna       | 97.51%         |
+| 54184 | PUM     | FIGC          | FIGC AWAY SHIRT REPLICA-PUMA WHITE-PEACOAT                                               |           1 |            7 | bukan_warna | warna       | 95.07%         |
+| 54157 | PUM     | FIGC          | FIGC AWAY SHIRT REPLICA PUMA WHITE-PEACOAT                                               |           1 |            7 | bukan_warna | warna       | 95.07%         |
+| 54017 | PUM     | FIGC          | FIGC ITALIA STADIUM JACKET-WHITE-PEACOAT                                                 |           1 |            6 | bukan_warna | warna       | 95.07%         |
+| 27571 | NIK     | HYPERVENOM    | HYPERVENOM PHATAL III DF FG-LASER ORANGE/WHITE-BLACK-VOLT                                |           1 |           10 | bukan_warna | warna       | 94.85%         |
+| 32944 | NIK     | HYPERVENOM    | HYPERVENOM 3 CLUB FGWHITE/MTLC COOL GREYVOLTMTLC COOL GREY                               |           1 |            9 | bukan_warna | warna       | 94.85%         |
+| 32913 | NIK     | HYPERVENOM    | HYPERVENOM 3 ACADEMY IC-BLACK/MTLC VIVID GOLD                                            |           1 |            8 | bukan_warna | warna       | 94.85%         |
+| 25205 | NIK     | HYPERVENOM    | HYPERVENOM PHATAL II DF FG-BLACK/BLACK-MTLC HEMATITE                                     |           1 |            9 | bukan_warna | warna       | 94.85%         |
+| 32901 | NIK     | HYPERVENOM    | HYPERVENOM 3 PRO DF FGLT CRIMSON/MTLC DARK GREYWOLF GREY                                 |           1 |           10 | bukan_warna | warna       | 94.85%         |
+| 27576 | NIK     | HYPERVENOM    | HYPERVENOM PHELON III FG-LASER ORANGE/WHITE-BLACK-VOLT                                   |           1 |            9 | bukan_warna | warna       | 94.85%         |
+| 32951 | NIK     | HYPERVENOM    | JR HYPERVENOM 3 CLUB FGLT CRIMSON/MTLC DARK GREYWOLF GREY                                |           2 |           10 | bukan_warna | warna       | 94.85%         |
+| 27594 | NIK     | HYPERVENOM    | HYPERVENOM PHANTOM III FG-ELECTRIC GREEN/BLACK-HYPER ORANGE-                             |           1 |            9 | bukan_warna | warna       | 94.85%         |
+| 32893 | NIK     | HYPERVENOM    | HYPERVENOM 3 PRO DF FG-WHITE/MTLC COOL GREY-VOLT-MTLC COOL G                             |           1 |           13 | bukan_warna | warna       | 94.85%         |
+| 27568 | NIK     | HYPERVENOM    | HYPERVENOM PHATAL III DF FG-ELECTRIC GREEN/BLACK-HYPER ORANG                             |           1 |           10 | bukan_warna | warna       | 94.85%         |
+| 15616 | ADI     | EDGE.3        | PREDATOR EDGE.3 IN-CORE BLACK                                                            |           2 |            5 | bukan_warna | warna       | 94.49%         |
+| 48162 | PTG     | GREEN         | TREA GREEN-GREEN                                                                         |           2 |            3 | bukan_warna | warna       | 94.05%         |
+| 34040 | NIK     | SUPRFLY       | JR SUPRFLY 6 ACADEMY GS NJR MGAMARILLO/WHITEBLACK                                        |           2 |            8 | bukan_warna | warna       | 93.28%         |
+| 11286 | ADI     | RETRORUN      | RETRORUN-CORE BLACK                                                                      |           1 |            3 | bukan_warna | warna       | 92.55%         |
+| 14406 | ADI     | MICROPACER_R1 | MICROPACER_R1-CORE BLACK                                                                 |           1 |            3 | bukan_warna | warna       | 90.84%         |
+|  9197 | ADI     | ANK           | TREFOIL ANK STR-MAROON                                                                   |           2 |            4 | bukan_warna | warna       | 90.51%         |
+|  9480 | ADI     | ANK           | LIGHT ANK 1PP-WHITE                                                                      |           2 |            4 | bukan_warna | warna       | 90.51%         |
+|  9502 | ADI     | ANK           | LIGHT ANK 3PP-WHITE                                                                      |           2 |            4 | bukan_warna | warna       | 90.51%         |
+|  9776 | ADI     | ANK           | TREF ANK SCK HC-BLACK                                                                    |           2 |            5 | bukan_warna | warna       | 90.51%         |
+| 16288 | ADI     | BLK           | CLR BLK CRW 2PP-BLACK                                                                    |           2 |            5 | bukan_warna | warna       | 90.16%         |
+| 15600 | ADI     | SPEEDFLOW.3   | X SPEEDFLOW.3 IN-SKY RUSH                                                                |           2 |            5 | bukan_warna | warna       | 89.42%         |
+| 13706 | ADI     | SPEEDFLOW.3   | X SPEEDFLOW.3 FG J-RED                                                                   |           2 |            5 | bukan_warna | warna       | 89.42%         |
+| 13709 | ADI     | SPEEDFLOW.3   | X SPEEDFLOW.3 IN J-RED                                                                   |           2 |            5 | bukan_warna | warna       | 89.42%         |
+| 24214 | NIK     | OKWAHN        | OKWAHN II-GOLDEN BEIGE/DEEP ROYAL BLUE-TRUE BERRY                                        |           1 |            9 | bukan_warna | warna       | 89.27%         |
+| 55642 | STN     | MOUSEKETEER   | STN-MOUSEKETEER-MULTI-(M)-ACC-MN                                                         |           2 |            6 | bukan_warna | warna       | 89.19%         |
+| 17198 | AGL     | YELLOW        | ESAGLXY YELLOW CRICKET LIGHTER -YELLOW                                                   |           2 |            5 | bukan_warna | warna       | 89.07%         |
+| 20168 | CAO     | 8DR           | DW-5600CA-8DR                                                                            |           3 |            3 | bukan_warna | warna       | 88.99%         |
+| 20256 | CAO     | 8DR           | DW-6900LU-8DR-GRAY                                                                       |           3 |            4 | bukan_warna | warna       | 88.99%         |
+|  5757 | ADI     | ALTARUN       | ALTARUN CF I-REAL MAGENTA                                                                |           1 |            5 | bukan_warna | warna       | 88.32%         |
+|  5718 | ADI     | ALTARUN       | ALTARUN CF K-BLUE/FTWR WHITE/BLUE                                                        |           1 |            7 | bukan_warna | warna       | 88.32%         |
+| 30229 | NIK     | LUNARCHARGE   | NIKE LUNARCHARGE ESSENTIAL-BLACK/TEAM RED-TEAM RED                                       |           2 |            8 | bukan_warna | warna       | 88.03%         |
+| 55080 | SOC     | SNIPPLE       | SNIPPLE LOW ECLIPSE-BLACK/MULTI                                                          |           1 |            5 | bukan_warna | warna       | 86.55%         |
+| 55505 | STN     | JOVEN         | STN-JOVEN-GREY-(M)-ACC-US                                                                |           2 |            6 | bukan_warna | warna       | 86.25%         |
+| 55487 | STN     | JOVEN         | STN-JOVEN-BLACK-(M)-ACC-US                                                               |           2 |            6 | bukan_warna | warna       | 86.25%         |
+| 55463 | STN     | JOVEN         | STANCE JOVEN FOUNDATION GREY                                                             |           2 |            4 | bukan_warna | warna       | 86.25%         |
+|  9201 | ADI     | GYMSACK       | GYMSACK TREFOIL-BLACK/NGTCAR                                                             |           1 |            4 | bukan_warna | warna       | 84.56%         |
+|  9135 | ADI     | GYMSACK       | GYMSACK 3D-BLACK                                                                         |           1 |            3 | bukan_warna | warna       | 84.56%         |
+|  3544 | ADI     | GYMSACK       | GYMSACK 3D-WHITE                                                                         |           1 |            3 | bukan_warna | warna       | 84.56%         |
+| 32507 | NIK     | METCON        | NIKE METCON 4-BLACK/WHITE                                                                |           2 |            5 | bukan_warna | warna       | 83.89%         |
+| 27626 | NIK     | METCON        | NIKE METCON 3-BLACK/WHITE-METALLIC SILVER                                                |           2 |            7 | bukan_warna | warna       | 83.89%         |
+| 18880 | BBC     | OVERDYED      | OVERDYED BUTTON-UP POPOVER HOODIE-OLIVE                                                  |           1 |            6 | bukan_warna | warna       | 83.76%         |
+| 52023 | PUM     | ANZARUN       | ANZARUN LITE PUMA BLACK-PUMA WHITE                                                       |           1 |            6 | bukan_warna | warna       | 83.68%         |
+| 13176 | ADI     | MUTATOR       | PREDATOR MUTATOR 20.1 L FG-SKY TINT                                                      |           2 |            7 | bukan_warna | warna       | 82.25%         |
+| 11314 | ADI     | MUTATOR       | PREDATOR MUTATOR 20+ FG-SIGNAL GREEN                                                     |           2 |            6 | bukan_warna | warna       | 82.25%         |
+| 10910 | ADI     | MUTATOR       | PREDATOR MUTATOR 20.1 FG-TEAM ROYAL BLUE                                                 |           2 |            7 | bukan_warna | warna       | 82.25%         |
+|   895 | ADI     | CONFED        | CONFED GLIDNOLO-WHITE/BRIRED/RED/BLACK                                                   |           1 |            6 | bukan_warna | warna       | 81.99%         |
+| 56226 | WAR     | ORANGE        | SHOELACES ORANGE OVAL LACES-ORANGE                                                       |           2 |            5 | bukan_warna | warna       | 81.34%         |
+| 48075 | PTG     | ORANGE        | POLKA ORANGE-ORANGE                                                                      |           2 |            3 | bukan_warna | warna       | 81.34%         |
+| 17081 | ADI     | ADISOCK       | ADISOCK 12-WHT/BLACK                                                                     |           1 |            4 | bukan_warna | warna       | 81.34%         |
+| 12189 | ADI     | PARKHOOD      | PARKHOOD WB-BLACK                                                                        |           1 |            3 | bukan_warna | warna       | 80.63%         |
+| 32109 | NIK     | OBRAX         | OBRAX 2 ACADEMY DF IC-WHITE/MTLC COOL GREY-LT CRIMSON                                    |           1 |           11 | bukan_warna | warna       | 80.22%         |
+| 32120 | NIK     | OBRAX         | OBRAX 2 CLUB IC-WHITE/MTLC COOL GREY-LT CRIMSON                                          |           1 |           10 | bukan_warna | warna       | 80.22%         |
+| 32114 | NIK     | OBRAX         | OBRAX 2 CLUB IC-DARK GREY/BLACK-TOTAL ORANGE-WHITE                                       |           1 |           10 | bukan_warna | warna       | 80.22%         |
+| 22725 | KIP     | FS68          | FS68-BEIGE BRAID-115                                                                     |           1 |            4 | bukan_warna | warna       | 79.76%         |
+| 49108 | PUM     | LALIGA        | LALIGA 1 FIFA QUALITY PRO PINK ALERT-YELLOW ALERT                                        |           1 |            9 | bukan_warna | warna       | 78.92%         |
+| 48125 | PTG     | TANNE         | TANNE GREY-GREY                                                                          |           1 |            3 | bukan_warna | warna       | 78.4%          |
+| 22680 | KIP     | FS64          | FS64-BLUE YELOW ZIGZAG-90                                                                |           1 |            5 | bukan_warna | warna       | 77.84%         |
+| 20708 | CAO     | 5600B         | GM-5600B-3DR                                                                             |           2 |            3 | bukan_warna | warna       | 77.72%         |
+| 47988 | PSB     | PERSIB        | SCARF PERSIB LOGO - BLUE                                                                 |           2 |            4 | bukan_warna | warna       | 77.61%         |
+|  1706 | ADI     | DEERUPT       | DEERUPT W-GREONE/GREONE/AERBLU                                                           |           1 |            5 | bukan_warna | warna       | 77.13%         |
+|  6861 | ADI     | DEERUPT       | DEERUPT RUNNER PARLEY-CBLACK/CBLACK/BLUSPI                                               |           1 |            6 | bukan_warna | warna       | 77.13%         |
+|  6886 | ADI     | DEERUPT       | DEERUPT RUNNER-GRETHR/LGSOGR/GUM1                                                        |           1 |            5 | bukan_warna | warna       | 77.13%         |
+|  1716 | ADI     | DEERUPT       | DEERUPT RUNNER-CBLACK/CBLACK/ASHPEA                                                      |           1 |            5 | bukan_warna | warna       | 77.13%         |
+|  6952 | ADI     | DEERUPT       | DEERUPT RUNNER W-CBLACK/CBLACK/CHAPNK                                                    |           1 |            6 | bukan_warna | warna       | 77.13%         |
+|  6881 | ADI     | DEERUPT       | DEERUPT RUNNER-GRETHR/GREFOU/FTWWHT                                                      |           1 |            5 | bukan_warna | warna       | 77.13%         |
+|  1746 | ADI     | DEERUPT       | DEERUPT RUNNER-DKBLUE/DKBLUE/ASHBLU                                                      |           1 |            5 | bukan_warna | warna       | 77.13%         |
+|  1741 | ADI     | DEERUPT       | DEERUPT RUNNER-BASGRN/BASGRN/ORANGE                                                      |           1 |            5 | bukan_warna | warna       | 77.13%         |
+|  6891 | ADI     | DEERUPT       | DEERUPT RUNNER-CWHITE/CBLACK/CBLACK                                                      |           1 |            5 | bukan_warna | warna       | 77.13%         |
+|  2828 | ADI     | SOBAKOV       | SOBAKOV-CBLACK/CBLACK/FLARED                                                             |           1 |            4 | bukan_warna | warna       | 76.76%         |
+|  1799 | ADI     | SOBAKOV       | SOBAKOV-FTWWHT/CRYWHT/CRYWHT                                                             |           1 |            4 | bukan_warna | warna       | 76.76%         |
+|  2899 | ADI     | SOBAKOV       | SOBAKOV FTWWHT/FTWWHT/GUM3                                                               |           1 |            4 | bukan_warna | warna       | 76.76%         |
+| 37425 | NIK     | ELMNTL        | NK ELMNTL BKPK - 20-BLACK/BLACK/WHITE                                                    |           2 |            7 | bukan_warna | warna       | 76.67%         |
+| 45336 | NIK     | ELMNTL        | NK ELMNTL BKPK ? HBR-BLACK/BLACK/WHITE                                                   |           2 |            8 | bukan_warna | warna       | 76.67%         |
+| 37442 | NIK     | ELMNTL        | NK ELMNTL BKPK-20-ECHO PINK/ECHO PINK/METALLIC GOLD                                      |           2 |           10 | bukan_warna | warna       | 76.67%         |
+| 37431 | NIK     | ELMNTL        | NK ELMNTL BKPK - 2.0-EARTH/EARTH/PALE IVORY                                              |           2 |            8 | bukan_warna | warna       | 76.67%         |
+| 45342 | NIK     | ELMNTL        | NK ELMNTL BKPK ? HBR-IRON GREY/IRON GREY/BLACK                                           |           2 |           10 | bukan_warna | warna       | 76.67%         |
+| 37005 | NIK     | ELMNTL        | NK ELMNTL BKPK-NOBLE RED/BLACK/BORDEAUX                                                  |           2 |            7 | bukan_warna | warna       | 76.67%         |
+| 20660 | CAO     | 200RD         | GBD-200RD-4DR                                                                            |           2 |            3 | bukan_warna | warna       | 76.47%         |
+| 21248 | HER     | LILAMER       | HER-LILAMER LT-BLACK-(OS)-BAG-US                                                         |           2 |            7 | bukan_warna | warna       | 76.38%         |
+|  7371 | ADI     | PROPHERE      | PROPHERE-SGREEN/CGREEN/CBLACK                                                            |           1 |            4 | bukan_warna | warna       | 75.27%         |
+|  6852 | ADI     | PROPHERE      | PROPHERE W-FTWWHT/FTWWHT/SUPCOL                                                          |           1 |            5 | bukan_warna | warna       | 75.27%         |
+|  1386 | ADI     | PROPHERE      | PROPHERE-SBROWN/CBLACK/CBROWN                                                            |           1 |            4 | bukan_warna | warna       | 75.27%         |
+|  5715 | ADI     | PROPHERE      | PROPHERE W-FTWR WHITE                                                                    |           1 |            4 | bukan_warna | warna       | 75.27%         |
+|  1257 | ADI     | PROPHERE      | PROPHERE-FTWWHT/FTWWHT/CRYWHT                                                            |           1 |            4 | bukan_warna | warna       | 75.27%         |
+| 12263 | ADI     | CLSC          | CLSC S BP-BLACK                                                                          |           1 |            4 | bukan_warna | warna       | 75.23%         |
+| 16229 | ADI     | CLSC          | CLSC BP M-BLACK                                                                          |           1 |            4 | bukan_warna | warna       | 75.23%         |
+| 12260 | ADI     | CLSC          | CLSC M T4H-BLACK                                                                         |           1 |            4 | bukan_warna | warna       | 75.23%         |
+| 28741 | NIK     | ARROWZ        | NIKE ARROWZ-BLACK/WHITE-DARK GREY                                                        |           2 |            6 | bukan_warna | warna       | 75.17%         |
+| 28470 | NIK     | TIEMPO        | TIEMPO LEGEND VII FG-BLACK/WHITE-BLACK                                                   |           1 |            7 | bukan_warna | warna       | 74.9%          |
+| 28490 | NIK     | TIEMPO        | TIEMPO RIO IV FG-UNIVERSITY RED/WHITE-BLACK                                              |           1 |            8 | bukan_warna | warna       | 74.9%          |
+| 28452 | NIK     | TIEMPO        | JR TIEMPO LIGERA IV FG-GAMMA BLUE/WHITE-OBSIDIAN-GLACIER BLU                             |           2 |           11 | bukan_warna | warna       | 74.9%          |
+| 20310 | CAO     | 100BT         | GA-100BT-1ADR-BLACK                                                                      |           2 |            4 | bukan_warna | warna       | 74.83%         |
+| 37383 | NIK     | ACDMY         | NK ACDMY SHOEBAG-BLACK/LASER CRIMSON/METALLIC BLACK                                      |           2 |            8 | bukan_warna | warna       | 74.72%         |
+| 26544 | NIK     | ACDMY         | Y NK ACDMY SHORT JAQ K-BLACK/WHITE/WHITE/WHITE                                           |           3 |           10 | bukan_warna | warna       | 74.72%         |
+| 37378 | NIK     | ACDMY         | NK ACDMY SHOEBAG-BLACK/BLACK/WHITE                                                       |           2 |            6 | bukan_warna | warna       | 74.72%         |
+| 13811 | ADI     | OWNTHEGAME    | OWNTHEGAME-CORE BLACK                                                                    |           1 |            3 | bukan_warna | warna       | 74.23%         |
+| 10316 | ADI     | OWNTHEGAME    | OWNTHEGAME-FTWR WHITE                                                                    |           1 |            3 | bukan_warna | warna       | 74.23%         |
+| 16035 | ADI     | OWNTHEGAME    | OWNTHEGAME 2.0-CORE BLACK                                                                |           1 |            4 | bukan_warna | warna       | 74.23%         |
+| 19926 | CAO     | 2B1DR         | BGA-150PG-2B1DR                                                                          |           3 |            3 | bukan_warna | warna       | 73.21%         |
+| 50284 | PUM     | TISHATSU      | TISHATSU RUNNER MESH PUMA BLACK-SAFETY YELLOW                                            |           1 |            7 | bukan_warna | warna       | 73.17%         |
+| 27055 | NIK     | ONDA          | MAGISTA ONDA II FG-LASER ORANGE/BLACK-WHITE-VOLT                                         |           2 |            9 | bukan_warna | warna       | 73.03%         |
+| 27060 | NIK     | ONDA          | MAGISTAX ONDA II IC-BLACK/WHITE-UNIVERSITY RED                                           |           2 |            8 | bukan_warna | warna       | 73.03%         |
+| 27050 | NIK     | ONDA          | MAGISTA ONDA II FG-BLACK/WHITE-UNIVERSITY RED                                            |           2 |            8 | bukan_warna | warna       | 73.03%         |
+| 16247 | ADI     | MULTICOLOR    | WAISTBAG-MULTICOLOR                                                                      |           2 |            2 | bukan_warna | warna       | 72.86%         |
+| 11107 | ADI     | MULTICOLOR    | ULTRABOOST MULTICOLOR-COLLEGIATE NAVY                                                    |           2 |            4 | bukan_warna | warna       | 72.86%         |
+| 11185 | ADI     | X9000L3       | X9000L3 M-CORE BLACK                                                                     |           1 |            4 | bukan_warna | warna       | 72.55%         |
+| 11176 | ADI     | X9000L3       | X9000L3 W-CORE BLACK                                                                     |           1 |            4 | bukan_warna | warna       | 72.55%         |
+|  1079 | ADI     | SAMBAROSE     | SAMBAROSE W-CBLACK/CBLACK/CBLACK                                                         |           1 |            5 | bukan_warna | warna       | 72.5%          |
+| 14069 | ADI     | SAMBAROSE     | SAMBAROSE W-FTWR WHITE                                                                   |           1 |            4 | bukan_warna | warna       | 72.5%          |
+|  1063 | ADI     | SAMBAROSE     | SAMBAROSE W-CBLACK/FTWWHT/GUM5                                                           |           1 |            5 | bukan_warna | warna       | 72.5%          |
+| 12807 | ADI     | SAMBAROSE     | SAMBAROSE W-SILVER MET.                                                                  |           1 |            4 | bukan_warna | warna       | 72.5%          |
+| 14131 | ADI     | X9000L4       | X9000L4 CYBERPUNK 2077-CORE BLACK                                                        |           1 |            5 | bukan_warna | warna       | 72.17%         |
+| 16588 | ADI     | X9000L4       | X9000L4 M-FTWR WHITE                                                                     |           1 |            4 | bukan_warna | warna       | 72.17%         |
+| 13687 | ADI     | X9000L4       | X9000L4-FTWR WHITE                                                                       |           1 |            3 | bukan_warna | warna       | 72.17%         |
+| 13304 | ADI     | X9000L4       | X9000L4 W-CRYSTAL WHITE                                                                  |           1 |            4 | bukan_warna | warna       | 72.17%         |
+| 13296 | ADI     | X9000L4       | X9000L4-GREY THREE                                                                       |           1 |            3 | bukan_warna | warna       | 72.17%         |
+| 16594 | ADI     | X9000L4       | X9000L4 W-CORE BLACK                                                                     |           1 |            4 | bukan_warna | warna       | 72.17%         |
+| 22457 | KIP     | RS46          | RS46-BLACK WHITE WEB-140                                                                 |           1 |            5 | bukan_warna | warna       | 71.93%         |
+| 22453 | KIP     | RS46          | RS46-BLACK WHITE WEB-115                                                                 |           1 |            5 | bukan_warna | warna       | 71.93%         |
+| 19524 | BBC     | BLEACHED      | BLEACHED LOGO T-SHIRT-BLACK BLEACHED                                                     |           1 |            6 | bukan_warna | warna       | 71.67%         |
+|  7638 | ADI     | QTFLEX        | CF QTFLEX W-CONAVY/SILVMT/FTWWHT                                                         |           2 |            6 | bukan_warna | warna       | 71.42%         |
+|  1919 | ADI     | QTFLEX        | QTFLEX-ASHGRN/RAWGRN/CLEMIN                                                              |           1 |            4 | bukan_warna | warna       | 71.42%         |
+| 20513 | CAO     | 3ADR          | GA-700CM-3ADR                                                                            |           3 |            3 | bukan_warna | warna       | 71.37%         |
+| 20470 | CAO     | 3ADR          | GA-2110SU-3ADR                                                                           |           3 |            3 | bukan_warna | warna       | 71.37%         |
+| 55555 | STN     | LOGOMAN       | NBA LOGOMAN CREW II-BLACK                                                                |           2 |            5 | bukan_warna | warna       | 71.27%         |
+| 46663 | NIK     | ASUNK         | ASUNK SOLO SWSH SATIN BMBRJKT-BLACK/DOLL/WHITE                                           |           1 |            8 | bukan_warna | warna       | 71.18%         |
+| 20466 | CAO     | 2110ET        | GA-2110ET-2ADR                                                                           |           2 |            3 | bukan_warna | warna       | 70.88%         |
+| 17926 | AGL     | TACOLOCAL     | TACOLOCAL SINCE-BLACK                                                                    |           1 |            3 | bukan_warna | warna       | 70.23%         |
+| 20664 | CAO     | GBD8002DRNS   | GBD8002DRNS                                                                              |           1 |            1 | bukan_warna | warna       | 70.19%         |
+| 20182 | CAO     | 5600HR        | DW-5600HR-1DR                                                                            |           2 |            3 | bukan_warna | warna       | 70.09%         |
+| 42357 | NIK     | ONDECK        | NIKE ONDECK FLIP FLOP-BLACK/WHITE-BLACK                                                  |           2 |            7 | bukan_warna | warna       | 69.73%         |
+| 54031 | PUM     | BORUSSE       | BVB BORUSSE TEE-CYBER YELLOW-PUMA BLACK                                                  |           2 |            7 | bukan_warna | warna       | 69.45%         |
+| 24919 | NIK     | YTH           | ENT YTH SS HM STADIUM JSY-WHITE/BLUE GREY/SPORT ROYAL                                    |           2 |           11 | bukan_warna | warna       | 69.09%         |
+| 24924 | NIK     | YTH           | FFF YTH SS HM STADIUM JSY-HYPER COBALT/WHITE                                             |           2 |            9 | bukan_warna | warna       | 69.09%         |
+|  8818 | ADI     | CONEXT19      | CONEXT19 SALTRN-WHITE                                                                    |           1 |            3 | bukan_warna | warna       | 68.85%         |
+|  8771 | ADI     | CONEXT19      | CONEXT19 TCPT-WHITE                                                                      |           1 |            3 | bukan_warna | warna       | 68.85%         |
+|  8776 | ADI     | CONEXT19      | CONEXT19 CPT-RAW WHITE                                                                   |           1 |            4 | bukan_warna | warna       | 68.85%         |
+| 34704 | NIK     | EBERNON       | NIKE EBERNON LOW-WOLF GREY/BLACK-WHITE                                                   |           2 |            7 | bukan_warna | warna       | 68.67%         |
+| 34700 | NIK     | EBERNON       | NIKE EBERNON LOW-BLACK/WHITE                                                             |           2 |            5 | bukan_warna | warna       | 68.67%         |
+| 52163 | PUM     | FTR           | LEADCAT FTR PUMA BLACK-PUMA TEAM GOLD-PUMA WHITE                                         |           2 |            9 | bukan_warna | warna       | 67.71%         |
+| 12464 | ADI     | BOTTL         | PERF BOTTL 0,75-WHITE                                                                    |           2 |            4 | bukan_warna | warna       | 67.36%         |
+| 22701 | KIP     | FS66          | FS66-GREY WHITE BRAID-90                                                                 |           1 |            5 | bukan_warna | warna       | 67.33%         |
+| 20233 | CAO     | 5900RS        | DW-5900RS-1DR                                                                            |           2 |            3 | bukan_warna | warna       | 67.28%         |
+| 12291 | ADI     | STARLANCER    | STARLANCER CLB-LIGHT AQUA                                                                |           1 |            4 | bukan_warna | warna       | 66.83%         |
+|  4889 | ADI     | STARLANCER    | STARLANCER V-SOLRED/WHITE/BLACK                                                          |           1 |            5 | bukan_warna | warna       | 66.83%         |
+|  5570 | ADI     | ALPHAEDGE     | ALPHAEDGE 4D M-FTWR WHITE                                                                |           1 |            5 | bukan_warna | warna       | 66.83%         |
+| 39749 | NIK     | ATSUMA        | NIKE ATSUMA-OFF NOIR/IRON GREY-BLACK-WHITE                                               |           2 |            8 | bukan_warna | warna       | 66.4%          |
+|   777 | ADI     | INF           | RACER TR INF-SCARLE/CBLACK/FTWWHT                                                        |           3 |            6 | bukan_warna | warna       | 65.23%         |
+|  9636 | ADI     | INF           | BP INF-MULTICOLOR                                                                        |           2 |            3 | bukan_warna | warna       | 65.23%         |
+| 20480 | CAO     | CSWGYOSAD     | CSWGYOSAD GA400GB1A9DR-BLACK                                                             |           1 |            3 | bukan_warna | warna       | 64.98%         |
+| 29951 | NIK     | MERCURIALX    | MERCURIALX VORTEX III NJR IC-RACER BLUE/BLACK-CHROME-VOLT                                |           1 |           10 | bukan_warna | warna       | 64.81%         |
+| 26239 | NIK     | MERCURIALX    | JR MERCURIALX VICTORY VI IC-LASER ORANGE/BLACK-WHITE-VOLT                                |           2 |           10 | bukan_warna | warna       | 64.81%         |
+| 26324 | NIK     | MERCURIALX    | MERCURIALX VICTORY VI IC-TOTAL CRIMSON/VOLT-BLACK-PINK BLAST                             |           1 |           10 | bukan_warna | warna       | 64.81%         |
+| 24983 | NIK     | MERCURIALX    | NIKE MERCURIALX PRO (IC)-MID NVY/MID NVY-PNK BLST-RCR B                                  |           2 |           12 | bukan_warna | warna       | 64.81%         |
+| 26315 | NIK     | MERCURIALX    | MERCURIALX VICTORY VI IC-UNIVERSITY RED/BLACK-BRIGHT CRIMSON                             |           1 |            9 | bukan_warna | warna       | 64.81%         |
+| 25550 | NIK     | MERCURIALX    | MERCURIALX PROXIMO CR IC-DP RYL BL/MTLLC SLVR-RCR BL-BL                                  |           1 |           12 | bukan_warna | warna       | 64.81%         |
+| 27543 | NIK     | MERCURIALX    | MERCURIALX VICTORY VI CR7 IC-BLUE TINT/BLACK-WHITE-BLUE TINT                             |           1 |           11 | bukan_warna | warna       | 64.81%         |
+| 13382 | ADI     | ULTIMASHOW    | ULTIMASHOW-CORE BLACK                                                                    |           1 |            3 | bukan_warna | warna       | 64.8%          |
+| 15182 | ADI     | FBIRD         | FBIRD TT-BLACK                                                                           |           1 |            3 | bukan_warna | warna       | 64.54%         |
+| 55478 | STN     | UMPQUA        | STANCE UMPQUA HIKE-ADVENTURE GREY L-GREY-L                                               |           2 |            8 | bukan_warna | warna       | 64.32%         |
+| 17300 | AGL     | L750          | L750 SWEATER 007 - BURGUNDY                                                              |           1 |            4 | bukan_warna | warna       | 64.14%         |
+| 20775 | CIT     | AF            | T-SHIRT AF 1-BLACK                                                                       |           3 |            5 | bukan_warna | warna       | 64.09%         |
+| 48475 | PUM     | EVOSPEED      | EVOSPEED BACKPACK-PUMA BLACK-GREEN GECKO-SAFETY YELLOW                                   |           1 |            8 | bukan_warna | warna       | 64.06%         |
+| 12340 | ADI     | TOPLOADER     | PE TOPLOADER BP-GREY FIVE                                                                |           2 |            5 | bukan_warna | warna       | 64.02%         |
+| 20727 | CAO     | S6900MC       | GMD-S6900MC-3DR                                                                          |           2 |            3 | bukan_warna | warna       | 63.97%         |
+| 10768 | ADI     | FORTARUN      | FORTARUN X SUMMER.RDY CF K-DASH GREEN                                                    |           1 |            7 | bukan_warna | warna       | 63.57%         |
+|  7336 | ADI     | FORTARUN      | FORTARUN MICKEY AC I-CORE BLACK                                                          |           1 |            6 | bukan_warna | warna       | 63.57%         |
+| 10359 | ADI     | FORTARUN      | FORTARUN AC K-CORE BLACK                                                                 |           1 |            5 | bukan_warna | warna       | 63.57%         |
+|  1751 | ADI     | FORTARUN      | FORTARUN X CF K-DKBLUE/CLELIL/REALIL                                                     |           1 |            7 | bukan_warna | warna       | 63.57%         |
+| 13895 | ADI     | FORTARUN      | FORTARUN LEGO NINJAGO EL K-SHOCK BLUE                                                    |           1 |            7 | bukan_warna | warna       | 63.57%         |
+| 20547 | CAO     | 1A2DR         | GA-710-1A2DR                                                                             |           3 |            3 | bukan_warna | warna       | 63.21%         |
+| 20491 | CAO     | 1BDR          | GA-700-1BDR                                                                              |           3 |            3 | bukan_warna | warna       | 62.83%         |
+| 20762 | CAO     | 1BDR          | GW-B5600BC-1BDR                                                                          |           3 |            3 | bukan_warna | warna       | 62.83%         |
+| 29699 | NIK     | DUALTONE      | NIKE DUALTONE RACER (GS)-BLACK/WHITE-PALE GREY                                           |           2 |            8 | bukan_warna | warna       | 62.25%         |
+| 29763 | NIK     | DUALTONE      | NIKE DUALTONE RACER-BLACK/WHITE-DARK GREY                                                |           2 |            7 | bukan_warna | warna       | 62.25%         |
+|   652 | ADI     | STLT          | NMD R1 STLT PK-CBLACK/NOBGRN/BGREEN                                                      |           3 |            7 | bukan_warna | warna       | 62.02%         |
+|  9936 | ADI     | MAGMUR        | MAGMUR RUNNER W-ST DESERT SAND                                                           |           1 |            6 | bukan_warna | warna       | 61.4%          |
+| 56043 | VAP     | VAPUR         | VAPUR KIDS-FUSE                                                                          |           1 |            3 | bukan_warna | warna       | 60.88%         |
+| 56041 | VAP     | VAPUR         | VAPUR KIDS-BO                                                                            |           1 |            3 | bukan_warna | warna       | 60.88%         |
+|  6439 | ADI     | ALTASWIM      | ALTASWIM C-REATEA/HIREOR/ASHGRE                                                          |           1 |            5 | bukan_warna | warna       | 60.68%         |
+|  2304 | ADI     | ALTASWIM      | ALTASWIM C-BLUE/FTWWHT/FTWWHT                                                            |           1 |            5 | bukan_warna | warna       | 60.68%         |
+| 11634 | ADI     | ALTASWIM      | ALTASWIM C-AERO BLUE S18/FTWR WHITE/FTWR WHITE                                           |           1 |            9 | bukan_warna | warna       | 60.68%         |
+| 10938 | ADI     | STEPBACK      | HARDEN STEPBACK-CORE BLACK                                                               |           2 |            4 | bukan_warna | warna       | 59.97%         |
+| 20418 | CAO     | 2000SU        | GA-2000SU-1ADR                                                                           |           2 |            3 | bukan_warna | warna       | 59.95%         |
+| 11359 | ADI     | C40           | AFC C40 CAP-SCARLET                                                                      |           2 |            4 | bukan_warna | warna       | 59.72%         |
+|  5236 | ADI     | C40           | C40 5P CLMLT CA-COLLEGIATE NAVY/WHITE/WHITE                                              |           1 |            8 | bukan_warna | warna       | 59.72%         |
+|  3750 | ADI     | AFA           | AFA H SHO-BLACK/CLBLUE/WHITE                                                             |           1 |            6 | bukan_warna | warna       | 59.08%         |
+| 12714 | ADI     | CTY           | ULTRABOOST CTY-CORE BLACK                                                                |           2 |            4 | bukan_warna | warna       | 59.04%         |
+|  2014 | ADI     | TIRO          | TIRO SB-BLACK/DKGREY/WHITE                                                               |           1 |            5 | bukan_warna | warna       | 58.89%         |
+|  3962 | ADI     | TIRO          | TIRO SB-BLUE/CONAVY/WHITE                                                                |           1 |            5 | bukan_warna | warna       | 58.89%         |
+| 15367 | ADI     | TIRO          | TIRO GS-BLACK                                                                            |           1 |            3 | bukan_warna | warna       | 58.89%         |
+| 14773 | ADI     | TIRO          | TIRO SB-BLACK                                                                            |           1 |            3 | bukan_warna | warna       | 58.89%         |
+| 20326 | CAO     | 5ADR          | GA-100CM-5ADR-BROWN                                                                      |           3 |            4 | bukan_warna | warna       | 58.48%         |
+| 20473 | CAO     | 5ADR          | GA-2200MFR-5ADR                                                                          |           3 |            3 | bukan_warna | warna       | 58.48%         |
+| 41355 | NIK     | NJR           | NJR NK MERC LT-SU20-WHITE/VOLT/RED ORBIT/BLACK                                           |           1 |           10 | bukan_warna | warna       | 58.31%         |
+| 53690 | PUM     | NJR           | NJR 2.0 TRACK JACKET PUMA BLACK                                                          |           1 |            6 | bukan_warna | warna       | 58.31%         |
+| 19829 | CAO     | AW5914ADR     | CSWGYOSA AW5914ADR-BLACK                                                                 |           2 |            3 | bukan_warna | warna       | 58.17%         |
+| 10067 | ADI     | BYW           | CRAZY BYW III-CORE BLACK                                                                 |           2 |            5 | bukan_warna | warna       | 57.86%         |
+| 10233 | ADI     | BYW           | CRAZY BYW III-TECH INK                                                                   |           2 |            5 | bukan_warna | warna       | 57.86%         |
+|  5159 | ADI     | SHOEBAG       | DFB SHOEBAG-BLACK/WHITE                                                                  |           2 |            4 | bukan_warna | warna       | 57.34%         |
+| 48089 | PTG     | VERMI         | VERMI BLACK-BLACK                                                                        |           1 |            3 | bukan_warna | warna       | 56.81%         |
+| 25943 | NIK     | ESSENTIALIST  | NIKE ESSENTIALIST-RACER BLUE/LOYAL BLUE-WHITE                                            |           2 |            7 | bukan_warna | warna       | 56.6%          |
+|  9246 | ADI     | 2PP           | SOLID CREW 2PP-DARK BLUE                                                                 |           3 |            5 | bukan_warna | warna       | 55.75%         |
+| 11241 | ADI     | S.RDY         | ULTRABOOST S.RDY W-FTWR WHITE                                                            |           2 |            5 | bukan_warna | warna       | 55.58%         |
+| 12386 | ADI     | TRF           | TRF DRESS-NIGHT MARINE                                                                   |           1 |            4 | bukan_warna | warna       | 55.14%         |
+| 13173 | ADI     | SENSE.4       | COPA SENSE.4 IN-FTWR WHITE                                                               |           2 |            5 | bukan_warna | warna       | 54.74%         |
+| 10340 | ADI     | VALASION      | 90S VALASION-CORE BLACK                                                                  |           2 |            4 | bukan_warna | warna       | 54.7%          |
+| 54901 | SAU     | LOWPRO        | JAZZ LOWPRO-GRAY/WHITE                                                                   |           2 |            4 | bukan_warna | warna       | 54.57%         |
+| 47559 | NIK     | 3PPK          | NIKE 3PPK DRI-FIT LGHTWT HI-LO-BLACK/(FLINT GREY)                                        |           2 |           10 | bukan_warna | warna       | 53.58%         |
+| 47562 | NIK     | 3PPK          | NIKE 3PPK DRI-FIT LGHTWT HI-LO-WHITE/(FLINT GREY)                                        |           2 |           10 | bukan_warna | warna       | 53.58%         |
+| 47519 | NIK     | 3PPK          | NIKE 3PPK D-F LIGHTWEIGHT QTR-WHITE/FLINT GREY                                           |           2 |            9 | bukan_warna | warna       | 53.58%         |
+| 47555 | NIK     | 3PPK          | NIKE SB 3PPK CREW SOCKS-BLACK/WHITE                                                      |           3 |            7 | bukan_warna | warna       | 53.58%         |
+| 47705 | NIK     | 3PPK          | U NSW 3PPK FOOTIE-CARBON HEATHER/BLACK                                                   |           3 |            7 | bukan_warna | warna       | 53.58%         |
+|  9908 | ADI     | FUTUREPACER   | FUTUREPACER-SILVER MET.                                                                  |           1 |            3 | bukan_warna | warna       | 53.18%         |
+|  3487 | ADI     | FUTUREPACER   | FUTUREPACER-ST PALE NUDE                                                                 |           1 |            4 | bukan_warna | warna       | 53.18%         |
+| 19919 | CAO     | 150FL         | BGA-150FL-1ADR                                                                           |           2 |            3 | bukan_warna | warna       | 53.1%          |
+|  4010 | ADI     | MANAZERO      | MANAZERO M-UTIBLK/CBLACK/FTWWHT                                                          |           1 |            5 | bukan_warna | warna       | 52.65%         |
+| 36024 | NIK     | N110          | NIKE N110 D/MS/X-BLACK/DARK GREY-RED ORBIT-RUSH VIOLET                                   |           2 |           12 | bukan_warna | warna       | 52.47%         |
+|   457 | ADI     | TC1P          | TT ID LIGH TC1P-SESOSL/DGREYH/BLACK                                                      |           4 |            7 | bukan_warna | warna       | 52.46%         |
+| 24527 | NIK     | GENICCO       | NIKE GENICCO-LOYAL BLUE/WHITE-RCR BLUE-SNST                                              |           2 |            8 | bukan_warna | warna       | 52.37%         |
+|  1478 | ADI     | LACELESS      | ULTRABOOST LACELESS-CORE BLACK                                                           |           2 |            4 | bukan_warna | warna       | 52.25%         |
+| 12737 | ADI     | LACELESS      | SUPERSTAR LACELESS-CORE BLACK                                                            |           2 |            4 | bukan_warna | warna       | 52.25%         |
+| 48060 | PTG     | VINKA         | VINKA BLACK-BLACK                                                                        |           1 |            3 | bukan_warna | warna       | 51.67%         |
+| 32222 | NIK     | VAPORX        | JR VAPORX 12 CLUB GS IC-WOLF GREY/LT CRIMSONBLACK                                        |           2 |           10 | bukan_warna | warna       | 51.13%         |
+| 24674 | NIK     | FUTSLIDE      | FUTSLIDE SLIP-RIVER ROCK/PORT WINE-WHITE-VOLT                                            |           1 |            8 | bukan_warna | warna       | 50.7%          |
+| 24677 | NIK     | FUTSLIDE      | FUTSLIDE SLIP-BLACK/THUNDER BLUE-BLUE TINT-VOLT                                          |           1 |            8 | bukan_warna | warna       | 50.7%          |
+|  5170 | ADI     | FEF           | FEF BACKPACK-RED/POWRED/BOGOLD                                                           |           1 |            5 | bukan_warna | warna       | 50.67%         |
+|  5166 | ADI     | FEF           | FEF BOTTLE-RED/POWRED/BOGOLD                                                             |           1 |            5 | bukan_warna | warna       | 50.67%         |
+| 20191 | CAO     | 5600MS        | DW-5600MS-1DR                                                                            |           2 |            3 | bukan_warna | warna       | 50.62%         |
+|  7006 | ADI     | VIRAL2        | TUBULAR VIRAL2 W-CBROWN/CBROWN/FTWWHT                                                    |           2 |            6 | bukan_warna | warna       | 50.53%         |
+| 18208 | BBC     | CLEAR         | BB CLEAR SKY L/S T-SHIRT-BLACK                                                           |           2 |            8 | bukan_warna | warna       | 50.35%         |
+| 56037 | VAP     | 0.7L          | 0.7L ELEMENT-FIRE                                                                        |           1 |            3 | bukan_warna | warna       | 50.0%          |
+| 56014 | VAP     | 0.7L          | 0.7L MOSSY OAK-INFINITY                                                                  |           1 |            5 | bukan_warna | warna       | 50.0%          |
+|       |         |               | BOTTLE                                                                                   |             |              |             |             |                |
+| 56008 | VAP     | 0.7L          | 0.7L ELEMENT-RED                                                                         |           1 |            3 | bukan_warna | warna       | 50.0%          |
+| 56022 | VAP     | 0.7L          | 0.7L TWO TONE-TEAL                                                                       |           1 |            4 | bukan_warna | warna       | 50.0%          |
+|   774 | ADI     | TRAPNK        | CF QTFLEX W-CBLACK/CBLACK/TRAPNK                                                         |           6 |            6 | warna       | bukan_warna | 48.93%         |
+|  5204 | ADI     | TRAPNK        | MUFC A JSY-ICEPNK/TRAPNK/BLACK                                                           |           5 |            6 | warna       | bukan_warna | 48.93%         |
+|  4054 | ADI     | TRAPNK        | ULTRABOOST X ALL TERRAIN-MYSRUB/CBLACK/TRAPNK                                            |           7 |            7 | warna       | bukan_warna | 48.93%         |
+|  8054 | ADI     | TRAPNK        | PREDATOR TANGO 18.1 TR-CLEORA/CLEORA/TRAPNK                                              |           7 |            7 | warna       | bukan_warna | 48.93%         |
+|  2268 | ADI     | MYSINK        | ENERGY CLOUD WTC M-MYSINK/MYSINK/CROYAL                                                  |           6 |            7 | warna       | bukan_warna | 48.24%         |
+|  3183 | ADI     | MYSINK        | ADVANTAGE CL QT W-FTWWHT/FTWWHT/MYSINK                                                   |           7 |            7 | warna       | bukan_warna | 48.24%         |
+|  2227 | ADI     | MYSINK        | DURAMO 8 M-MYSINK/BLUE/SYELLO                                                            |           4 |            6 | warna       | bukan_warna | 48.24%         |
+|  2267 | ADI     | MYSINK        | ENERGY CLOUD WTC M-MYSINK/MYSINK/CROYAL                                                  |           5 |            7 | warna       | bukan_warna | 48.24%         |
+|  4155 | ADI     | MYSINK        | PUREBOOST XPOSE-NOBINK/MYSINK/TACBLU                                                     |           4 |            5 | warna       | bukan_warna | 48.24%         |
+| 16829 | ADI     | SESOYE        | FORTAPLAY AC I-CORBLU/SESOYE/CONAVY                                                      |           5 |            6 | warna       | bukan_warna | 46.29%         |
+|  4065 | ADI     | SESOYE        | DURAMO 8 K-MYSINK/BLUE/SESOYE                                                            |           6 |            6 | warna       | bukan_warna | 46.29%         |
+| 16521 | ADI     | RUNWHT        | STAN SMITH-RUNWHT/RUNWHI/FAIRWA                                                          |           3 |            5 | warna       | bukan_warna | 46.17%         |
+| 21386 | HER     | BRBDSCHRY     | SEVENTEEN-BRBDSCHRY/BKCRSHTCH                                                            |           2 |            3 | warna       | bukan_warna | 45.77%         |
+|  1017 | ADI     | NTGREY        | FLB_RUNNER W-NTGREY/NTGREY/REDNIT                                                        |           4 |            5 | warna       | bukan_warna | 44.82%         |
+|  1018 | ADI     | REDNIT        | FLB_RUNNER W-NTGREY/NTGREY/REDNIT                                                        |           5 |            5 | warna       | bukan_warna | 43.67%         |
+|  2001 | ADI     | NGTCAR        | PRO SPARK 2018-NGTCAR/FTWWHT/SESAME                                                      |           4 |            6 | warna       | bukan_warna | 42.73%         |
+|  7175 | ADI     | HIRAQU        | EPP II-HIRAQU/BLACK                                                                      |           3 |            4 | warna       | bukan_warna | 42.26%         |
+|   331 | ADI     | HIRAQU        | FORTARUN X CF K-MYSINK/HIRAQU/CROYAL                                                     |           6 |            7 | warna       | bukan_warna | 42.26%         |
+|  1899 | ADI     | HIRAQU        | ALTASWIM I-HIRAQU/HIRAQU/MYSINK                                                          |           3 |            5 | warna       | bukan_warna | 42.26%         |
+|   577 | ADI     | HIRAQU        | AEROBOUNCE 2 M-CBLACK/SILVMT/HIRAQU                                                      |           6 |            6 | warna       | bukan_warna | 42.26%         |
+|  1900 | ADI     | HIRAQU        | ALTASWIM I-HIRAQU/HIRAQU/MYSINK                                                          |           4 |            5 | warna       | bukan_warna | 42.26%         |
+|  5935 | ADI     | TRACAR        | PUREBOOST DPR-CBLACK/TRACAR/CLOWHI                                                       |           4 |            5 | warna       | bukan_warna | 41.94%         |
+|  3992 | ADI     | TRACAR        | ALPHABOUNCE EM M-TRAOLI/TRACAR/GREONE                                                    |           5 |            6 | warna       | bukan_warna | 41.94%         |
+|  6760 | ADI     | TRACAR        | X_PLR-CBROWN/FTWWHT/TRACAR                                                               |           4 |            4 | warna       | bukan_warna | 41.94%         |
+|  1403 | ADI     | F17           | NMD_R1-GREY TWO F17                                                                      |           4 |            4 | warna       | bukan_warna | 41.01%         |
+|  4275 | ADI     | MGREYH        | ALPHABOUNCE HPC AMS M-MGREYH/GREFOU/FTWWHT                                               |           5 |            7 | warna       | bukan_warna | 40.59%         |
+| 16994 | ADI     | MGREYH        | ESS BIGLOGO TEE-MGREYH                                                                   |           4 |            4 | warna       | bukan_warna | 40.59%         |
+|  3406 | ADI     | BROWN         | CONTINENTAL 80-CLEAR BROWN                                                               |           4 |            4 | warna       | bukan_warna | 39.65%         |
+| 32645 | NIK     | BROWN         | NIKE FLYKNIT TRAINER-VELVET BROWN/NEUTRAL OLIVE-SAIL-BLACK                               |           5 |            9 | warna       | bukan_warna | 39.65%         |
+| 35687 | NIK     | BROWN         | NIKE SB ZOOM JANOSKI CNVS RM-BLACK/WHITE-THUNDER GREY-GUM LIGHT BROWN                    |          13 |           13 | warna       | bukan_warna | 39.65%         |
+| 45362 | NIK     | BROWN         | AIR FORCE 1 BOOT NN-BROWN KELP/SEQUOIA-MEDIUM OLIVE                                      |           6 |           10 | warna       | bukan_warna | 39.65%         |
+| 35206 | NIK     | BROWN         | WMNS NIKE MD RUNNER 2 SE-PHANTOM/ATMOSPHERE GREY-GUM LIGHT BROWN                         |          12 |           12 | warna       | bukan_warna | 39.65%         |
+| 46829 | NIK     | BROWN         | NIKE DUNK LOW SE-BLACK/VELVET BROWN-VELVET BROWN-SAIL                                    |           9 |           10 | warna       | bukan_warna | 39.65%         |
+| 21604 | HER     | BROWN         | HERITAGE-DARK OLIVE/SADDLE BROWN                                                         |           5 |            5 | warna       | bukan_warna | 39.65%         |
+| 36182 | NIK     | BROWN         | NIKE AIR HUARACHE RUN-CARGO KHAKI/VOLT-SEQUOIA-GUM DARK BROWN                            |          11 |           11 | warna       | bukan_warna | 39.65%         |
+| 32639 | NIK     | BROWN         | NIKE FLYKNIT TRAINER-WHITE/WHITE-WHITE-GUM LIGHT BROWN                                   |           9 |            9 | warna       | bukan_warna | 39.65%         |
+| 29739 | NIK     | BROWN         | SF AF1 MID-BLACK/BLACK-GUM LIGHT BROWN                                                   |           8 |            8 | warna       | bukan_warna | 39.65%         |
+| 51324 | PUM     | BROWN         | LEADCAT FENTY FU-GOLDEN BROWN-SCARAB                                                     |           5 |            6 | warna       | bukan_warna | 39.65%         |
+| 40776 | NIK     | BROWN         | AIR FORCE 1 PRM / CLOT-GAME ROYAL/WHITE-GUM LIGHT BROWN                                  |          11 |           11 | warna       | bukan_warna | 39.65%         |
+| 24199 | NIK     | BROWN         | SOLARSOFT THONG 2-DARK BROWN/ORANGE                                                      |           5 |            6 | warna       | bukan_warna | 39.65%         |
+|  5630 | ADI     | BROWN         | SUPERSTAR 80S W-CLEAR BROWN                                                              |           5 |            5 | warna       | bukan_warna | 39.65%         |
+| 22789 | KIP     | BROWN         | FS73-WALNUT BROWN-90                                                                     |           3 |            4 | warna       | bukan_warna | 39.65%         |
+| 22291 | KIP     | BROWN         | FLAT F5-BROWN 90CM                                                                       |           3 |            4 | warna       | bukan_warna | 39.65%         |
+| 46828 | NIK     | BROWN         | NIKE DUNK LOW SE-BLACK/VELVET BROWN-VELVET BROWN-SAIL                                    |           7 |           10 | warna       | bukan_warna | 39.65%         |
+| 42240 | NIK     | BROWN         | NIKE AIR MAX 90 NRG-SAIL/SHEEN-STRAW-MEDIUM BROWN                                        |          10 |           10 | warna       | bukan_warna | 39.65%         |
+| 22176 | KIP     | BROWN         | WAXED W6-BROWN 100CM                                                                     |           3 |            4 | warna       | bukan_warna | 39.65%         |
+| 46128 | NIK     | BROWN         | NIKE DUNK LOW RETRO PRM-BEACH/BAROQUE BROWN-CANVAS-SAIL                                  |           8 |           10 | warna       | bukan_warna | 39.65%         |
+| 23757 | NIK     | BROWN         | NIKE AIR WOVEN-VELVET BROWN/TEAM GOLD-SAIL-ALE BROWN                                     |          10 |           10 | warna       | bukan_warna | 39.65%         |
+| 51188 | PUM     | BROWN         | PUMA X TC BASKET POMPOM INFANT-RUSSET BROWN-BIRCH                                        |           8 |            9 | warna       | bukan_warna | 39.65%         |
+| 26661 | NIK     | BROWN         | ZOOM STEFAN JANOSKI OG-BLACK/WHITE-GUM LIGHT BROWN                                       |           9 |            9 | warna       | bukan_warna | 39.65%         |
+| 17938 | AND     | BROWN         | PREMIUM BRUSH-BLACK/BROWN                                                                |           4 |            4 | warna       | bukan_warna | 39.65%         |
+| 55857 | STN     | BROWN         | TUPAC-BROWN                                                                              |           2 |            2 | warna       | bukan_warna | 39.65%         |
+| 10071 | ADI     | BROWN         | CRAZY BYW III-LIGHT BROWN                                                                |           5 |            5 | warna       | bukan_warna | 39.65%         |
+| 33469 | NIK     | BROWN         | BLAZER LOW LTHR-BLACK/SAIL-SAIL-GUM MED BROWN                                            |           9 |            9 | warna       | bukan_warna | 39.65%         |
+| 31343 | NIK     | BROWN         | NIKE AIR PRECISION II-BLACK/BLACK-ANTHRACITE-GUM LIGHT BROWN                             |          10 |           10 | warna       | bukan_warna | 39.65%         |
+| 38771 | NIK     | BROWN         | NIKE ZOOM WINFLO 6 SE-BLACK/WHITE-GUM LIGHT BROWN                                        |          10 |           10 | warna       | bukan_warna | 39.65%         |
+| 30907 | NIK     | BROWN         | AIR FORCE 1 07 LV8 SUEDE-MUSHROOM/MUSHROOM-GUM MED BROWN-IVO                             |          11 |           12 | warna       | bukan_warna | 39.65%         |
+| 29687 | NIK     | BROWN         | NIKE ZOOM ASSERSION-BLACK/BLACK-GUM LIGHT BROWN                                          |           8 |            8 | warna       | bukan_warna | 39.65%         |
+| 13069 | ADI     | BROWN         | ULTRABOOST 2.0-LIGHT BROWN                                                               |           4 |            4 | warna       | bukan_warna | 39.65%         |
+|  3701 | ADI     | CROYAL        | JUVE A JSY-BOGOLD/CROYAL                                                                 |           5 |            5 | warna       | bukan_warna | 39.06%         |
+|  2801 | ADI     | CROYAL        | GAZELLE STITCH AND TURN-CROYAL/CROYAL/FTWWHT                                             |           6 |            7 | warna       | bukan_warna | 39.06%         |
+| 21457 | HER     | ARROWWOOD     | BRITANNIA-ARROWWOOD                                                                      |           2 |            2 | warna       | bukan_warna | 37.38%         |
+|  2704 | ADI     | ASHPEA        | ULTRABOOST W-ASHPEA/ASHPEA/ASHPEA                                                        |           3 |            5 | warna       | bukan_warna | 37.38%         |
+|  4355 | ADI     | ICEPNK        | INIKI RUNNER W-ICEPNK/FTWWHT/GUM3                                                        |           4 |            6 | warna       | bukan_warna | 36.66%         |
+|  4083 | ADI     | ICEPNK        | TUBULAR VIRAL2 W-ICEPNK/ICEPNK/FTWWHT                                                    |           4 |            6 | warna       | bukan_warna | 36.66%         |
+|  4084 | ADI     | ICEPNK        | TUBULAR VIRAL2 W-ICEPNK/ICEPNK/FTWWHT                                                    |           5 |            6 | warna       | bukan_warna | 36.66%         |
+| 16824 | ADI     | ICEPNK        | FORTAPLAY AC I-LEGINK/ICEPNK/ENEINK                                                      |           5 |            6 | warna       | bukan_warna | 36.66%         |
+|  1126 | ADI     | GUM4          | SUPERSTAR W-CBLACK/CBLACK/GUM4                                                           |           5 |            5 | warna       | bukan_warna | 34.82%         |
+| 33814 | NIK     | EXPZ07WHITE   | NIKE EXPZ07WHITE/BLACK                                                                   |           2 |            3 | warna       | bukan_warna | 34.37%         |
+|   325 | ADI     | BRBLUE        | FORTAPLAY AC I-DKBLUE/VIVGRN/BRBLUE                                                      |           6 |            6 | warna       | bukan_warna | 34.32%         |
+|  1759 | ADI     | BRBLUE        | X_PLR J-BRBLUE/CBLACK/FTWWHT                                                             |           3 |            5 | warna       | bukan_warna | 34.32%         |
+|  7279 | ADI     | CWHITE        | NMD_R1-CWHITE/CWHITE/SESOYE                                                              |           3 |            4 | warna       | bukan_warna | 34.19%         |
+|  2547 | ADI     | CWHITE        | TUBULAR DEFIANT W-CBLACK/CBLACK/CWHITE                                                   |           6 |            6 | warna       | bukan_warna | 34.19%         |
+|  7119 | ADI     | CWHITE        | REAL MADRID FBL-CWHITE/GREONE/BLACK                                                      |           4 |            6 | warna       | bukan_warna | 34.19%         |
+|  6898 | ADI     | CWHITE        | PW TENNIS HU PK-CWHITE/CBLACK/FTWWHT                                                     |           5 |            7 | warna       | bukan_warna | 34.19%         |
+|  2639 | ADI     | CWHITE        | ULTRABOOST X-ASHPEA/ASHPEA/CWHITE                                                        |           5 |            5 | warna       | bukan_warna | 34.19%         |
+|  4532 | ADI     | CWHITE        | TUBULAR SHADOW W-TRACAR/TRACAR/CWHITE                                                    |           6 |            6 | warna       | bukan_warna | 34.19%         |
+|  1592 | ADI     | CWHITE        | STAN SMITH-CWHITE/CWHITE/CROYAL                                                          |           4 |            5 | warna       | bukan_warna | 34.19%         |
+|  7241 | ADI     | CWHITE        | REAL 3S CAP-CWHITE/BLACK                                                                 |           4 |            5 | warna       | bukan_warna | 34.19%         |
+|  6798 | ADI     | CWHITE        | TUBULAR DOOM SOCK PK W-TRAPUR/CBLACK/CWHITE                                              |           8 |            8 | warna       | bukan_warna | 34.19%         |
+|  7278 | ADI     | CWHITE        | NMD_R1-CWHITE/CWHITE/SESOYE                                                              |           2 |            4 | warna       | bukan_warna | 34.19%         |
+|  1334 | ADI     | SUBGRN        | EQT SUPPORT PK 2/3-CBLACK/GREONE/SUBGRN                                                  |           8 |            8 | warna       | bukan_warna | 33.45%         |
+|  4501 | ADI     | SUBGRN        | EQT SUPPORT ADV-CBLACK/CBLACK/SUBGRN                                                     |           6 |            6 | warna       | bukan_warna | 33.45%         |
+|  7748 | ADI     | LTPINK        | LITE RACER INF-REAPNK/LTPINK/FTWWHT                                                      |           5 |            6 | warna       | bukan_warna | 33.09%         |
+|  2197 | ADI     | EASGRN        | EQT SUPPORT RF PK-FROGRN/CBLACK/EASGRN                                                   |           7 |            7 | warna       | bukan_warna | 32.5%          |
+|  2055 | ADI     | TECINK        | CF RACER TR-DKBLUE/TECINK/HIRERE                                                         |           5 |            6 | warna       | bukan_warna | 32.44%         |
+|   256 | ADI     | TECINK        | ULTRABOOST LACELESS W-TECINK/RAWGRE/CBLACK                                               |           4 |            6 | warna       | bukan_warna | 32.44%         |
+|  1387 | ADI     | SBROWN        | PROPHERE-SBROWN/CBLACK/CBROWN                                                            |           2 |            4 | warna       | bukan_warna | 32.06%         |
+|  4623 | ADI     | SBROWN        | NMD C2-SBROWN/SBROWN/CBLACK                                                              |           3 |            5 | warna       | bukan_warna | 32.06%         |
+|  1798 | ADI     | CLPINK        | CAMPUS J-REAMAG/CLPINK/CLPINK                                                            |           5 |            5 | warna       | bukan_warna | 31.94%         |
+| 46940 | NIK     | REACTBRIGHT   | NK REACTBRIGHT CRIMSON/DARK GREY/PURE PLATINUM                                           |           2 |            7 | warna       | bukan_warna | 31.82%         |
+| 50514 | PUM     | PEACOAT       | DIVECAT-PEACOAT-WHITE                                                                    |           2 |            3 | warna       | bukan_warna | 29.83%         |
+|  7170 | ADI     | SHOYEL        | STARLANCER V-SHOYEL/BLACK/WHITE                                                          |           3 |            5 | warna       | bukan_warna | 28.61%         |
+|  7370 | ADI     | SHOYEL        | DEERUPT RUNNER-SHOPUR/REDNIT/SHOYEL                                                      |           5 |            5 | warna       | bukan_warna | 28.61%         |
+|   969 | ADI     | SHOYEL        | EQT ADV 360 I-CBLACK/SHOYEL/FTWWHT                                                       |           6 |            7 | warna       | bukan_warna | 28.61%         |
+|   518 | ADI     | SCARLE        | D ROSE LETHALITY-CBLACK/SCARLE/FTWWHT                                                    |           5 |            6 | warna       | bukan_warna | 28.57%         |
+|   778 | ADI     | SCARLE        | RACER TR INF-SCARLE/CBLACK/FTWWHT                                                        |           4 |            6 | warna       | bukan_warna | 28.57%         |
+| 51425 | PUM     | SCARLE        | TSUGI JUN ANR PEBBLE-OLIVE BRANCH-SCARLE                                                 |           7 |            7 | warna       | bukan_warna | 28.57%         |
+|  5509 | ADI     | SCARLE        | DUAL THREAT 2017 J-SCARLE/CBLACK/FTWWHT                                                  |           5 |            7 | warna       | bukan_warna | 28.57%         |
+|  4283 | ADI     | SCARLE        | CRAZY TEAM 2017-FTWWHT/CBLACK/SCARLE                                                     |           6 |            6 | warna       | bukan_warna | 28.57%         |
+| 21687 | HER     | DARK          | FOURTEEN-DARK GRID/BLACK                                                                 |           2 |            4 | warna       | bukan_warna | 27.8%          |
+| 21603 | HER     | DARK          | HERITAGE-DARK OLIVE/SADDLE BROWN                                                         |           2 |            5 | warna       | bukan_warna | 27.8%          |
+|  2613 | ADI     | ENEBLU        | NEMEZIZ 17.1 FG-LEGINK/SYELLO/ENEBLU                                                     |           6 |            6 | warna       | bukan_warna | 27.69%         |
+| 16925 | ADI     | ENEBLU        | X 17.4 IN J-FTWWHT/ENEBLU/CLEGRE                                                         |           6 |            7 | warna       | bukan_warna | 27.69%         |
+|  1562 | ADI     | RAWGRE        | GAZELLE S&T-RAWGRE/RAWGRE/OWHITE                                                         |           3 |            5 | warna       | bukan_warna | 27.69%         |
+|  6786 | ADI     | RAWGRE        | CAMPUS STITCH AND TURN-RAWGRE/RAWGRE/FTWWHT                                              |           5 |            7 | warna       | bukan_warna | 27.69%         |
+|  7740 | ADI     | RAWGRE        | CF RACER TR-RAWSTE/CONAVY/RAWGRE                                                         |           6 |            6 | warna       | bukan_warna | 27.69%         |
+|  5576 | ADI     | RAWGRE        | ALPHABOUNCE BEYOND W-RAWGRE/ORCTIN/LEGINK                                                |           4 |            6 | warna       | bukan_warna | 27.69%         |
+|  1563 | ADI     | RAWGRE        | GAZELLE S&T-RAWGRE/RAWGRE/OWHITE                                                         |           4 |            5 | warna       | bukan_warna | 27.69%         |
+| 46960 | NIK     | FTR10PURE     | NK FTR10PURE PLATINUM/BRIGHT CRIMSON/DARK GREY                                           |           2 |            7 | warna       | bukan_warna | 27.53%         |
+|  3658 | ADI     | VIVTEA        | REAL MADRID FBL-WHITE/VIVTEA/SILVMT                                                      |           5 |            6 | warna       | bukan_warna | 26.08%         |
+|  6870 | ADI     | BLUBIR        | DEERUPT RUNNER-SOLRED/SOLRED/BLUBIR                                                      |           5 |            5 | warna       | bukan_warna | 25.92%         |
+|  8171 | ADI     | ASHSIL        | NEMEZIZ TANGO 18.3 IN-ASHSIL/ASHSIL/WHITIN                                               |           6 |            7 | warna       | bukan_warna | 24.08%         |
+|  5892 | ADI     | ASHSIL        | ULTRABOOST LACELESS-ASHSIL/ASHSIL/CBLACK                                                 |           3 |            5 | warna       | bukan_warna | 24.08%         |
+|  5873 | ADI     | ASHSIL        | ULTRABOOST ALL TERRAIN LTD-ASHSIL/CARBON/CBLACK                                          |           5 |            7 | warna       | bukan_warna | 24.08%         |
+|   235 | ADI     | ASHSIL        | NEMEZIZ TANGO 18.1 TR-ASHSIL/ASHSIL/WHITIN                                               |           6 |            7 | warna       | bukan_warna | 24.08%         |
+|  1605 | ADI     | GOLDMT        | STAN SMITH PREMIUM-CBLACK/CBLACK/GOLDMT                                                  |           6 |            6 | warna       | bukan_warna | 23.74%         |
+|   681 | ADI     | GOLDMT        | SUPERSTAR 80S CLEAN-FTWWHT/FTWWHT/GOLDMT                                                 |           6 |            6 | warna       | bukan_warna | 23.74%         |
+|  1270 | ADI     | SHOLIM        | PROPHERE-CBLACK/FTWWHT/SHOLIM                                                            |           4 |            4 | warna       | bukan_warna | 23.63%         |
+|   540 | ADI     | REATEA        | SUPERSTAR WM-LGREYH/REATEA/FTWWHT                                                        |           4 |            5 | warna       | bukan_warna | 23.55%         |
+|  7564 | ADI     | OWHITE        | ULTRABOOST UNCAGED-OWHITE/CHAPEA/VAPGRE                                                  |           3 |            5 | warna       | bukan_warna | 22.71%         |
+|  1715 | ADI     | OWHITE        | DEERUPT W-CLEORA/CLEORA/OWHITE                                                           |           5 |            5 | warna       | bukan_warna | 22.71%         |
+|  8187 | ADI     | OWHITE        | X 18+ FG-OWHITE/FTWWHT/OWHITE                                                            |           6 |            6 | warna       | bukan_warna | 22.71%         |
+|  8185 | ADI     | OWHITE        | X 18+ FG-OWHITE/FTWWHT/OWHITE                                                            |           4 |            6 | warna       | bukan_warna | 22.71%         |
+| 16626 | ADI     | OWHITE        | STAN SMITH CF W-CBLACK/CBLACK/OWHITE                                                     |           7 |            7 | warna       | bukan_warna | 22.71%         |
+|  6830 | ADI     | OWHITE        | TUBULAR DAWN W-CBLACK/CBLACK/OWHITE                                                      |           6 |            6 | warna       | bukan_warna | 22.71%         |
+|  8219 | ADI     | OWHITE        | X TANGO 18.1 TR-OWHITE/FTWWHT/OWHITE                                                     |           5 |            7 | warna       | bukan_warna | 22.71%         |
+|  8313 | ADI     | OWHITE        | X 18.3 FG J-OWHITE/FTWWHT/OWHITE                                                         |           5 |            7 | warna       | bukan_warna | 22.71%         |
+|  6845 | ADI     | OWHITE        | SUPERSTAR BW3S SLIPON W-CRYWHT/OWHITE/CBLACK                                             |           6 |            7 | warna       | bukan_warna | 22.71%         |
+|  3088 | ADI     | OWHITE        | X 18.4 FXG J-CBLACK/OWHITE/ACTRED                                                        |           6 |            7 | warna       | bukan_warna | 22.71%         |
+|  2569 | ADI     | OWHITE        | STAN SMITH W-OWHITE/OWHITE/STPANU                                                        |           4 |            6 | warna       | bukan_warna | 22.71%         |
+|  2403 | ADI     | OWHITE        | ZX FLUX ADV VERVE W-MYSBLU/MYSBLU/OWHITE                                                 |           8 |            8 | warna       | bukan_warna | 22.71%         |
+|  6772 | ADI     | OWHITE        | TUBULAR DOOM SOCK W-CBROWN/OWHITE/OWHITE                                                 |           7 |            7 | warna       | bukan_warna | 22.71%         |
+|  6913 | ADI     | OWHITE        | SUPERSTAR 80S-OWHITE/CBLACK/OWHITE                                                       |           5 |            5 | warna       | bukan_warna | 22.71%         |
+| 16063 | ADI     | PRIMEBLUE     | GEODIVER+ PRIMEBLUE-FTWR WHITE                                                           |           2 |            4 | warna       | bukan_warna | 22.63%         |
+|  7623 | ADI     | ORCTIN        | ULTRABOOST UNCAGED W-AERGRN/ORCTIN/FTWWHT                                                |           5 |            6 | warna       | bukan_warna | 21.4%          |
+|  1686 | ADI     | ORCTIN        | STAN SMITH W-ORCTIN/ORCTIN/OWHITE                                                        |           5 |            6 | warna       | bukan_warna | 21.4%          |
+| 33831 | NIK     | EXPX14WHITE   | NIKE EXPX14WHITE/WOLF GREYBLACK                                                          |           2 |            4 | warna       | bukan_warna | 20.9%          |
+| 20987 | HER     | 600D          | EIGHTEEN-600D POLY NAVY/RED                                                              |           2 |            5 | warna       | bukan_warna | 20.88%         |
+| 21034 | HER     | 600D          | SIXTEEN-600D POLY W CAMO                                                                 |           2 |            5 | warna       | bukan_warna | 20.88%         |
+| 21037 | HER     | 600D          | FIFTEEN-600D POLY BLACK                                                                  |           2 |            4 | warna       | bukan_warna | 20.88%         |
+| 21042 | HER     | 600D          | FIFTEEN-600D POLY NAVY                                                                   |           2 |            4 | warna       | bukan_warna | 20.88%         |
+| 17080 | ADI     | WHT           | ADILETTE PLAY I-BLACK1/BLACK1/WHT                                                        |           6 |            6 | warna       | bukan_warna | 20.68%         |
+| 26015 | NIK     | WHT           | NIKE AIR PEGASUS 83-DP ROYAL/DP RYL-HYPR CBLT-WHT                                        |          11 |           11 | warna       | bukan_warna | 20.68%         |
+| 14544 | ADI     | WHT           | PUMP - BLACK/WHT                                                                         |           3 |            3 | warna       | bukan_warna | 20.68%         |
+|   319 | ADI     | CLEMIN        | FORTAPLAY AC I-CLELIL/FTWWHT/CLEMIN                                                      |           6 |            6 | warna       | bukan_warna | 20.49%         |
+|   656 | ADI     | BGREEN        | NMD R1 STLT PK-CBLACK/NOBGRN/BGREEN                                                      |           7 |            7 | warna       | bukan_warna | 20.2%          |
+|  5488 | ADI     | CBROWN        | SWIFT RUN W-CBROWN/FTWWHT/CRYWHT                                                         |           4 |            6 | warna       | bukan_warna | 19.14%         |
+|  3421 | ADI     | CBROWN        | NEMEZIZ 18.1 TR-OWHITE/OWHITE/CBROWN                                                     |           6 |            6 | warna       | bukan_warna | 19.14%         |
+|  2279 | ADI     | CBROWN        | PUREBOOST XPOSE-CRYWHT/SILVMT/CBROWN                                                     |           5 |            5 | warna       | bukan_warna | 19.14%         |
+|  6770 | ADI     | CBROWN        | TUBULAR DOOM SOCK W-CBROWN/OWHITE/OWHITE                                                 |           5 |            7 | warna       | bukan_warna | 19.14%         |
+| 56661 | WAR     | THE           | 125CM THE BLUES FLAT LACES                                                               |           2 |            5 | warna       | bukan_warna | 18.78%         |
+|  2588 | ADI     | CONAVY        | GAZELLE-CONAVY/WHITE/GOLDMT                                                              |           2 |            4 | warna       | bukan_warna | 18.74%         |
+| 12118 | ADI     | CONAVY        | VS ADVANTAGE CL-FTWWHT/FTWWHT/CONAVY                                                     |           6 |            6 | warna       | bukan_warna | 18.74%         |
+|  9207 | ADI     | CONAVY        | GYMSACK TREFOIL-CONAVY/RAWSAN                                                            |           3 |            4 | warna       | bukan_warna | 18.74%         |
+|  5265 | ADI     | CONAVY        | CLIMACOOL 02/17-CONAVY/MYSBLU/FTWWHT                                                     |           4 |            6 | warna       | bukan_warna | 18.74%         |
+|   800 | ADI     | CONAVY        | ADILETTE SHOWER-CONAVY/FTWWHT/CONAVY                                                     |           3 |            5 | warna       | bukan_warna | 18.74%         |
+|  9537 | ADI     | CONAVY        | TEE SS-CONAVY                                                                            |           3 |            3 | warna       | bukan_warna | 18.74%         |
+|  1697 | ADI     | CONAVY        | RASCAL-CBLACK/SCARLE/CONAVY                                                              |           4 |            4 | warna       | bukan_warna | 18.74%         |
+|  3555 | ADI     | CONAVY        | 6P 3S CAP COTTO-CONAVY/CONAVY/WHITE                                                      |           6 |            7 | warna       | bukan_warna | 18.74%         |
+|  8701 | ADI     | CONAVY        | CLASSIC BP-CONAVY/CONAVY/WHITE                                                           |           4 |            5 | warna       | bukan_warna | 18.74%         |
+|   836 | ADI     | CONAVY        | ADILETTE CF ULTRA-CONAVY/CONAVY/CONAVY                                                   |           5 |            6 | warna       | bukan_warna | 18.74%         |
+| 11431 | ADI     | CONAVY        | SPORTIVE TRKPNT-CONAVY                                                                   |           3 |            3 | warna       | bukan_warna | 18.74%         |
+|  2673 | ADI     | CONAVY        | PUREBOOST-CONAVY/TRABLU/TRABLU                                                           |           2 |            4 | warna       | bukan_warna | 18.74%         |
+|  9534 | ADI     | CONAVY        | CREW-CONAVY                                                                              |           2 |            2 | warna       | bukan_warna | 18.74%         |
+|  6095 | ADI     | CONAVY        | GALAXY 4 M-CONAVY/CONAVY/ASHBLU                                                          |           5 |            6 | warna       | bukan_warna | 18.74%         |
+|  3218 | ADI     | CONAVY        | LITE RACER-CONAVY/CBLACK/SOLBLU                                                          |           3 |            5 | warna       | bukan_warna | 18.74%         |
+|  9541 | ADI     | CONAVY        | WAISTBAG-CONAVY/TRIPUR                                                                   |           2 |            3 | warna       | bukan_warna | 18.74%         |
+|  4254 | ADI     | CONAVY        | COURT FURY 2017-CONAVY/FTWWHT/CONAVY                                                     |           6 |            6 | warna       | bukan_warna | 18.74%         |
+|  3965 | ADI     | CONAVY        | TIRO SB-BLUE/CONAVY/WHITE                                                                |           4 |            5 | warna       | bukan_warna | 18.74%         |
+|   479 | ADI     | CCMELS        | AEROK TANK-CCMELS                                                                        |           3 |            3 | warna       | bukan_warna | 18.28%         |
+| 40232 | NIK     | GLOW          | NIKE REACT ELEMENT 55 SE-EMBER GLOW/BLACK-LIGHT BONE-WHITE                               |           7 |           11 | warna       | bukan_warna | 17.97%         |
+| 45302 | NIK     | GLOW          | NK MERC FADE - SP21-GREEN GLOW/AQUAMARINE/LIME GLOW                                      |           9 |            9 | warna       | bukan_warna | 17.97%         |
+| 52652 | PUM     | GLOW          | SUEDE BLOC IVORY GLOW-PUMA BLACK                                                         |           4 |            6 | warna       | bukan_warna | 17.97%         |
+| 35941 | NIK     | GLOW          | LEGEND 8 ACADEMY FG/MG-AQUAMARINE/WHITE-LIME GLOW                                        |           9 |            9 | warna       | bukan_warna | 17.97%         |
+| 43160 | NIK     | GLOW          | WMNS NIKE DOWNSHIFTER 11-SUMMIT WHITE/WHITE-LIME ICE-VOLT GLOW                           |          11 |           11 | warna       | bukan_warna | 17.97%         |
+| 27162 | NIK     | GLOW          | WMNS NIKE LUNARSTELOS-MEDIUM BLUE/BLACK-SUNSET GLOW-ALUMINUM                             |           8 |            9 | warna       | bukan_warna | 17.97%         |
+| 28249 | NIK     | GLOW          | AS W NK RUN TOP SS-EMBER GLOW/EMBER GLOW/REFLECTIVE SILV                                 |          10 |           12 | warna       | bukan_warna | 17.97%         |
+| 42406 | NIK     | GLOW          | VAPOR 14 ACADEMY FG/MG-DYNAMIC TURQ/LIME GLOW                                            |           9 |            9 | warna       | bukan_warna | 17.97%         |
+| 36580 | NIK     | GLOW          | NIKE AIR ZOOM VAPOR X HC PRM-BLACK/WHITE-VOLT GLOW                                       |          11 |           11 | warna       | bukan_warna | 17.97%         |
+| 10249 | ADI     | GLOW          | RUNFALCON-GLOW PINK                                                                      |           2 |            3 | warna       | bukan_warna | 17.97%         |
+| 38091 | NIK     | GLOW          | WMNS NIKE REVOLUTION 5-WHITE/VIOLET SHOCK-GREEN GLOW                                     |           9 |            9 | warna       | bukan_warna | 17.97%         |
+| 27450 | NIK     | GLOW          | NIKE DOWNSHIFTER 7-THUNDER BLUE/VOLT GLOW-OBSIDIAN-BLACK                                 |           7 |            9 | warna       | bukan_warna | 17.97%         |
+| 28689 | NIK     | GLOW          | WMNS NIKE FLEX 2017 RN-WOLF GREY/SUNSET GLOW-COOL GREY                                   |           9 |           11 | warna       | bukan_warna | 17.97%         |
+| 40901 | NIK     | GLOW          | AIR FORCE 1 07 RS-WHITE/BLACK-LIGHT BONE-EMBER GLOW                                      |          11 |           11 | warna       | bukan_warna | 17.97%         |
+| 35213 | NIK     | GLOW          | AIR MAX 270 SE-BLACK/BLACK-LASER ORANGE-EMBER GLOW                                       |          10 |           10 | warna       | bukan_warna | 17.97%         |
+| 25788 | NIK     | GLOW          | WMNS NIKE REVOLUTION 3-BLACK/LAVA GLOW-HOT PUNCH-COOL GREY                               |           7 |           11 | warna       | bukan_warna | 17.97%         |
+| 12104 | ADI     | GLOW          | TEMPER RUN-CBLACK/CBLACK/GLOW                                                            |           5 |            5 | warna       | bukan_warna | 17.97%         |
+|   790 | ADI     | SUPPNK        | RACER TR INF-SUPPNK/CBLACK/FTWWHT                                                        |           4 |            6 | warna       | bukan_warna | 17.73%         |
+|  5607 | ADI     | SUPPNK        | LITE RACER INF-SUPPNK/FTWWHT/ICEBLU                                                      |           4 |            6 | warna       | bukan_warna | 17.73%         |
+|   762 | ADI     | MSILVE        | CLOUDFOAM ILATION MID-FTWWHT/CBLACK/MSILVE                                               |           6 |            6 | warna       | bukan_warna | 17.38%         |
+|  2027 | ADI     | MSILVE        | CF ADVANTAGE-CBLACK/FTWWHT/MSILVE                                                        |           5 |            5 | warna       | bukan_warna | 17.38%         |
+| 21519 | HER     | PRPL          | CRUZ-PRPL VELVT                                                                          |           2 |            3 | warna       | bukan_warna | 17.27%         |
+|  1673 | ADI     | SHOPNK        | N-5923 J-SHOPNK/FTWWHT/CBLACK                                                            |           4 |            6 | warna       | bukan_warna | 17.0%          |
+|  2834 | ADI     | SHOPNK        | LITE RACER CLN I-TRABLU/SHOPNK/FTWWHT                                                    |           6 |            7 | warna       | bukan_warna | 17.0%          |
+|  2884 | ADI     | LGSOGR        | EXPLOSIVE BOUNCE 2018-CBLACK/SILVMT/LGSOGR                                               |           6 |            6 | warna       | bukan_warna | 16.81%         |
+|  2896 | ADI     | CLEORA        | SOBAKOV-CLEORA/CBLACK/CRYWHT                                                             |           2 |            4 | warna       | bukan_warna | 15.4%          |
+|  8292 | ADI     | CLEORA        | PREDATOR TANGO 18.4 IN J-CLEORA/CBLACK/GOLDMT                                            |           6 |            8 | warna       | bukan_warna | 15.4%          |
+|   725 | ADI     | CLEORA        | NMD_R1 STLT PK W-CLEORA/CLEORA/CLOWHI                                                    |           6 |            7 | warna       | bukan_warna | 15.4%          |
+|  8091 | ADI     | CLEORA        | PREDATOR TANGO 18.3 IN-CLEORA/CLEORA/CLEORA                                              |           6 |            7 | warna       | bukan_warna | 15.4%          |
+|  4659 | ADI     | BOAQUA        | CAMPUS-BOAQUA/FTWWHT/CWHITE                                                              |           2 |            4 | warna       | bukan_warna | 15.24%         |
+|  6701 | ADI     | CRYWHT        | EQT CUSHION ADV-CROYAL/FTWWHT/CRYWHT                                                     |           6 |            6 | warna       | bukan_warna | 15.21%         |
+|  6570 | ADI     | CRYWHT        | NMD R2 W-ASHPNK/CRYWHT/FTWWHT                                                            |           5 |            6 | warna       | bukan_warna | 15.21%         |
+|  7677 | ADI     | CRYWHT        | EDGE LUX 2 W-FTWWHT/CRYWHT/CBLACK                                                        |           6 |            7 | warna       | bukan_warna | 15.21%         |
+|  2066 | ADI     | CRYWHT        | SAMBA OG-FTWWHT/CGREEN/CRYWHT                                                            |           5 |            5 | warna       | bukan_warna | 15.21%         |
+|  7052 | ADI     | CRYWHT        | SWIFT RUN SUMMER-CRYWHT/GREONE/WHITIN                                                    |           4 |            6 | warna       | bukan_warna | 15.21%         |
+|  2827 | ADI     | CHACOR        | DURAMO 9-GRETWO/GRETWO/CHACOR                                                            |           5 |            5 | warna       | bukan_warna | 15.05%         |
+| 15999 | ADI     | SPECTOO       | NMD_R1 SPECTOO-CORE BLACK                                                                |           2 |            4 | warna       | bukan_warna | 14.74%         |
+|  3977 | ADI     | CLONIX        | MANA BOUNCE 2 M ARAMIS-FTWWHT/SILVMT/CLONIX                                              |           8 |            8 | warna       | bukan_warna | 14.34%         |
+| 54951 | SAU     | TAN           | COURAGEOUS-TAN/PNK                                                                       |           2 |            3 | warna       | bukan_warna | 14.28%         |
+| 16112 | ADI     | VAPOUR        | FLUIDSTREET-VAPOUR PINK                                                                  |           2 |            3 | warna       | bukan_warna | 14.01%         |
+|  2168 | ADI     | DKBLUE        | LITE RACER CLN-DKBLUE/FTWWHT/DKBLUE                                                      |           6 |            6 | warna       | bukan_warna | 13.2%          |
+|  1914 | ADI     | DKBLUE        | CF ADVANTAGE-DKBLUE/FTWWHT/CBLACK                                                        |           3 |            5 | warna       | bukan_warna | 13.2%          |
+|  4318 | ADI     | DKBLUE        | PW TENNIS HU-DKBLUE/DKBLUE/FTWWHT                                                        |           4 |            6 | warna       | bukan_warna | 13.2%          |
+|   190 | ADI     | DKBLUE        | MILANO 16 SOCK-DKBLUE/WHITE                                                              |           4 |            5 | warna       | bukan_warna | 13.2%          |
+|  1749 | ADI     | DKBLUE        | DEERUPT RUNNER-DKBLUE/DKBLUE/ASHBLU                                                      |           4 |            5 | warna       | bukan_warna | 13.2%          |
+| 22729 | KIP     | BEIGE         | FS68-BEIGE BRAID-140                                                                     |           2 |            4 | warna       | bukan_warna | 12.74%         |
+| 29098 | NIK     | 8ASHEN        | NIKE DOWNSHIFTER 8ASHEN SLATE/OBSIDIANDIFFUSED BLUEBLACK                                 |           3 |            6 | warna       | bukan_warna | 12.62%         |
+| 21982 | HER     | FLORAL        | HANSON-FLORAL BLR                                                                        |           2 |            3 | warna       | bukan_warna | 12.21%         |
+| 11061 | ADI     | CORE          | OZWEEGO-CORE BLACK                                                                       |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 11997 | ADI     | CORE          | RUNFALCON-CORE BLACK                                                                     |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 13308 | ADI     | CORE          | X9000L4-CORE BLACK                                                                       |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 10929 | ADI     | CORE          | ROGUERA-CORE BLACK                                                                       |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 13299 | ADI     | CORE          | X9000L4-CORE BLACK                                                                       |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 11694 | ADI     | CORE          | ULTRABOOST-CORE BLACK                                                                    |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 12923 | ADI     | CORE          | NMD_R1.V2-CORE BLACK                                                                     |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 12017 | ADI     | CORE          | ASWEERUN-CORE BLACK                                                                      |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 14243 | ADI     | CORE          | QUESTARSTRIKE-CORE BLACK/CORE BLACK/BOLD GOLD                                            |           2 |            7 | warna       | bukan_warna | 12.15%         |
+| 13380 | ADI     | CORE          | CORERACER-CORE BLACK                                                                     |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 15946 | ADI     | CORE          | NMD_R1-CORE BLACK                                                                        |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 10996 | ADI     | CORE          | SUPERSTAR-CORE BLACK                                                                     |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 12025 | ADI     | CORE          | ASWEERUN-CORE BLACK                                                                      |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 15445 | ADI     | CORE          | NMD_R1.V2-CORE BLACK                                                                     |           2 |            3 | warna       | bukan_warna | 12.15%         |
+|  9791 | ADI     | CORE          | RISINGSTARXR1-CORE BLACK                                                                 |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 12007 | ADI     | CORE          | RUNFALCON-CORE BLACK                                                                     |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 10424 | ADI     | CORE          | RUNTHEGAME-CORE BLACK/CORE BLACK/ACTIVE RED                                              |           2 |            7 | warna       | bukan_warna | 12.15%         |
+| 10320 | ADI     | CORE          | RUNTHEGAME-CORE BLACK/CORE BLACK/GREY SIX                                                |           2 |            7 | warna       | bukan_warna | 12.15%         |
+| 11697 | ADI     | CORE          | ULTRABOOST-CORE BLACK                                                                    |           2 |            3 | warna       | bukan_warna | 12.15%         |
+|  8479 | ADI     | CORE          | 3MC-CORE BLACK                                                                           |           2 |            3 | warna       | bukan_warna | 12.15%         |
+| 10134 | ADI     | CORE          | X_PLR-CORE BLACK                                                                         |           2 |            3 | warna       | bukan_warna | 12.15%         |
+|  6039 | ADI     | GREFOU        | DURAMO 8 W-GREFOU/GRETWO/GRETWO                                                          |           4 |            6 | warna       | bukan_warna | 11.85%         |
+|  6884 | ADI     | GREFOU        | DEERUPT RUNNER-GRETHR/GREFOU/FTWWHT                                                      |           4 |            5 | warna       | bukan_warna | 11.85%         |
+|  5151 | ADI     | GREFOU        | H90 LOGO CAP-BLACK/BLACK/GREFOU                                                          |           6 |            6 | warna       | bukan_warna | 11.85%         |
+| 17275 | AGL     | 5             | ITALIC 5 PANEL MAROON 005-MAROON                                                         |           5 |            6 | warna       | bukan_warna | 11.46%         |
+|  2592 | ADI     | ICEPUR        | GAZELLE-ICEPUR/WHITE/GOLDMT                                                              |           2 |            4 | warna       | bukan_warna | 11.32%         |
+|  5248 | ADI     | CORBLU        | FORTAPLAY AC I-CORBLU/FTWWHT/EQTYEL                                                      |           4 |            6 | warna       | bukan_warna | 10.96%         |
+| 22744 | KIP     | TAUPE         | FS69-TAUPE BROWN-160                                                                     |           2 |            4 | warna       | bukan_warna | 10.94%         |
+|  6090 | ADI     | GREFIV        | GALAXY 4 M-GREFIV/GREFIV/GRETWO                                                          |           5 |            6 | warna       | bukan_warna | 10.86%         |
+|  5289 | ADI     | GREFIV        | SUPERSTAR BW35 SLIPON W-GREFIV/GREFIV/GRETHR                                             |           5 |            7 | warna       | bukan_warna | 10.86%         |
+|  3245 | ADI     | GREFIV        | CF SWIFT RACER-CBLACK/UTIBLK/GREFIV                                                      |           6 |            6 | warna       | bukan_warna | 10.86%         |
+|  4248 | ADI     | GREFIV        | DUAL THREAT 2017-CBLACK/FTWWHT/GREFIV                                                    |           6 |            6 | warna       | bukan_warna | 10.86%         |
+|  7272 | ADI     | GREFIV        | NMD_R1-CBLACK/GREFOU/GREFIV                                                              |           4 |            4 | warna       | bukan_warna | 10.86%         |
+|  1911 | ADI     | GREFIV        | CF RACER TR-CBLACK/CBLACK/GREFIV                                                         |           6 |            6 | warna       | bukan_warna | 10.86%         |
+|  4815 | ADI     | GREFIV        | SUPERSTAR 80S CLEAN-UTIBLK/UTIBLK/GREFIV                                                 |           6 |            6 | warna       | bukan_warna | 10.86%         |
+|  3981 | ADI     | GREFIV        | ALPHABOUNCE LUX W-ENEAQU/GREFIV/FTWWHT                                                   |           5 |            6 | warna       | bukan_warna | 10.86%         |
+|  4385 | ADI     | GREFIV        | X PLR-GREFIV/GREFIV/FTWWHT                                                               |           4 |            5 | warna       | bukan_warna | 10.86%         |
+|  4237 | ADI     | GREFIV        | EXPLOSIVE BOUNCE-GREFOU/SILVMT/GREFIV                                                    |           5 |            5 | warna       | bukan_warna | 10.86%         |
+|  3715 | ADI     | GREFIV        | ADIDAS EQT SOCK-BLACK/DGSOGR/GREFIV                                                      |           6 |            6 | warna       | bukan_warna | 10.86%         |
+| 56746 | WAR     | PAISLEY       | 125CM PAISLEY WHITE FLAT                                                                 |           2 |            4 | warna       | bukan_warna | 10.4%          |
+|   873 | ADI     | VAPGRE        | CLOUDFOAM RACE W-VAPGRE/VAGRME/FTWWHT                                                    |           4 |            6 | warna       | bukan_warna | 10.29%         |
+|  7565 | ADI     | VAPGRE        | ULTRABOOST UNCAGED-OWHITE/CHAPEA/VAPGRE                                                  |           5 |            5 | warna       | bukan_warna | 10.29%         |
+|  7870 | ADI     | VAPGRE        | CF QT RACER W-ICEPUR/VAGRME/VAPGRE                                                       |           7 |            7 | warna       | bukan_warna | 10.29%         |
+|  6943 | ADI     | HIRERE        | SWIFT RUN PK-HIRERE/FTWWHT/CBLACK                                                        |           4 |            6 | warna       | bukan_warna | 10.23%         |
+|  6086 | ADI     | HIRERE        | GALAXY 4 M-CARBON/CARBON/HIRERE                                                          |           6 |            6 | warna       | bukan_warna | 10.23%         |
+|  4879 | ADI     | HIRERE        | PERF BOTTL 0,75-HIRERE/CARBON/CARBON                                                     |           4 |            6 | warna       | bukan_warna | 10.23%         |
+|  3535 | ADI     | POWRED        | SQUAD 17 SHO-POWRED/WHITE                                                                |           4 |            5 | warna       | bukan_warna | 10.18%         |
+|  7116 | ADI     | POWRED        | MUFC FBL-REARED/BLACK/POWRED                                                             |           5 |            5 | warna       | bukan_warna | 10.18%         |
+|   399 | ADI     | POWRED        | CFC H JSY-CHEBLU/WHITE/POWRED                                                            |           6 |            6 | warna       | bukan_warna | 10.18%         |
+| 12005 | ADI     | RAW           | RUNFALCON-RAW INDIGO                                                                     |           2 |            3 | warna       | bukan_warna | 10.17%         |
+|    12 | ADI     | BASKETBALL    | 3 STRIPE D 29.5-BASKETBALL NATURAL                                                       |           5 |            6 | warna       | bukan_warna | 9.97%          |
+|  1407 | ADI     | CARGO         | NMD_TS1 PK-NIGHT CARGO                                                                   |           4 |            4 | warna       | bukan_warna | 9.55%          |
+|  1810 | ADI     | REAMAG        | CAMPUS C-REAMAG/CLPINK/CLPINK                                                            |           3 |            5 | warna       | bukan_warna | 9.48%          |
+|  1796 | ADI     | REAMAG        | CAMPUS J-REAMAG/CLPINK/CLPINK                                                            |           3 |            5 | warna       | bukan_warna | 9.48%          |
+|  7372 | ADI     | SGREEN        | PROPHERE-SGREEN/CGREEN/CBLACK                                                            |           2 |            4 | warna       | bukan_warna | 9.32%          |
+| 56715 | WAR     | MINT          | 90CM MINT-BLACK ROPE LACES                                                               |           2 |            5 | warna       | bukan_warna | 8.9%           |
+| 10576 | ADI     | SAND          | NMD_R1-SAND                                                                              |           2 |            2 | warna       | bukan_warna | 8.78%          |
+| 15571 | ADI     | SAND          | OZRAH-SAND                                                                               |           2 |            2 | warna       | bukan_warna | 8.78%          |
+| 21085 | HER     | POLY          | HERITAGE-POLY PERF BLACK/BLK                                                             |           2 |            5 | warna       | bukan_warna | 8.66%          |
+| 21106 | HER     | POLY          | CLASSIC-POLY RAVEN X                                                                     |           2 |            4 | warna       | bukan_warna | 8.66%          |
+|  3906 | ADI     | REARED        | MUFC H JSY-REARED/WHITE/BLACK                                                            |           4 |            6 | warna       | bukan_warna | 8.44%          |
+|  3866 | ADI     | REARED        | MUFC 3S CAP-REARED/WHITE                                                                 |           4 |            5 | warna       | bukan_warna | 8.44%          |
+|  3677 | ADI     | REARED        | MUFC 3S TRK TOP-REARED/WHITE/BLACK                                                       |           5 |            7 | warna       | bukan_warna | 8.44%          |
+| 15766 | ADI     | CHALK         | OZWEEGO-CHALK WHITE                                                                      |           2 |            3 | warna       | bukan_warna | 8.35%          |
+| 23752 | NIK     | NAVY          | WMNS AIR MAX 95-MIDNIGHT NAVY/LASER ORANGE-PURE PLATINUM                                 |           6 |           10 | warna       | bukan_warna | 8.11%          |
+| 46230 | NIK     | NAVY          | NK HERITAGE HIP PACK - TRL-MIDNIGHT NAVY/OBSIDIAN/BLACK                                  |           7 |            9 | warna       | bukan_warna | 8.11%          |
+| 20988 | HER     | NAVY          | EIGHTEEN-600D POLY NAVY/RED                                                              |           4 |            5 | warna       | bukan_warna | 8.11%          |
+| 23451 | NIC     | NAVY          | NIKE CHALLENGER WAIST PACK LARGE-DARK TEAL GREEN/MIDNIGHT NAVY/PURE PLATINUM/SILVER OSFM |          10 |           14 | warna       | bukan_warna | 8.11%          |
+| 36627 | NIK     | NAVY          | NIKE M2K TEKNO-MIDNIGHT NAVY/UNIVERSITY GOLD-BORDEAUX                                    |           5 |            8 | warna       | bukan_warna | 8.11%          |
+| 46057 | NIK     | NAVY          | AIR FORCE 1 MID QS-WHITE/WHITE-MIDNIGHT NAVY-GUM YELLOW                                  |           9 |           11 | warna       | bukan_warna | 8.11%          |
+| 48138 | PTG     | NAVY          | VERMI NAVY-NAVY                                                                          |           2 |            3 | warna       | bukan_warna | 8.11%          |
+| 34540 | NIK     | NAVY          | HYPERDUNK X EP-MIDNIGHT NAVY/UNIVERSITY RED-WHITE                                        |           5 |            8 | warna       | bukan_warna | 8.11%          |
+| 18808 | BBC     | NAVY          | SMALL ARCH LOGO SWEATPANTS-NAVY                                                          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+| 29512 | NIK     | NAVY          | AS M NK SHORT HBR-MIDNIGHT NAVY/MIDNIGHT NAVY/HYPER COBALT                               |           9 |           11 | warna       | bukan_warna | 8.11%          |
+| 15225 | ADI     | NAVY          | RIB DETAIL SS T-CREW NAVY                                                                |           6 |            6 | warna       | bukan_warna | 8.11%          |
+|  9222 | ADI     | NAVY          | CLASSIC BP-COLLEGIATE NAVY                                                               |           4 |            4 | warna       | bukan_warna | 8.11%          |
+| 23381 | NIC     | NAVY          | NIKE WOMENS GYM ESSENTIAL FITNESS GLOVES-GAME ROYAL/MIDNIGHT NAVY/WHITE                  |          10 |           11 | warna       | bukan_warna | 8.11%          |
+| 33002 | NIK     | NAVY          | PSG M NK BRT STAD JSY SS HM-MIDNIGHT NAVY/WHITE                                          |          10 |           11 | warna       | bukan_warna | 8.11%          |
+| 11354 | ADI     | NAVY          | FEF H SHO- COLLEGIATE NAVY                                                               |           5 |            5 | warna       | bukan_warna | 8.11%          |
+| 38254 | NIK     | NAVY          | AIR FORCE 1  07 LV8 1-MIDNIGHT NAVY/WHITE-BLACK-WHITE                                    |           8 |           11 | warna       | bukan_warna | 8.11%          |
+| 21092 | HER     | NAVY          | POP QUIZ-600D POLY NAVY/ZIP                                                              |           5 |            6 | warna       | bukan_warna | 8.11%          |
+| 34903 | NIK     | NAVY          | NIKE AIR MAX 97 SE-MIDNIGHT NAVY/LASER ORANGE-OBSIDIAN MIST                              |           7 |           11 | warna       | bukan_warna | 8.11%          |
+| 21032 | HER     | NAVY          | HER-SIXTEEN-NAVY-(5L)-BAG-US                                                             |           3 |            6 | warna       | bukan_warna | 8.11%          |
+| 10083 | ADI     | NAVY          | SUPERCOURT-COLLEGIATE NAVY                                                               |           3 |            3 | warna       | bukan_warna | 8.11%          |
+| 21043 | HER     | NAVY          | FIFTEEN-600D POLY NAVY                                                                   |           4 |            4 | warna       | bukan_warna | 8.11%          |
+| 40860 | NIK     | NAVY          | B NSW CORE AMPLIFY FZ-MIDNIGHT NAVY/WHITE/MIDNIGHT NAVY                                  |          10 |           10 | warna       | bukan_warna | 8.11%          |
+| 23016 | KIP     | NAVY          | XS35-WHITE NAVY-140                                                                      |           3 |            4 | warna       | bukan_warna | 8.11%          |
+| 25404 | NIK     | NAVY          | AS M NSW JGGR WVN V442-ARMORY NAVY/BLACK                                                 |           8 |            9 | warna       | bukan_warna | 8.11%          |
+| 15727 | ADI     | NAVY          | ULTRABOOST 22 W-COLLEGIATE NAVY                                                          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+| 14254 | ADI     | NAVY          | PRO SPARK 2018-COLLEGIATE NAVY/SILVER MET./FTWR WHITE                                    |           5 |            9 | warna       | bukan_warna | 8.11%          |
+| 21095 | HER     | NAVY          | LIL AMER M-600D POLY NAVY BLOCK                                                          |           6 |            7 | warna       | bukan_warna | 8.11%          |
+| 19482 | BBC     | NAVY          | DAMAGED CREWNECK SWEATSHIRT-NAVY                                                         |           4 |            4 | warna       | bukan_warna | 8.11%          |
+| 15190 | ADI     | NAVY          | SURREAL SUMMER-CREW NAVY                                                                 |           4 |            4 | warna       | bukan_warna | 8.11%          |
+| 12683 | ADI     | NAVY          | NMD_R1-COLLEGIATE NAVY                                                                   |           3 |            3 | warna       | bukan_warna | 8.11%          |
+| 54866 | SAU     | NAVY          | SHADOW ORIGINAL-NAVY/BROWN                                                               |           3 |            4 | warna       | bukan_warna | 8.11%          |
+| 44628 | NIK     | NAVY          | NIKE DUNK HIGH (GS)-WHITE/MIDNIGHT NAVY-TOTAL ORANGE                                     |           7 |            9 | warna       | bukan_warna | 8.11%          |
+|  9282 | ADI     | NAVY          | ADIDAS 3S BP-COLLEGIATE NAVY/ACTIVE RED/WHITE                                            |           5 |            8 | warna       | bukan_warna | 8.11%          |
+| 33862 | NIK     | NAVY          | NIKE JOYRIDE CC-MIDNIGHT NAVY/DARK OBSIDIAN-DARK SULFUR                                  |           5 |            9 | warna       | bukan_warna | 8.11%          |
+| 27017 | NIK     | NAVY          | NIKE SB CHECK SOLAR-MIDNIGHT NAVY/WHITE                                                  |           6 |            7 | warna       | bukan_warna | 8.11%          |
+|  9750 | ADI     | NAVY          | AC CLASS BP-COLLEGIATE NAVY                                                              |           5 |            5 | warna       | bukan_warna | 8.11%          |
+| 13531 | ADI     | NAVY          | ULTRABOOST 20 CITY PACK HYPE-COLLEGIATE NAVY                                             |           7 |            7 | warna       | bukan_warna | 8.11%          |
+| 14748 | ADI     | NAVY          | B TF AB POLY TT-COLLEGIATE NAVY                                                          |           7 |            7 | warna       | bukan_warna | 8.11%          |
+|  9134 | ADI     | NAVY          | SB CLASSIC TRE-COLLEGIATE NAVY                                                           |           5 |            5 | warna       | bukan_warna | 8.11%          |
+| 14005 | ADI     | NAVY          | RESPONSE SR-CREW NAVY                                                                    |           4 |            4 | warna       | bukan_warna | 8.11%          |
+| 11491 | ADI     | NAVY          | FORTAFAITO EL K-COLLEGIATE NAVY                                                          |           5 |            5 | warna       | bukan_warna | 8.11%          |
+| 44843 | NIK     | NAVY          | PHANTOM GT2 ACADEMY DF FG/MG-COLLEGE NAVY/WHITE-VIVID PURPLE                             |           8 |           11 | warna       | bukan_warna | 8.11%          |
+| 42214 | NIK     | NAVY          | AIR MAX TAILWIND V SP-MIDNIGHT NAVY/UNIVERSITY RED                                       |           7 |            9 | warna       | bukan_warna | 8.11%          |
+| 21051 | HER     | NAVY          | LAKE SM-SEAMLESS NAVY                                                                    |           4 |            4 | warna       | bukan_warna | 8.11%          |
+| 30205 | NIK     | NAVY          | DOWNSHIFTER 8 (TDV)-MIDNIGHT NAVY/FLASH CRIMSON-OIL GREY                                 |           5 |            9 | warna       | bukan_warna | 8.11%          |
+| 45351 | NIK     | NAVY          | NK ELMNTL BKPK ? HBR-MIDNIGHT NAVY/MIDNIGHT NAVY/POLLEN                                  |           9 |           10 | warna       | bukan_warna | 8.11%          |
+| 27364 | NIK     | NAVY          | NIKE AIR VERSITILE-MIDNIGHT NAVY/WHITE-GAME ROYAL                                        |           5 |            8 | warna       | bukan_warna | 8.11%          |
+| 55064 | SOC     | NAVY          | TRICOLORE LOW-NAVY/RED                                                                   |           3 |            4 | warna       | bukan_warna | 8.11%          |
+| 48114 | PTG     | NAVY          | SOLID 1 (PACK OF THREE)-GREY/WHITE/NAVY                                                  |           8 |            8 | warna       | bukan_warna | 8.11%          |
+| 13114 | ADI     | NAVY          | ULTRABOOST 2.0-COLLEGIATE NAVY                                                           |           4 |            4 | warna       | bukan_warna | 8.11%          |
+| 36821 | NIK     | NAVY          | NK ALPHA GMSK-MIDNIGHT NAVY/BLACK/WHITE                                                  |           5 |            7 | warna       | bukan_warna | 8.11%          |
+| 42835 | NIK     | NAVY          | PSG MNK DF STAD JSY SS HM-MIDNIGHT NAVY/UNIVERSITY RED/WHITE                             |           9 |           12 | warna       | bukan_warna | 8.11%          |
+| 45615 | NIK     | NAVY          | NIKE DUNK HIGH (PS)-WHITE/MIDNIGHT NAVY-TOTAL ORANGE                                     |           7 |            9 | warna       | bukan_warna | 8.11%          |
+| 30182 | NIK     | NAVY          | DOWNSHIFTER 8 (GS)-MIDNIGHT NAVY/FLASH CRIMSON-OIL GREY                                  |           5 |            9 | warna       | bukan_warna | 8.11%          |
+| 32754 | NIK     | NAVY          | AS M NSW AF1 HOODIE FZ FT-ARMORY NAVY/ARMORY NAVY/BLACK                                  |           9 |           12 | warna       | bukan_warna | 8.11%          |
+| 43926 | NIK     | NAVY          | NIKE DUNK HI SP-VARSITY MAIZE/MIDNIGHT NAVY                                              |           8 |            8 | warna       | bukan_warna | 8.11%          |
+| 42234 | NIK     | NAVY          | NIKE DBREAK-TYPE SE-MIDNIGHT NAVY/WHITE-TEAM ORANGE-BLUSTERY                             |           6 |           10 | warna       | bukan_warna | 8.11%          |
+| 26752 | NIK     | PEELORANGE    | WMNS KAWA SLIDEPINK PRIME/ORANGE PEELORANGE PEEL                                         |           6 |            7 | warna       | bukan_warna | 8.1%           |
+| 55804 | STN     | VOLT          | RAILWAY-VOLT                                                                             |           2 |            2 | warna       | bukan_warna | 8.05%          |
+| 23355 | NIC     | 7             | NIKE KD FULL COURT 8P-AMBER/BLACK/METALLIC SILVER/BLACK 07                               |          11 |           11 | warna       | bukan_warna | 7.83%          |
+|  1405 | ADI     | PK            | NMD_TS1 PK-NIGHT CARGO                                                                   |           2 |            4 | warna       | bukan_warna | 7.75%          |
+|  3490 | ADI     | SHOCK         | FUTUREPACER-SHOCK RED                                                                    |           2 |            3 | warna       | bukan_warna | 7.61%          |
+|  3844 | ADI     | PETNIT        | 3S PER SHOEBAG-PETNIT/PETNIT/TRAOLI                                                      |           5 |            6 | warna       | bukan_warna | 7.57%          |
+|  3843 | ADI     | PETNIT        | 3S PER SHOEBAG-PETNIT/PETNIT/TRAOLI                                                      |           4 |            6 | warna       | bukan_warna | 7.57%          |
+|  3774 | ADI     | PETNIT        | REAL 3S TEE-WHITE/PETNIT                                                                 |           5 |            5 | warna       | bukan_warna | 7.57%          |
+| 21620 | HER     | PINE          | SEVENTEEN-PINE BARK/BLACK                                                                |           2 |            4 | warna       | bukan_warna | 6.69%          |
+|  3783 | ADI     | EQTGRN        | DFB A JSY-EQTGRN/WHITE/REATEA                                                            |           4 |            6 | warna       | bukan_warna | 6.68%          |
+|  5099 | ADI     | EQTGRN        | DFB 3S TEE-BLACK/EQTGRN                                                                  |           5 |            5 | warna       | bukan_warna | 6.68%          |
+| 56444 | WAR     | OREO          | 90CM OREO ROPE                                                                           |           2 |            3 | warna       | bukan_warna | 5.74%          |
+| 21469 | HER     | IVY           | IONA-IVY GREEN/SMOKED PEARL                                                              |           2 |            5 | warna       | bukan_warna | 5.67%          |
+| 24523 | NIK     | ANTHRACITE    | NIKE GENICCO-ANTHRACITE/WHITE-BLACK                                                      |           3 |            5 | warna       | bukan_warna | 5.65%          |
+| 31116 | NIK     | ANTHRACITE    | NIKE VIALE-ANTHRACITE/WHITE-INFRARED 23                                                  |           3 |            6 | warna       | bukan_warna | 5.65%          |
+| 54953 | SAU     | BRN           | COURAGEOUS-BRN/YEL                                                                       |           2 |            3 | warna       | bukan_warna | 5.43%          |
+| 22804 | KIP     | POWDER        | FS74-POWDER WHITE-90                                                                     |           2 |            4 | warna       | bukan_warna | 5.1%           |
+| 55759 | STN     | RASTA         | VIARTA-RASTA                                                                             |           2 |            2 | warna       | bukan_warna | 5.01%          |
+|  5879 | ADI     | NOBMAR        | ULTRABOOST ALL TERRAIN-NGTRED/NOBMAR/BRBLUE                                              |           5 |            6 | warna       | bukan_warna | 4.71%          |
+| 13918 | ADI     | CARDBOARD     | NMD_R1.V2-CARDBOARD                                                                      |           2 |            2 | warna       | bukan_warna | 4.66%          |
+| 54661 | REL     | 35            | REGULAR LACES-WHITE ROPE 35                                                              |           5 |            5 | warna       | bukan_warna | 4.4%           |
+| 54596 | REL     | 35            | UB&NMD-SALMON PINK FLAT 35                                                               |           5 |            5 | warna       | bukan_warna | 4.4%           |
+| 54612 | REL     | 35            | REFLECTIVE LACES-WHITE STRIPES 3M FLAT 35                                                |           7 |            7 | warna       | bukan_warna | 4.4%           |
+| 54724 | REL     | 35            | UB&NMD-LIGHTBLUE/WHITE ROPE 35/89cm                                                      |           5 |            6 | warna       | bukan_warna | 4.4%           |
+| 54636 | REL     | 35            | REGULAR LACES-BLACK/WHITE FLAT 35                                                        |           6 |            6 | warna       | bukan_warna | 4.4%           |
+| 50395 | PUM     | PUMA          | RESOLVE PUMA BLACK-PUMA SILVER                                                           |           2 |            5 | warna       | bukan_warna | 4.21%          |
+| 55911 | STN     | MELANGE       | BULLS MELANGE-RED                                                                        |           2 |            3 | warna       | bukan_warna | 4.09%          |
+| 15466 | ADI     | SAVANNAH      | OZELIA-SAVANNAH                                                                          |           2 |            2 | warna       | bukan_warna | 4.09%          |
+| 22760 | KIP     | ARMOR         | FS71-ARMOR GREY-90                                                                       |           2 |            4 | warna       | bukan_warna | 3.96%          |
+| 21242 | HER     | WINE          | SEVENTEEN-WINE GRID                                                                      |           2 |            3 | warna       | bukan_warna | 3.68%          |
+| 22828 | KIP     | VANILLA       | FS75-VANILLA WHITE-140                                                                   |           2 |            4 | warna       | bukan_warna | 3.61%          |
+| 22824 | KIP     | VANILLA       | FS75-VANILLA WHITE-115                                                                   |           2 |            4 | warna       | bukan_warna | 3.61%          |
+|  7274 | ADI     | SESAME        | NMD_R1-SESAME/TRACAR/BASGRN                                                              |           2 |            4 | warna       | bukan_warna | 3.41%          |
+|  4222 | ADI     | SESAME        | TUBULAR DOOM SOCK PK-SESAME/SESAME/CRYWHT                                                |           5 |            7 | warna       | bukan_warna | 3.41%          |
+|  6532 | ADI     | SESAME        | TUBULAR DOOM SOCK PK-BASGRN/SESAME/CWHITE                                                |           6 |            7 | warna       | bukan_warna | 3.41%          |
+|  1656 | ADI     | ONIX          | MANA BOUNCE 2 M ARAMIS-CBLACK/SILVMT/ONIX                                                |           8 |            8 | warna       | bukan_warna | 2.87%          |
+|  8858 | ADI     | ONIX          | REAL PRESHI-TECH ONIX                                                                    |           4 |            4 | warna       | bukan_warna | 2.87%          |
+|  2910 | ADI     | ONIX          | DURAMO 9-CARBON/ONIX/GRETWO                                                              |           4 |            5 | warna       | bukan_warna | 2.87%          |
+|  8894 | ADI     | ONIX          | MUFC BP-CLEAR GREY/CLEAR ONIX/BLAZE RED                                                  |           6 |            8 | warna       | bukan_warna | 2.87%          |
+|  1664 | ADI     | ONIX          | MANA BOUNCE 2 W ARAMIS-CBLACK/SILVMT/ONIX                                                |           8 |            8 | warna       | bukan_warna | 2.87%          |
+| 55259 | STN     | AQUA          | FAMILY FORCE-AQUA                                                                        |           3 |            3 | warna       | bukan_warna | 2.84%          |
+| 21264 | HER     | FROG          | SIXTEEN-FROG CAMO                                                                        |           2 |            3 | warna       | bukan_warna | 2.64%          |
+| 35787 | NIK     | VARSITY       | NIKE VARSITY COMPETE TR 2-BLACK/GHOST GREEN-SMOKE GREY                                   |           2 |           10 | warna       | bukan_warna | 2.61%          |
+| 31261 | NIK     | VARSITY       | NIKE VARSITY COMPETE TRAINER-BLACK/WHITE                                                 |           2 |            6 | warna       | bukan_warna | 2.61%          |
+|   263 | ADI     | BLUSPI        | ULTRABOOST W-TECINK/CARBON/BLUSPI                                                        |           5 |            5 | warna       | bukan_warna | 2.56%          |
+|  5908 | ADI     | BLUSPI        | ULTRABOOST LACELESS-RAWGRE/CARBON/BLUSPI                                                 |           5 |            5 | warna       | bukan_warna | 2.56%          |
+|  3316 | ADI     | BLUSPI        | ULTRABOOST-FTWWHT/CARBON/BLUSPI                                                          |           4 |            4 | warna       | bukan_warna | 2.56%          |
+|  5285 | ADI     | BLUSPI        | ULTRABOOST PARLEY-CARBON/CARBON/BLUSPI                                                   |           5 |            5 | warna       | bukan_warna | 2.56%          |
+|  6865 | ADI     | BLUSPI        | DEERUPT RUNNER PARLEY-CBLACK/CBLACK/BLUSPI                                               |           6 |            6 | warna       | bukan_warna | 2.56%          |
+| 14727 | ADI     | LEGEND        | SHOPPER-LEGEND INK                                                                       |           2 |            3 | warna       | bukan_warna | 2.54%          |
+| 12023 | ADI     | LEGEND        | ASWEERUN-LEGEND INK                                                                      |           2 |            3 | warna       | bukan_warna | 2.54%          |
+| 22756 | KIP     | METRO         | FS70-METRO GREY-160                                                                      |           2 |            4 | warna       | bukan_warna | 2.3%           |
+| 22752 | KIP     | METRO         | FS70-METRO GREY-140                                                                      |           2 |            4 | warna       | bukan_warna | 2.3%           |
+| 15761 | ADI     | ALUMINA       | FLUIDFLOW 2.0-ALUMINA                                                                    |           3 |            3 | warna       | bukan_warna | 2.21%          |
+|  8759 | ADI     | ACTIVE        | X LESTO-ACTIVE RED/BLACK/OFF WHITE                                                       |           3 |            7 | warna       | bukan_warna | 2.2%           |
+| 11545 | ADI     | ACTIVE        | DURAMO 9-ACTIVE RED                                                                      |           3 |            4 | warna       | bukan_warna | 2.2%           |
+| 10328 | ADI     | ACTIVE        | RUN60S-ACTIVE MAROON                                                                     |           2 |            3 | warna       | bukan_warna | 2.2%           |
+| 55981 | STN     | OATMEAL       | XYZ-OATMEAL                                                                              |           2 |            2 | warna       | bukan_warna | 1.98%          |
+|   588 | ADI     | CARBON        | ALPHABOUNCE RC2 M-CARBON/CARBON/CBLACK                                                   |           5 |            6 | warna       | bukan_warna | 1.97%          |
+|  2909 | ADI     | CARBON        | DURAMO 9-CARBON/ONIX/GRETWO                                                              |           3 |            5 | warna       | bukan_warna | 1.97%          |
+| 30705 | NIK     | CARBON        | NIKE REVOLUTION 4 (TDV)-GRIDIRON/MTLC PEWTER-LIGHT CARBON-BLACK                          |           9 |           10 | warna       | bukan_warna | 1.97%          |
+|  8629 | ADI     | CARBON        | BOS TEE M-CARBON                                                                         |           4 |            4 | warna       | bukan_warna | 1.97%          |
+|  7864 | ADI     | CARBON        | QUESTAR DRIVE W-CARBON/CARBON/AERPNK                                                     |           4 |            6 | warna       | bukan_warna | 1.97%          |
+|  6764 | ADI     | CARBON        | TUBULAR DOOM SOCK W-CARBON/TECEAR/OWHITE                                                 |           5 |            7 | warna       | bukan_warna | 1.97%          |
+| 41017 | NIK     | CARBON        | AIR FORCE 1 GTX-BLACK/BLACK-LIGHT CARBON-BRIGHT CERAMIC                                  |           8 |           10 | warna       | bukan_warna | 1.97%          |
+| 30760 | NIK     | CARBON        | NIKE REVOLUTION 4 (GS)-GRIDIRON/MTLC PEWTER-LIGHT CARBON-BLACK                           |           9 |           10 | warna       | bukan_warna | 1.97%          |
+|  3315 | ADI     | CARBON        | ULTRABOOST-FTWWHT/CARBON/BLUSPI                                                          |           3 |            4 | warna       | bukan_warna | 1.97%          |
+|   244 | ADI     | CARBON        | ULTRABOOST-LEGINK/CARBON/BLUSPI                                                          |           3 |            4 | warna       | bukan_warna | 1.97%          |
+|  6806 | ADI     | CARBON        | TUBULAR DOOM SOCK PK W-CARBON/CBLACK/SYELLO                                              |           6 |            8 | warna       | bukan_warna | 1.97%          |
+|  7805 | ADI     | CARBON        | QUESTAR RIDE W-CARBON/CBLACK/GRETWO                                                      |           4 |            6 | warna       | bukan_warna | 1.97%          |
+| 31743 | NIK     | CARBON        | AIR FORCE 1 FOAMPOSITE CUP-LIGHT CARBON/LIGHT CARBON-BLACK                               |           7 |           10 | warna       | bukan_warna | 1.97%          |
+|  6992 | ADI     | CARBON        | EQT BASK ADV-CARBON/CARBON/CROYAL                                                        |           5 |            6 | warna       | bukan_warna | 1.97%          |
+|  1466 | ADI     | CARBON        | PROPHERE W-CBLACK/SHOPNK/CARBON                                                          |           5 |            5 | warna       | bukan_warna | 1.97%          |
+|  7699 | ADI     | CARBON        | CF QT RACER W-CBLACK/FTWWHT/CARBON                                                       |           7 |            7 | warna       | bukan_warna | 1.97%          |
+| 31880 | NIK     | CARBON        | AS NIKE SWOOSH BRA-CARBON HEATHER/ANTHRACITE/BLACK                                       |           5 |            8 | warna       | bukan_warna | 1.97%          |
+|  7049 | ADI     | CARBON        | CLIMACOOL 02/17-FTWWHT/CARBON/GUM416                                                     |           5 |            6 | warna       | bukan_warna | 1.97%          |
+| 46731 | NIK     | CARBON        | NIKE DUNK LOW PRM-CARBON GREEN/RIFTBLUE-SAIL-CHILE RED                                   |           5 |           10 | warna       | bukan_warna | 1.97%          |
+| 29082 | NIK     | CARBON        | NIKE DOWNSHIFTER 8-LIGHT CARBON/MTLC PEWTER-PEAT MOSS-BLACK                              |           5 |           10 | warna       | bukan_warna | 1.97%          |
+| 38387 | NIK     | CARBON        | AS M NSW TEE CAMO PACK 1 AS-LIGHT CARBON/BLUE RECALL/WHITE                               |          10 |           13 | warna       | bukan_warna | 1.97%          |
+|  6076 | ADI     | CARBON        | ULTRABOOST J-CWHITE/CHAPEA/CARBON                                                        |           5 |            5 | warna       | bukan_warna | 1.97%          |
+|  2698 | ADI     | CARBON        | PUREBOOST DPR LTD-CBLACK/CBLACK/CARBON                                                   |           6 |            6 | warna       | bukan_warna | 1.97%          |
+| 15871 | ADI     | CARBON        | FLUIDSTREET-CARBON                                                                       |           2 |            2 | warna       | bukan_warna | 1.97%          |
+|  8669 | ADI     | CARBON        | BP DAILY-RAWGRE/CARBON/WHITE                                                             |           4 |            5 | warna       | bukan_warna | 1.97%          |
+|  1527 | ADI     | CARBON        | SWIFT RUN W-CBLACK/CARBON/FTWWHT                                                         |           5 |            6 | warna       | bukan_warna | 1.97%          |
+|  9671 | ADI     | CARBON        | CAMO OTH HOODY-CARBON                                                                    |           4 |            4 | warna       | bukan_warna | 1.97%          |
+|  5372 | ADI     | CARBON        | FLUIDCLOUD AMBITIOUS M-CBLACK/FTWWHT/CARBON                                              |           6 |            6 | warna       | bukan_warna | 1.97%          |
+| 28969 | NIK     | CARBON        | AS W NSW TCH FLC CAPE FZ-CARBON HEATHER/BLACK                                            |           8 |           10 | warna       | bukan_warna | 1.97%          |
+| 32998 | NIK     | 23            | PSG M NK BRT STAD JSY SS AW-INFRARED 23/BLACK                                            |          10 |           11 | warna       | bukan_warna | 1.88%          |
+| 25371 | NIK     | 23            | JORDAN AIR JUMPMAN-BLACK/INFRARED 23                                                     |           6 |            6 | warna       | bukan_warna | 1.88%          |
+| 21685 | HER     | NIGHT         | FOURTEEN-NIGHT CAMO                                                                      |           2 |            3 | warna       | bukan_warna | 1.85%          |
+| 10573 | ADI     | METAL         | NMD_R1-METAL GREY                                                                        |           2 |            3 | warna       | bukan_warna | 1.74%          |
+| 21167 | HER     | FOREST        | SETTLEMENT-FOREST                                                                        |           2 |            2 | warna       | bukan_warna | 1.72%          |
+| 21507 | HER     | FOREST        | NOVEL-FOREST NIGHT/DARK DENIM                                                            |           2 |            5 | warna       | bukan_warna | 1.72%          |
+|  5964 | ADI     | CLOUD         | FUTUREPACER-CLOUD WHITE                                                                  |           2 |            3 | warna       | bukan_warna | 1.68%          |
+| 22780 | KIP     | SHADOW        | FS72-SHADOW BROWN-140                                                                    |           2 |            4 | warna       | bukan_warna | 1.52%          |
+| 10776 | ADI     | CRYSTAL       | OZWEEGO-CRYSTAL WHITE                                                                    |           2 |            3 | warna       | bukan_warna | 1.25%          |
+| 10029 | ADI     | ASH           | NITE JOGGER-ASH SILVER                                                                   |           3 |            4 | warna       | bukan_warna | 1.12%          |
+| 21384 | HER     | ASH           | SEVENTEEN-ASH ROSE                                                                       |           2 |            3 | warna       | bukan_warna | 1.12%          |
+|  8451 | ADI     | ASH           | FALCON W-ASH PEARL S18                                                                   |           3 |            5 | warna       | bukan_warna | 1.12%          |
+| 21428 | HER     | ASH           | FIFTEEN-ASH ROSE                                                                         |           2 |            3 | warna       | bukan_warna | 1.12%          |
+|  9705 | ADI     | ASH           | CROPPED SWEAT-ASH PEARL S18                                                              |           3 |            5 | warna       | bukan_warna | 1.12%          |
+| 56484 | WAR     | NEON          | 125CM NEON REFLECTIVE ROPE LACES                                                         |           2 |            5 | warna       | bukan_warna | 1.01%          |
+| 54580 | REL     | 49            | REGULAR LACES-LIGHTBLUE/WHITE ROPE 49                                                    |           6 |            6 | warna       | bukan_warna | 0.95%          |
+| 54576 | REL     | 49            | REGULAR LACES-BLACK/BLUE ROPE 49                                                         |           6 |            6 | warna       | bukan_warna | 0.95%          |
+| 54571 | REL     | 49            | METAL AGLETS-WHITE WAXED FLAT GOLD AGLET 49                                              |           8 |            8 | warna       | bukan_warna | 0.95%          |
+| 54549 | REL     | 49            | METAL AGLETS-WHITE ROPE SILVER AGLETS ROPE 49                                            |           8 |            8 | warna       | bukan_warna | 0.95%          |
+| 54527 | REL     | 49            | REFLECTIVE LACES-BLACK STRIPES 3M ROPE 49                                                |           7 |            7 | warna       | bukan_warna | 0.95%          |
+| 54562 | REL     | 49            | REGULAR LACES-GREY/WHITE ROPE 49                                                         |           6 |            6 | warna       | bukan_warna | 0.95%          |
+| 54733 | REL     | 49            | REFLECTIVE LACES-BLACK STRIPES 3M ROPE 49/125cm                                          |           7 |            8 | warna       | bukan_warna | 0.95%          |
+| 54557 | REL     | 49            | REGULAR LACES-RED/WHITE ROPE 49                                                          |           6 |            6 | warna       | bukan_warna | 0.95%          |
+|  2207 | ADI     | TURBO         | EQT SUPPORT RF-FTWWHT/FTWWHT/TURBO                                                       |           6 |            6 | warna       | bukan_warna | 0.94%          |
+|  2424 | ADI     | TURBO         | EQT RACING 91 W-CBLACK/CBLACK/TURBO                                                      |           7 |            7 | warna       | bukan_warna | 0.94%          |
+| 21145 | HER     | ECLIPSE       | RETREAT-ECLIPSE X                                                                        |           2 |            3 | warna       | bukan_warna | 0.64%          |
     
 
 
@@ -3158,7 +2687,7 @@ gc.collect()
 
 
 
-    3242
+    26866
 
 
 
@@ -3171,13 +2700,14 @@ Pada dasarnya kita akan membuat tumpukan layer yang mempelajari input data per k
 Sebelum kita melakukan *training* pada variabel `urut_kata` dan juga `total_kata`. Terdapat setidaknya dua opsi untuk menggunakan variabel independen ini:
 
 1. Melakukan pembagian `urut_kata` dan `total_kata` sehingga nilai dari posisi adalah diantara 0 sampai dengan 1, dimana ~0 menunjukkan posisi kata yang berada dekat dengan awal kalimat dan ~1 adalah posisi kata yang berada dengan akhir kalimat. Namun hal ini akan menyebabkan kita akan kehilangan beberapa informasi dari input data, sebagai contoh nilai 0.5 bisa diartikan sebagai kata pertama dalam kalimat yang terdiri dari dua kata (1/2) atau bisa juga berarti kata kelima dalam kalimat yang terdiri dari sepuluh kata (5/10).
-2. Menggunakan `urut_kata` dan `total_kata` sebagaimana adanya tanpa melakukan pembagian dan membiarkan model berusaha mempelajari makna dari variabel independen ini.
+2. Melakukan encoding untuk `urut_kata` dan `total_kata` sehingga kita tidak kehilangan informasi dari kedua variabel ini.
+3. Menggunakan `urut_kata` dan `total_kata` sebagaimana adanya tanpa melakukan pembagian dan membiarkan model berusaha mempelajari makna dari variabel independen ini.
 
-Pada bagian ini, kita akan mencoba untuk menggunakan opsi pertama.
+Pada bagian ini, kita akan mencoba untuk menggunakan opsi kedua.
 
 
 ### USE atau Custom Embedding?
-Dikarenakan pada model_2 kita dapat melihat bahwa penggunaan lapisan fitur esktraktor USE tidak dapat dengan baik memprediksi label kata (hal ini bisa disebabkan oleh beberapa hal, seperti fakta bahwa USE dilatih pada dataset *corpus* bahasa internasional yang mungkin lebih baku), maka kita akan kembali menggunakan lapisan *custom embedding* menggunakan Conv1D atau lapisan LSTM dua arah (*bi-directional LSTM*) seperti pada model_1.
+Dikarenakan pada model_2 kita dapat melihat bahwa penggunaan lapisan ekstraktor fitur USE tidak dapat dengan baik memprediksi label kata (hal ini bisa disebabkan oleh beberapa hal, seperti fakta bahwa USE dilatih pada dataset *corpus* bahasa internasional yang mungkin lebih baku), maka kita akan kembali menggunakan lapisan *custom embedding* menggunakan Conv1D atau lapisan LSTM dua arah (*bi-directional LSTM*) seperti pada model_1.
 
 ### `urut_kata` dan `total_kata` Embedding
 
@@ -3215,6 +2745,7 @@ train_data['urut_kata'].value_counts()
 ```python
 train_data['urut_kata'].plot.hist()
 plt.title('Distribusi Jumlah Kata dalam Artikel', fontsize=18)
+plt.figure(facecolor='w')
 plt.show()
 ```
 
@@ -3222,7 +2753,6 @@ plt.show()
     
 ![png](ColorSkim_AI_files/ColorSkim_AI_83_0.png)
     
-
 
 
 ```python
@@ -3294,6 +2824,7 @@ train_data['total_kata'].value_counts()
 ```python
 train_data['total_kata'].plot.hist()
 plt.title('Distribusi Panjang Kalimat dalam Artikel', fontsize=18)
+plt.figure(facecolor='w')
 plt.show()
 ```
 
@@ -3305,6 +2836,7 @@ plt.show()
 
 
 ```python
+# Lakukan hal yang sama untuk total_kata
 max_kalimat = int(np.max(train_data['total_kata']))
 
 # Membuat one_hot tensor untuk kolom 'total_kata'
@@ -3602,23 +3134,18 @@ plot_model(model_3, show_shapes=True)
 
 
 ```python
-# evaluasi model_3
+# Evaluasi model_3
 model_3.evaluate(test_dataset)
 ```
 
-    355/355 [==============================] - 37s 86ms/step - loss: 0.0214 - accuracy: 0.9944
-    
-
-
-
-
+    355/355 [==============================] - 40s 98ms/step - loss: 0.0214 - accuracy: 0.9944
     [0.021449144929647446, 0.9944498538970947]
 
 
 
 
 ```python
-# prediksi probabilitas model_3
+# Prediksi probabilitas model_3
 model_3_pred_prob = tf.squeeze(model_3.predict(test_dataset))
 model_3_pred_prob
 ```
@@ -3634,7 +3161,7 @@ model_3_pred_prob
 
 
 ```python
-# membuat prediksi model_3
+# Membuat prediksi model_3
 model_3_pred = tf.round(tf.round(model_3_pred_prob))
 model_3_pred
 ```
@@ -3648,7 +3175,7 @@ model_3_pred
 
 
 ```python
-# metriks skor model_3
+# Metriks skor model_3
 model_3_metrik = hitung_metrik(target=test_target,
                                prediksi=model_3_pred)
 model_3_metrik
@@ -3666,7 +3193,7 @@ model_3_metrik
 
 
 ```python
-# plot residual model_3
+# Plot residual model_3
 residual_plot_logr(test_target=test_target,
                    nama_model=MODEL[3],
                    model_akurasi=model_3_metrik['akurasi'],
@@ -3681,13 +3208,14 @@ residual_plot_logr(test_target=test_target,
 
 
 ```python
-# plot confusion matrix
+# Plot confusion matrix
 plot_conf_matrix(target_label=test_target,
                  prediksi_label=model_3_pred,
                  nama_model=MODEL[3],
                  akurasi=model_3_metrik['akurasi'],
                  label_titik_x=['bukan_warna', 'warna'],
                  label_titik_y=['bukan_warna', 'warna'])
+plt.figure(facecolor='w')
 plt.show()
 ```
 
@@ -3699,83 +3227,84 @@ plt.show()
 
 
 ```python
-# dataframe kesalahan prediksi model_3
+# Dataframe kesalahan prediksi model_3
 df_kesalahan_prediksi(label_encoder=label_encoder,
                       test_data=test_data_mnb,
                       prediksi=model_3_pred,
                       probabilitas_prediksi=model_3_pred_prob,
                       order_ulang_header=['brand',
                                           'kata',
+                                          'nama_artikel',
                                           'urut_kata',
                                           'total_kata',
                                           'label'])
 ```
 
-    |       | brand   | kata        |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
-    |------:|:--------|:------------|------------:|-------------:|:------------|:------------|:---------------|
-    | 55259 | STN     | AQUA        |           3 |            3 | warna       | bukan_warna | 0.01%          |
-    | 23355 | NIC     | 7           |          11 |           11 | warna       | bukan_warna | 3.41%          |
-    | 56444 | WAR     | OREO        |           2 |            3 | warna       | bukan_warna | 1.82%          |
-    | 14605 | ADI     | REPEAT      |           2 |            3 | bukan_warna | warna       | 50.28%         |
-    | 46960 | NIK     | FTR10PURE   |           2 |            7 | warna       | bukan_warna | 0.32%          |
-    | 13918 | ADI     | CARDBOARD   |           2 |            2 | warna       | bukan_warna | 44.58%         |
-    | 12202 | ADI     | COM         |           2 |            3 | bukan_warna | warna       | 50.28%         |
-    |  8735 | ADI     | FULL        |           1 |            3 | bukan_warna | warna       | 82.15%         |
-    | 31091 | NIK     | VIALEBLACK  |           2 |            4 | warna       | bukan_warna | 0.51%          |
-    |  5964 | ADI     | CLOUD       |           2 |            3 | warna       | bukan_warna | 19.68%         |
-    | 21176 | HER     | ANGELS      |           2 |            3 | bukan_warna | warna       | 62.74%         |
-    | 21451 | HER     | MEDIUM      |           2 |            3 | bukan_warna | warna       | 83.72%         |
-    | 56083 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 67.72%         |
-    | 55981 | STN     | OATMEAL     |           2 |            2 | warna       | bukan_warna | 18.83%         |
-    | 33831 | NIK     | EXPX14WHITE |           2 |            4 | warna       | bukan_warna | 0.51%          |
-    | 12345 | ADI     | FESTIV      |           2 |            3 | bukan_warna | warna       | 50.28%         |
-    | 56746 | WAR     | PAISLEY     |           2 |            4 | warna       | bukan_warna | 0.88%          |
-    |  1405 | ADI     | PK          |           2 |            4 | warna       | bukan_warna | 0.01%          |
-    | 56086 | WAR     | GLOW        |           2 |            6 | bukan_warna | warna       | 67.72%         |
-    | 17275 | AGL     | 5           |           5 |            6 | warna       | bukan_warna | 1.61%          |
-    | 26752 | NIK     | PEELORANGE  |           6 |            7 | warna       | bukan_warna | 1.37%          |
-    | 55804 | STN     | VOLT        |           2 |            2 | warna       | bukan_warna | 18.83%         |
-    | 12023 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 28.49%         |
-    |  8962 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 78.66%         |
-    | 13740 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 44.58%         |
-    | 10573 | ADI     | METAL       |           2 |            3 | warna       | bukan_warna | 0.05%          |
-    | 56484 | WAR     | NEON        |           2 |            5 | warna       | bukan_warna | 0.11%          |
-    | 46940 | NIK     | REACTBRIGHT |           2 |            7 | warna       | bukan_warna | 0.32%          |
-    |  9992 | ADI     | TECH        |           2 |            4 | bukan_warna | warna       | 64.85%         |
-    |  1403 | ADI     | F17         |           4 |            4 | warna       | bukan_warna | 1.2%           |
-    | 52652 | PUM     | GLOW        |           4 |            6 | warna       | bukan_warna | 32.14%         |
-    |  2592 | ADI     | ICEPUR      |           2 |            4 | warna       | bukan_warna | 38.93%         |
-    |  7372 | ADI     | SGREEN      |           2 |            4 | warna       | bukan_warna | 38.93%         |
-    | 10336 | ADI     | MAROON      |           2 |            2 | warna       | bukan_warna | 44.58%         |
-    | 15466 | ADI     | SAVANNAH    |           2 |            2 | warna       | bukan_warna | 44.58%         |
-    | 54951 | SAU     | TAN         |           2 |            3 | warna       | bukan_warna | 0.0%           |
-    | 22780 | KIP     | SHADOW      |           2 |            4 | warna       | bukan_warna | 7.41%          |
-    | 56226 | WAR     | ORANGE      |           2 |            5 | bukan_warna | warna       | 81.07%         |
-    | 17198 | AGL     | YELLOW      |           2 |            5 | bukan_warna | warna       | 97.89%         |
-    | 50395 | PUM     | PUMA        |           2 |            5 | warna       | bukan_warna | 0.01%          |
-    | 48075 | PTG     | ORANGE      |           2 |            3 | bukan_warna | warna       | 97.78%         |
-    | 54953 | SAU     | BRN         |           2 |            3 | warna       | bukan_warna | 4.62%          |
-    | 56661 | WAR     | THE         |           2 |            5 | warna       | bukan_warna | 23.55%         |
-    |  8968 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 78.66%         |
-    |  1407 | ADI     | CARGO       |           4 |            4 | warna       | bukan_warna | 1.22%          |
-    | 16273 | ADI     | SWEATSHIRT  |           2 |            3 | bukan_warna | warna       | 50.28%         |
-    |  3490 | ADI     | SHOCK       |           2 |            3 | warna       | bukan_warna | 0.09%          |
-    | 14727 | ADI     | LEGEND      |           2 |            3 | warna       | bukan_warna | 28.49%         |
-    | 33814 | NIK     | EXPZ07WHITE |           2 |            3 | warna       | bukan_warna | 0.8%           |
-    |  8965 | ADI     | CORE        |           2 |            4 | bukan_warna | warna       | 78.66%         |
-    |  4659 | ADI     | BOAQUA      |           2 |            4 | warna       | bukan_warna | 38.93%         |
-    | 14574 | ADI     | OFF         |           2 |            4 | bukan_warna | warna       | 66.82%         |
-    | 21982 | HER     | FLORAL      |           2 |            3 | warna       | bukan_warna | 3.38%          |
-    | 21091 | HER     | 600D        |           3 |            6 | bukan_warna | warna       | 99.94%         |
-    |  7224 | ADI     | SPR         |           2 |            3 | bukan_warna | warna       | 50.28%         |
-    | 17520 | AGL     | BROWN       |           1 |            4 | bukan_warna | warna       | 77.41%         |
-    | 48153 | PTG     | DOVE        |           2 |            3 | bukan_warna | warna       | 94.19%         |
-    | 19643 | BEA     | 35          |           2 |            3 | bukan_warna | warna       | 60.07%         |
-    | 16288 | ADI     | BLK         |           2 |            5 | bukan_warna | warna       | 99.4%          |
-    | 21174 | HER     | RED         |           4 |            8 | bukan_warna | warna       | 99.77%         |
-    | 29098 | NIK     | 8ASHEN      |           3 |            6 | warna       | bukan_warna | 0.93%          |
-    | 55759 | STN     | RASTA       |           2 |            2 | warna       | bukan_warna | 18.83%         |
-    | 31572 | NIK     | LIGHTCARBON |           4 |            6 | warna       | bukan_warna | 0.82%          |
+|       | brand   | kata        | nama_artikel                                               |   urut_kata |   total_kata | label       | prediksi    | probabilitas   |
+|------:|:--------|:------------|:-----------------------------------------------------------|------------:|-------------:|:------------|:------------|:---------------|
+| 21091 | HER     | 600D        | POP QUIZ-600D POLY NAVY/ZIP                                |           3 |            6 | bukan_warna | warna       | 99.94%         |
+| 21174 | HER     | RED         | HER-HERITAGE-BOSTON RED SOX-(21L)-BAG-US                   |           4 |            8 | bukan_warna | warna       | 99.77%         |
+| 16288 | ADI     | BLK         | CLR BLK CRW 2PP-BLACK                                      |           2 |            5 | bukan_warna | warna       | 99.4%          |
+| 17198 | AGL     | YELLOW      | ESAGLXY YELLOW CRICKET LIGHTER -YELLOW                     |           2 |            5 | bukan_warna | warna       | 97.89%         |
+| 48075 | PTG     | ORANGE      | POLKA ORANGE-ORANGE                                        |           2 |            3 | bukan_warna | warna       | 97.78%         |
+| 48153 | PTG     | DOVE        | MISTY DOVE-GREY                                            |           2 |            3 | bukan_warna | warna       | 94.19%         |
+| 21451 | HER     | MEDIUM      | MAMMOTH MEDIUM-ARROWWOOD                                   |           2 |            3 | bukan_warna | warna       | 83.72%         |
+|  8735 | ADI     | FULL        | FULL ZIP-CWHITE                                            |           1 |            3 | bukan_warna | warna       | 82.15%         |
+| 56226 | WAR     | ORANGE      | SHOELACES ORANGE OVAL LACES-ORANGE                         |           2 |            5 | bukan_warna | warna       | 81.07%         |
+|  8962 | ADI     | CORE        | LIN CORE ORG-BLACK                                         |           2 |            4 | bukan_warna | warna       | 78.66%         |
+|  8965 | ADI     | CORE        | LIN CORE CROSSB-BLACK                                      |           2 |            4 | bukan_warna | warna       | 78.66%         |
+|  8968 | ADI     | CORE        | LIN CORE BP-BLACK                                          |           2 |            4 | bukan_warna | warna       | 78.66%         |
+| 17520 | AGL     | BROWN       | BROWN MOUNTAIN 008 - PEACH                                 |           1 |            4 | bukan_warna | warna       | 77.41%         |
+| 56083 | WAR     | GLOW        | ROPE GLOW IN THE DARK-WHITE                                |           2 |            6 | bukan_warna | warna       | 67.72%         |
+| 56086 | WAR     | GLOW        | FLAT GLOW IN THE DARK-WHITE                                |           2 |            6 | bukan_warna | warna       | 67.72%         |
+| 14574 | ADI     | OFF         | PRIDE OFF CENTE-MULTICOLOR                                 |           2 |            4 | bukan_warna | warna       | 66.82%         |
+|  9992 | ADI     | TECH        | MARATHON TECH-EASY YELLOW                                  |           2 |            4 | bukan_warna | warna       | 64.85%         |
+| 21176 | HER     | ANGELS      | HERITAGE ANGELS (21L)                                      |           2 |            3 | bukan_warna | warna       | 62.74%         |
+| 19643 | BEA     | 35          | SERIES 35-MULTI                                            |           2 |            3 | bukan_warna | warna       | 60.07%         |
+| 16273 | ADI     | SWEATSHIRT  | OS SWEATSHIRT-BLACK                                        |           2 |            3 | bukan_warna | warna       | 50.28%         |
+| 14605 | ADI     | REPEAT      | LINEAR REPEAT-BLACK                                        |           2 |            3 | bukan_warna | warna       | 50.28%         |
+| 12202 | ADI     | COM         | UNIFO COM- WHITE                                           |           2 |            3 | bukan_warna | warna       | 50.28%         |
+| 12345 | ADI     | FESTIV      | MONOGR FESTIV-MULTICOLOR                                   |           2 |            3 | bukan_warna | warna       | 50.28%         |
+|  7224 | ADI     | SPR         | FL_TRH SPR-CARBON                                          |           2 |            3 | bukan_warna | warna       | 50.28%         |
+| 15466 | ADI     | SAVANNAH    | OZELIA-SAVANNAH                                            |           2 |            2 | warna       | bukan_warna | 44.58%         |
+| 13918 | ADI     | CARDBOARD   | NMD_R1.V2-CARDBOARD                                        |           2 |            2 | warna       | bukan_warna | 44.58%         |
+| 13740 | ADI     | MAROON      | ULTRA4D-MAROON                                             |           2 |            2 | warna       | bukan_warna | 44.58%         |
+| 10336 | ADI     | MAROON      | RUN60S-MAROON                                              |           2 |            2 | warna       | bukan_warna | 44.58%         |
+|  7372 | ADI     | SGREEN      | PROPHERE-SGREEN/CGREEN/CBLACK                              |           2 |            4 | warna       | bukan_warna | 38.93%         |
+|  2592 | ADI     | ICEPUR      | GAZELLE-ICEPUR/WHITE/GOLDMT                                |           2 |            4 | warna       | bukan_warna | 38.93%         |
+|  4659 | ADI     | BOAQUA      | CAMPUS-BOAQUA/FTWWHT/CWHITE                                |           2 |            4 | warna       | bukan_warna | 38.93%         |
+| 52652 | PUM     | GLOW        | SUEDE BLOC IVORY GLOW-PUMA BLACK                           |           4 |            6 | warna       | bukan_warna | 32.14%         |
+| 14727 | ADI     | LEGEND      | SHOPPER-LEGEND INK                                         |           2 |            3 | warna       | bukan_warna | 28.49%         |
+| 12023 | ADI     | LEGEND      | ASWEERUN-LEGEND INK                                        |           2 |            3 | warna       | bukan_warna | 28.49%         |
+| 56661 | WAR     | THE         | 125CM THE BLUES FLAT LACES                                 |           2 |            5 | warna       | bukan_warna | 23.55%         |
+|  5964 | ADI     | CLOUD       | FUTUREPACER-CLOUD WHITE                                    |           2 |            3 | warna       | bukan_warna | 19.68%         |
+| 55804 | STN     | VOLT        | RAILWAY-VOLT                                               |           2 |            2 | warna       | bukan_warna | 18.83%         |
+| 55759 | STN     | RASTA       | VIARTA-RASTA                                               |           2 |            2 | warna       | bukan_warna | 18.83%         |
+| 55981 | STN     | OATMEAL     | XYZ-OATMEAL                                                |           2 |            2 | warna       | bukan_warna | 18.83%         |
+| 22780 | KIP     | SHADOW      | FS72-SHADOW BROWN-140                                      |           2 |            4 | warna       | bukan_warna | 7.41%          |
+| 54953 | SAU     | BRN         | COURAGEOUS-BRN/YEL                                         |           2 |            3 | warna       | bukan_warna | 4.62%          |
+| 23355 | NIC     | 7           | NIKE KD FULL COURT 8P-AMBER/BLACK/METALLIC SILVER/BLACK 07 |          11 |           11 | warna       | bukan_warna | 3.41%          |
+| 21982 | HER     | FLORAL      | HANSON-FLORAL BLR                                          |           2 |            3 | warna       | bukan_warna | 3.38%          |
+| 56444 | WAR     | OREO        | 90CM OREO ROPE                                             |           2 |            3 | warna       | bukan_warna | 1.82%          |
+| 17275 | AGL     | 5           | ITALIC 5 PANEL MAROON 005-MAROON                           |           5 |            6 | warna       | bukan_warna | 1.61%          |
+| 26752 | NIK     | PEELORANGE  | WMNS KAWA SLIDEPINK PRIME/ORANGE PEELORANGE PEEL           |           6 |            7 | warna       | bukan_warna | 1.37%          |
+|  1407 | ADI     | CARGO       | NMD_TS1 PK-NIGHT CARGO                                     |           4 |            4 | warna       | bukan_warna | 1.22%          |
+|  1403 | ADI     | F17         | NMD_R1-GREY TWO F17                                        |           4 |            4 | warna       | bukan_warna | 1.2%           |
+| 29098 | NIK     | 8ASHEN      | NIKE DOWNSHIFTER 8ASHEN SLATE/OBSIDIANDIFFUSED BLUEBLACK   |           3 |            6 | warna       | bukan_warna | 0.93%          |
+| 56746 | WAR     | PAISLEY     | 125CM PAISLEY WHITE FLAT                                   |           2 |            4 | warna       | bukan_warna | 0.88%          |
+| 31572 | NIK     | LIGHTCARBON | WMNS NIKE QUEST-LIGHTCARBON/BLACKLASER ORANGE              |           4 |            6 | warna       | bukan_warna | 0.82%          |
+| 33814 | NIK     | EXPZ07WHITE | NIKE EXPZ07WHITE/BLACK                                     |           2 |            3 | warna       | bukan_warna | 0.8%           |
+| 33831 | NIK     | EXPX14WHITE | NIKE EXPX14WHITE/WOLF GREYBLACK                            |           2 |            4 | warna       | bukan_warna | 0.51%          |
+| 31091 | NIK     | VIALEBLACK  | NIKE VIALEBLACK/VOLTSOLAR REDANTHRACITE                    |           2 |            4 | warna       | bukan_warna | 0.51%          |
+| 46940 | NIK     | REACTBRIGHT | NK REACTBRIGHT CRIMSON/DARK GREY/PURE PLATINUM             |           2 |            7 | warna       | bukan_warna | 0.32%          |
+| 46960 | NIK     | FTR10PURE   | NK FTR10PURE PLATINUM/BRIGHT CRIMSON/DARK GREY             |           2 |            7 | warna       | bukan_warna | 0.32%          |
+| 56484 | WAR     | NEON        | 125CM NEON REFLECTIVE ROPE LACES                           |           2 |            5 | warna       | bukan_warna | 0.11%          |
+|  3490 | ADI     | SHOCK       | FUTUREPACER-SHOCK RED                                      |           2 |            3 | warna       | bukan_warna | 0.09%          |
+| 10573 | ADI     | METAL       | NMD_R1-METAL GREY                                          |           2 |            3 | warna       | bukan_warna | 0.05%          |
+| 55259 | STN     | AQUA        | FAMILY FORCE-AQUA                                          |           3 |            3 | warna       | bukan_warna | 0.01%          |
+|  1405 | ADI     | PK          | NMD_TS1 PK-NIGHT CARGO                                     |           2 |            4 | warna       | bukan_warna | 0.01%          |
+| 50395 | PUM     | PUMA        | RESOLVE PUMA BLACK-PUMA SILVER                             |           2 |            5 | warna       | bukan_warna | 0.01%          |
+| 54951 | SAU     | TAN         | COURAGEOUS-TAN/PNK                                         |           2 |            3 | warna       | bukan_warna | 0.0%           |
     
 
 
@@ -3788,7 +3317,7 @@ gc.collect()
 
 
 
-    167901
+    157980
 
 
 
@@ -3800,13 +3329,13 @@ tf.config.experimental.get_memory_info('GPU:0')
 
 
 
-    {'current': 1057082880, 'peak': 1075037440}
+    {'current': 25028096, 'peak': 1074304768}
 
 
 
 
 ```python
-# Membuat fungsi untuk mengambil bobot masing - masing kata dalam neuron model dengan embedding
+# Membuat fungsi untuk mengambil bobot masing - masing kata dalam neuron model dengan lapisan embedding
 def get_bobot_kata(model_list,
                    lapisan_vektorisasi=lapisan_vektorisasi):
     """
@@ -3847,6 +3376,26 @@ get_bobot_kata([MODEL[1], MODEL[3]], lapisan_vektorisasi)
 
 ## Perbandingan Kinerja dari setiap Model
 
+Dari kesemua model yang sudah kita lakukan training, dapat disimpulkan bahwa:
+
+1. Model 0 dan Model 1 memiliki tingkat akurasi yang cukup tinggi dan nilainya hampir serupa, meskipun model ini cukup sederhana.
+2. Model 2 memiliki tingkat akurasi yang paling buruk dibandingkan semua model lainnya. Hal ini bisa dikarenakan banyak inkonsistensi dan typo dalam penulisan nama_artikel yang ada pada data dan *universal sentence encoder* sebagai sebuah lapisan ekstraktor fitur yang sudah ditrain menggunakan corpus (internasional) yang baku mungkin mengalami kesulitan dalam mengekstrak fitur dari data.
+3. Model 3 merupakan model dengan tingkat akurasi yang paling tinggi diantara kesemua model. Hal ini mungkin dikarenakan kita menambahkan variabel posisi kata dalam kalimat sebagai salah satu variabel independen yang mempengaruhi output dari variabel dependen label `bukan_warna` atau `warna`.
+
+Laporan log untuk ColorSkim dapat diakses di [*Weights & Biases - ColorSkim*](https://wandb.ai/jpao/ColorSkim?workspace=user-jpao)
+
+**Accuracy**
+
+![accuracy_wandb](images/model_accuracy.png)
+
+**Loss**
+
+![loss_wandb](images/model_loss.png)
+
+**Logs**
+
+![performance_wandb](images/model_performance.png)
+
 
 ```python
 # Mengkombinasikan hasil model ke dalam dataframe
@@ -3855,75 +3404,24 @@ hasil_semua_model = pd.DataFrame({"model_0_multinomial_naive_bayes": model_0_met
                                   "model_2_Conv1D_USE_embed": model_2_metrik,
                                   "model_3_quadbrid_embedding": model_3_metrik})
 hasil_semua_model = hasil_semua_model.transpose()
-hasil_semua_model
+print(hasil_semua_model.to_markdown())
 ```
 
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>akurasi</th>
-      <th>presisi</th>
-      <th>recall</th>
-      <th>f1-score</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>model_0_multinomial_naive_bayes</th>
-      <td>0.992159</td>
-      <td>0.992160</td>
-      <td>0.992159</td>
-      <td>0.992156</td>
-    </tr>
-    <tr>
-      <th>model_1_Conv1D_vektorisasi_embedding</th>
-      <td>0.992071</td>
-      <td>0.992072</td>
-      <td>0.992071</td>
-      <td>0.992068</td>
-    </tr>
-    <tr>
-      <th>model_2_Conv1D_USE_embed</th>
-      <td>0.938860</td>
-      <td>0.939021</td>
-      <td>0.938860</td>
-      <td>0.938596</td>
-    </tr>
-    <tr>
-      <th>model_3_quadbrid_embedding</th>
-      <td>0.994450</td>
-      <td>0.994450</td>
-      <td>0.994450</td>
-      <td>0.994448</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
+    |                                      |   akurasi |   presisi |   recall |   f1-score |
+    |:-------------------------------------|----------:|----------:|---------:|-----------:|
+    | model_0_multinomial_naive_bayes      |  0.992159 |  0.99216  | 0.992159 |   0.992156 |
+    | model_1_Conv1D_vektorisasi_embedding |  0.992071 |  0.992072 | 0.992071 |   0.992068 |
+    | model_2_Conv1D_USE_embed             |  0.93886  |  0.939021 | 0.93886  |   0.938596 |
+    | model_3_quadbrid_embedding           |  0.99445  |  0.99445  | 0.99445  |   0.994448 |
+    
 
 
 ```python
 # Plot dan perbandingan semua hasil model
-hasil_semua_model.plot(kind='bar', figsize=(10, 7)).legend(bbox_to_anchor=(1.0, 1.0));
+hasil_semua_model.plot(kind='bar', figsize=(10, 7)).legend(bbox_to_anchor=(1.0, 1.0))
+plt.title('Akurasi Presisi Recall dan F1-score', fontsize=18)
+plt.figure(facecolor='w')
+plt.show()
 ```
 
 
@@ -3931,6 +3429,8 @@ hasil_semua_model.plot(kind='bar', figsize=(10, 7)).legend(bbox_to_anchor=(1.0, 
 ![png](ColorSkim_AI_files/ColorSkim_AI_109_0.png)
     
 
+
+Dari ringkasan di atas kita dapat melihat bahwa model_3 unggul di semua metrik dibandingkan dengan model lainnya.
 
 
 ```python
@@ -3956,13 +3456,45 @@ for indeks, model in enumerate(MODEL):
                      label_titik_x=['bukan_warna', 'warna'],
                      label_titik_y=['bukan_warna', 'warna'])
 fig.tight_layout(h_pad=2, w_pad=2)
+plt.figure(facecolor='w')
 plt.show()
 ```
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_110_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_111_0.png)
     
+
+
+Pada *confusion matrix* di atas kita dapat melihat juga bahwa pada model terbaik (model_3), pengujian model terhadap test_data menghasilkan
+
+* 6,795 prediksi `bukan_warna` yang tepat
+* 4,493 prediksi `warna` yang tepat
+* 39 prediksi `bukan_warna` yang seharusnya adalah `warna`
+* 24 prediksi `warna` yang seharusnya adalah `bukan_warna`
+
+Proyeksi kata - kata dalam proses training ke dalam bidang 3 dimensi dapat dilihat di [TensorFlow Projector ColorSkim](http://projector.tensorflow.org/?config=https://gist.githubusercontent.com/johanesPao/4d32ee11e8610a7fc063009e76b08eea/raw/cd227e53ed26694fc050d427083566576ebfa481/template_projector_config.json). Proyeksi kata ke dalam bidang 3 dimensi ini menggunakan model_3 sebagai model dengan tingkat akurasi paling tinggi. Posisi kata dalam bidang 3 dimensi adalah setelah pembobotan dalam training model_3.
+
+*Embedding dalam 3 Dimensi*
+
+![dot_3d](images/dot_3d.png)
+
+*Embedding `white` dalam 3 Dimensi*
+
+![white_3d](images/white_3d.png)
+
+*Embedding `black` dalam 3 Dimensi*
+
+![black_3d](images/black_3d.png)
+
+*Embedding `adidas` dalam 3 Dimensi*
+
+![adidas_3d](images/adidas_3d.png)
+
+*Embedding kata dalam 3 Dimensi*
+
+![kata_3d](images/kata_3d.png)
+
 
 
 
@@ -3983,16 +3515,14 @@ for indeks, model in enumerate(MODEL[1:]):
                        model_metrik['akurasi'],
                        model_pred_prob)
 plt.tight_layout(h_pad=3, w_pad=3)
+plt.figure(facecolor='w')
 plt.show()
 ```
 
 
     
-![png](ColorSkim_AI_files/ColorSkim_AI_111_0.png)
+![png](ColorSkim_AI_files/ColorSkim_AI_113_0.png)
     
 
 
-
-```python
-
-```
+Sama seperti metrik - metrik lainnya dan semua perangkat evaluasi, pada grafik di atas kita dapat melihat bahwa model_3 memiliki residual yang paling minimum (sama dengan akurasi yang tinggi) untuk prediksinya, dimana kita masih dapat melihat sebagian besar residu pada model_3 masih berat di label `warna` dimana model memprediksi `bukan_warna`.
