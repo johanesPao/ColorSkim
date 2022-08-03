@@ -1,8 +1,9 @@
 site_name: Pembelajaran Mesin untuk Warna Artikel
 site_url: https://colorskim.jpao.live/
 nav:
-  - Pembelajaran Mesin: index.md
-  - Dokumentasi ColorSkim: ColorSkim_AI.md
+  - Mengenai Pembelajaran Mesin: index.md
+  - Tentang ColorSkim: colorskim_intro.md
+  - Dokumentasi ColorSkim: colorskim_notebook.md
 theme:
   name: material
   icon:
@@ -28,11 +29,12 @@ theme:
 markdown_extensions:
   - admonition
   - pymdownx.details
+  - pymdownx.mark
   - pymdownx.magiclink:
       repo_url_shortener: true
       provider: 'github'
       user: 'johanesPao'
-      repo: 'colorskim'
+      repo: 'ColorSkim'
   - tables
   - pymdownx.highlight:
       use_pygments: true

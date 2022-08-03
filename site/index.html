@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#pembelajaran-mesin" class="md-skip">
+        <a href="#mengenai-pembelajaran-mesin" class="md-skip">
           Lewati ke isi
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Pembelajaran Mesin
+              Mengenai Pembelajaran Mesin
             
           </span>
         </div>
@@ -196,12 +196,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Pembelajaran Mesin
+          Mengenai Pembelajaran Mesin
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="." class="md-nav__link md-nav__link--active">
-        Pembelajaran Mesin
+        Mengenai Pembelajaran Mesin
       </a>
       
         
@@ -261,8 +261,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#penerapan-jaringan-saraf-tiruan-di-berbagai-industri" class="md-nav__link">
-    Penerapan Jaringan Saraf Tiruan di berbagai Industri
+  <a href="#kapan-menggunakan-pembelajaran-mesin" class="md-nav__link">
+    Kapan Menggunakan Pembelajaran Mesin?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#penerapan-jaringan-saraf-tiruan-dalam-ranah-publik-dan-komersial" class="md-nav__link">
+    Penerapan Jaringan Saraf Tiruan dalam Ranah Publik dan Komersial
   </a>
   
 </li>
@@ -283,7 +290,22 @@
   
   
     <li class="md-nav__item">
-      <a href="ColorSkim_AI/" class="md-nav__link">
+      <a href="colorskim_intro/" class="md-nav__link">
+        Tentang ColorSkim
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="colorskim_notebook/" class="md-nav__link">
         Dokumentasi ColorSkim
       </a>
     </li>
@@ -311,7 +333,7 @@
 
 
 
-<h1 id="pembelajaran-mesin">Pembelajaran Mesin</h1>
+<h1 id="mengenai-pembelajaran-mesin">Mengenai Pembelajaran Mesin</h1>
 <p>Pembelajaran mesin merupakan satu percabangan dari kecerdasan buatan (AI) dan ilmu komputer yang berfokus pada penggunaan <strong>data</strong> dan <strong>algoritma</strong> untuk mengimitasi proses belajar manusia yang secara perlahan (<strong>gradual</strong>) memperbaiki akurasinya.</p>
 <p>Pembelajaran mesin sendiri merupakan sub bagian dari kecerdasan buatan, dan di dalam pembelajaran mesin ini masih ada sub bagian lagi yang lebih dikenal dengan jaringan saraf tiruan (<em>neural network</em>) dan di dalamnya lagi ada yang dikenal dengan istilah <em>deep learning</em>.</p>
 <h2 id="hierarki-kecerdasan-buatan-ai"><strong>Hierarki Kecerdasan Buatan (AI)</strong></h2>
@@ -324,7 +346,7 @@
 <p><strong><em>Machine Learning</em></strong> dan <em>Neural Network</em> secara teori dapat diartikan serupa namun <em>Machine Learning</em> lebih berfokus kepada algoritma dasar dalam permodelan statistik seperti <em>Naive Bayes Classifier</em>, <em>Random Forest</em>, <em>Linear Regression</em>, <em>Support Vector Machine</em>, <em>Time Series Forecasting</em> dll.</p>
 <p><strong><em>Neural Network</em></strong> lebih mengacu kepada suatu topologi proses pembentukan struktur model diantaranya jumlah saraf (<em>neuron</em>)dalam lapisan, kedalaman lapisan (jumlah lapisan), metode aktivasi lapisan dan proses <em>update</em> bobot (<em>weight</em>) dan konstanta (<em>intercept</em>/<em>bias</em>).</p>
 <p><strong><em>Deep Learning</em></strong> pada dasarnya adalah sama dengan <em>Neural Network</em>, namun ketika <em>Neural Network</em> memiliki lebih dari setidaknya 3 lapisan maka hal ini dikategorikan sebagai <em>Deep Learning</em></p>
-<h2 id="dasar-dasar-jaringan-saraf-tiruan-neural-network">Dasar - dasar Jaringan Saraf Tiruan (<em>Neural Network</em>)</h2>
+<h2 id="dasar-dasar-jaringan-saraf-tiruan-neural-network"><strong>Dasar - dasar Jaringan Saraf Tiruan (<em>Neural Network</em>)</strong></h2>
 <h3 id="jenis-jaringan-saraf-tiruan">Jenis Jaringan Saraf Tiruan</h3>
 <p>Pada dasarnya setidaknya terdapat tiga jenis pembelajaran dalam jaringan saraf tiruan:</p>
 <ul>
@@ -338,14 +360,39 @@
 </li>
 <li>
 <p><strong>Reinforcement Learning</strong> </p>
-<p>Model jaringan saraf tiruan dengan fokus pada <em>reward</em> dan <em>punishment</em> dalam sebuah lingkungan (<em>environment</em>) dimana model diharuskan untuk memaksimalkan <em>reward</em> atau meminimalisir <em>punishment</em>. </p>
+<p>Model jaringan saraf tiruan dengan fokus pada <em>reward</em> dan <em>punishment</em> dalam sebuah lingkungan (<em>environment</em>) dimana model diharuskan untuk memaksimalkan <em>reward</em> atau meminimalisir <em>punishment</em>.</p>
+</li>
+</ul>
+<p>Untuk jenis - jenis dari jaringan saraf tiruan itu sendiri sebenarnya dapat dikelompokkan dalam 3 kategori besar di bawah ini:</p>
+<ul>
+<li>
+<p><strong>Artificial Neural Network (ANN)</strong></p>
+<p>ANN merupakan bentuk jaringan saraf tiruan yang paling mendasar yang biasanya terbentuk dari sejumlah lapisan dalam jaringan yang tidak terlalu banyak. Umumnya lapisan pada jaringan saraf tiruan ini tidak memiliki fungsi aktivasi (linear) pada setiap lapisannya namun jika kita membayangkan jenis - jenis jaringan saraf tiruan lainnya, sebenarnya hanyalah pengembangan dari bentuk dasar ANN.</p>
+</li>
+<li>
+<p><strong>Convolution Neural Network (CNN)</strong></p>
+<p>CNN merupakan bentuk jaringan saraf tiruan yang sekarang menjadi tren di dalam komunitas <em>deep learning</em>. Jaringan saraf tiruan CNN ini dapat digunakan dalam berbagai bidang dan aplikasi, namun perannya sangat besar di dalam pemrosesan terkait gambar atau video. <em>Building block</em> dari CNN yang membedakan dengan jaringan saraf tiruan lainnya adalah pada penggunan <em>kernel</em> yang digunakan untuk meng-ekstrak fitur dari input menggunakan operasi konvolusional. </p>
+<p>Arsitektural jaringan saraf tiruan pada CNN berusaha untuk menangkap fitur spasial (<em>spatial features</em>) dari sebuah gambar yang merujuk pada aturan susunan <em>pixel</em> dan hubungan diantara <em>pixel</em> dalam gambar. Untuk penjelasan yang sangat mendalam dan interaktif mengenai jaringan saraf tiruan CNN bisa dilihat di situs <a href="https://poloclub.github.io/cnn-explainer/">CNN Explainer</a>.</p>
+<p>Namun arsitektural CNN ini tidak saja dipergunakan dalam pemrosesan gambar atau video saja. Konsep dasar CNN yang menggunakan <em>kernel</em> dan juga berfokus pada ekstraksi fitur spasial juga dapat dipergunakan dalam struktur data lainnya yang memiliki sifat <em>sequence-to-sequence</em> atau <em>seq2seq</em> seperti pada kasus data <em>time series</em> (<em>forecasting</em>) ataupun dalam kasus data tekstual (<em>NLP - Natural Language Processing</em>).</p>
+<p><img alt="cnnimageclass" src="images/cnnimageclass.gif" /></p>
+<p><em>Contoh arsitektural CNN dalam memproses data berupa gambar dalam kasus regresi logistik biner.</em></p>
+</li>
+<li>
+<p><strong>Recurrent Neural Network (RNN)</strong></p>
+<p>RNN merupakan bentuk jaringan saraf tiruan yang utamanya memanfaatkan keadaan dari input sebelumnya (<em>previous state</em>) ke dalam faktor penilaian keadaan saat ini (<em>current input &amp; state</em>) sehingga jariangan saraf tiruan ini disebut bersifat <em>recurrent</em> atau berulang. Ciri khas dari jaringan ini terletak pada struktur data input yang mengharuskan bentuk sekuensial seperti pada kasus tekstual kalimat atau data dengan <em>timestamp</em> yang konsisten (jika data memiliki interval <em>timestamp</em> yang tidak konsisten, harus dilakukan normalisasi terlebih dahulu). Interval <em>timestamp</em> yang konsisten pada data disebut sebagai <em>timestep</em> dalam jaringan saraf tiruan RNN dan konsep mengenai <em>timestep</em> seperti ukuran jendela (<em>window size</em>) dan ukuran horizon (<em>horizon size</em>) merupakan konsep yang cukup krusial.</p>
+<p>RNN umumnya digunakan secara spesifik dalam <em>forecasting</em> namun juga dapat digunakan dalam berbagai kasus <em>seq2seq</em> seperti CNN.</p>
+<p>Permasalahan yang sering timbul dalam jaringan saraf tiruan RNN adalah kasus menghilang atau meledaknya nilai <em>gradient</em> (<em>vanishing gradient</em> dan <em>exploding gradient</em>). Untuk kasus meledaknya nilai <em>gradient</em> masih dapat cukup dengan mudah ditangani dengan memangkas nilai <em>gradient</em> jika mencapai batas (<em>threshold</em>) tertentu dalam proses <em>back propagation</em>, namun permasalahan dengan nilai <em>gradient</em> yang menghilang sulit untuk diatasi, sehingga menyebabkan jaringan saraf tiruan berhenti "mempelajari". Namun untungnya, permasalahan <em>gradient</em> yang menghilang ini dapat diatasi sekitar tahun 1990 oleh <em>Sepp Hochreiter</em> dan <em>Juergen Schmidhuber</em> dengan memperkenalkan bentuk arsitektur <em>LSTM</em> (<em>Long Short Term Memory</em>) dalam jaringan saraf tiruan RNN.</p>
+<p>LSTM memiliki tiga gerbang untuk input, <em>forget</em> dan <em>output</em>. Ketiga gerbang ini akan menentukan apakah input baru yang masuk ke dalam <em>neuron</em> melalui <em>input gate</em> untuk menghapus informasi sebelumnya (<em>previous state</em>) karena dinilai tidak signifikan di <em>forget gate</em> atau membiarkan informasi mempengaruhi <em>output</em> pada <em>timestep</em> saat ini di <em>output gate</em>.</p>
+<p><img alt="LSTM" src="images/lstm.png" /></p>
+<p><em>Contoh gerbang dalam arsitektur LSTM.</em></p>
+<p>Dua arsitektural pada jaringan saraf tiruan RNN yang cukup populer penggunaannya adalah <em>LSTM</em> dan <em>GRU</em> (<em>Gated Recurrent Unit</em>).</p>
 </li>
 </ul>
 <h3 id="konsep-jaringan-saraf-tiruan-dan-cara-kerja">Konsep Jaringan Saraf Tiruan dan Cara Kerja</h3>
-<p>Pada dasarnya jaringan saraf tiruan sebagai sub bagian dari kecerdasan buatan berusaha untuk memecahkan satu permasalahan, <strong>pengambilan keputusan dengan proses pembelajaran yang dilakukan manusia dengan berdasarkan pendeteksian pola (<em>pattern recognition</em>)</strong>. Konsep ini bisa dilihat pada gambar di bawah ini:</p>
+<p>Pada dasarnya jaringan saraf tiruan sebagai sub bagian dari kecerdasan buatan berusaha untuk memecahkan satu permasalahan, <strong>pengambilan keputusan dengan proses pembelajaran yang dilakukan manusia dengan berdasarkan pendeteksian pola (<em>pattern recognition</em>)</strong>. Konsep <em>neuron</em> dalam jaringan saraf tiruan ini bisa dilihat pada gambar di bawah ini:</p>
 <p><img alt="neuron_ai" src="images/neuron_ai.png" /></p>
-<details class="info"><summary>Contoh Jaringan Saraf Tiruan</summary><p><img alt="nn" src="images/nn.jpg" /></p>
-</details>
+<p>Sedangkan contoh jaringan saraf tiruan secara keseluruhan dapat dilihat pada gambar di bawah ini:</p>
+<p><img alt="nn" src="images/nn.jpg" /></p>
 <p>Dimana satu lapisan pada jaringan saraf tiruan memiliki setidaknya 4 komponen:</p>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> input data (<em>X</em>)</li>
@@ -355,8 +402,8 @@
 </ul>
 <p>Atau di dalam simulasi persamaan matematik sebagai berikut:</p>
 <p><span class="arithmatex">\(\sum_{i=1}^{n} {y_i} = {b} + {w_i^1}{X_i^1} + {w_i^2}{X_i^2} + {w_i^3}{X_i^3} + ... + {w_i^m}{X_i^m}\)</span></p>
-<p>Dimana idealnya suatu permasalahan dengan output <span class="arithmatex">\({y}\)</span> ditentukan oleh perkalian bobot <span class="arithmatex">\({w}\)</span> dengan masing - masing variabel independen <span class="arithmatex">\({X}\)</span> dan ditambahkan dengan <em>bias</em> <span class="arithmatex">\({b}\)</span>. Proses menemukan <span class="arithmatex">\(\hat{y}\)</span> ini dikenal dengan istilah <em>forward propagation</em> dimana perhitungan dalam model dilakukan dari lapisan input, lapisan tersembunyi (<em>hidden</em>) dan sampai di lapisan <em>output</em>.</p>
-<p>Pada kasus <em>regresi linear</em> nilai yang didapat dalam satu lapisan diteruskan ke lapisan berikutnya tanpa memerlukan aktivasi. Namun dalam kasus regresi yang tidak bersifat linear (<em>non-linear regression</em>) atau dalam kasus klasifikasi biner (<em>binary classification</em>) atau multi kelas (<em>multiclass classification</em>) biasanya dipergunakan fungsi aktivasi <em>sigmoid</em> (pada kasus <em>binary classification</em>) atau <em>softmax</em> (pada kasus <em>multiclass classification</em>).</p>
+<p>Dimana idealnya suatu permasalahan dengan output <span class="arithmatex">\({y}\)</span> (<span class="arithmatex">\({y}\)</span> aktual) ditentukan oleh perkalian bobot <span class="arithmatex">\({w}\)</span> dengan masing - masing variabel independen <span class="arithmatex">\({X}\)</span> dan ditambahkan dengan <em>bias</em> <span class="arithmatex">\({b}\)</span>. Proses menemukan <span class="arithmatex">\(\hat{y}\)</span> (<span class="arithmatex">\({y}\)</span> prediksi model) ini dikenal dengan istilah <em>forward propagation</em> dimana perhitungan dalam model dilakukan dari lapisan input, lapisan tersembunyi (<em>hidden</em>) dan sampai di lapisan <em>output</em>.</p>
+<p>Pada kasus <em>regresi linear</em> nilai yang didapat dalam satu lapisan diteruskan ke lapisan berikutnya tanpa memerlukan aktivasi. Namun dalam kasus regresi yang tidak bersifat linear (<em>non-linear regression</em>) atau dalam kasus klasifikasi biner (<em>binary classification</em>) atau multi kelas (<em>multiclass classification</em>) biasanya dipergunakan fungsi aktivasi <em>ReLU</em> (<em>Rectified Linear Unit</em>) untuk memperkenalkan non-linearitas pada model, <em>Sigmoid</em> (pada kasus <em>binary classification</em>) atau <em>Softmax</em> (pada kasus <em>multiclass classification</em>).</p>
 <details class="info" open="open"><summary>Sigmoid Function</summary><p><span class="arithmatex">\({S(x)} = \frac{1}{1 + {e}^{-z}}\)</span> </p>
 <p>dimana <span class="arithmatex">\({e}\)</span> adalah <a href="https://en.wikipedia.org/wiki/E_(mathematical_constant)">angka <em>euler</em></a></p>
 </details>
@@ -364,19 +411,34 @@
 <p>dimana <span class="arithmatex">\({\vec{z}}\)</span> adalah input vektor dan <span class="arithmatex">\({K}\)</span> adalah jumlah kelas dalam kasus <em>multiclass classifier</em></p>
 </details>
 <p>Pada lapisan output akan dilakukan penghitungan selisih antara <em>output</em> <span class="arithmatex">\({y}\)</span> yang sebenarnya dengan <em>output</em> <span class="arithmatex">\(\hat{y}\)</span> yang diprediksi oleh model (dengan input <span class="arithmatex">\({X}\)</span> yang dimiliki) untuk menentukan <em>error</em>, <em>residual</em> atau lebih dikenal dengan istilah <em>loss</em> <span class="arithmatex">\({L}\)</span> dari suatu model dalam memprediksi <em>output</em> yang biasanya terangkum dalam <em>Mean Absolute Error</em> (MAE) atau <em>Mean Squared Error</em> (MSE).</p>
-<details class="info" open="open"><summary>Loss Function</summary><p><span class="arithmatex">\({L(y,\hat{y})} = \frac{1}{n}\sum_{i=1}^{n}|{y}-\hat{y_i}|\)</span></p>
+<details class="info" open="open"><summary>Loss Function (MAE)</summary><p><span class="arithmatex">\({L(y,\hat{y})} = \frac{1}{n}\sum_{i=1}^{n}|{y}-\hat{y_i}|\)</span></p>
 </details>
-<p>Tujuan dari jaringan saraf tiruan adalah untuk melakukan pemutakhiran pada nilai - nilai bobot <span class="arithmatex">\({w}\)</span> dalam setiap <em>neuron</em> di masing - masing lapisan dan <em>bias</em> <span class="arithmatex">\({b}\)</span> untuk memperkecil <em>loss</em> <span class="arithmatex">\({L}\)</span> dari suatu model. Proses pemutakhiran bobot dan <em>bias</em> pada jaringan saraf tiruan ini dikenal dengan istilah <em>back propagation</em> yang akan dimutakhirkan dengan fungsi optimisasi seperti SGD (<em>Stochastic Gradient Descent</em>) dan Adam (<em>Adaptive Momentum</em>).</p>
+<p>Tujuan dari jaringan saraf tiruan adalah untuk melakukan pemutakhiran pada nilai - nilai bobot <span class="arithmatex">\({w}\)</span> dalam setiap <em>neuron</em> di masing - masing lapisan dan <em>bias</em> <span class="arithmatex">\({b}\)</span> untuk memperkecil <em>loss</em> <span class="arithmatex">\({L}\)</span> dari suatu model. Proses pemutakhiran bobot dan <em>bias</em> pada jaringan saraf tiruan ini dikenal dengan istilah <em>back propagation</em> yang akan dimutakhirkan menggunakan <em>learning rate</em> dalam fungsi optimisasi seperti <em>AdaGrad</em> (<em>Adaptive Gradient</em>), <em>RMSProp</em> (<em>Root Mean Square Propagation</em>), <em>SGD</em> (<em>Stochastic Gradient Descent</em>), <em>Adam</em> (<em>Adaptive Momentum</em>) dan masih banyak fungsi optimisasi lainnya.</p>
+<details class="info" open="open"><summary>Optimizer Function (SGD)</summary><p>dimana pada kasus regresi linear kita mungkin memiliki persamaan/fungsi dari <span class="arithmatex">\({x}\)</span> atau <span class="arithmatex">\({f(x)}\)</span> atau <span class="arithmatex">\({y}\)</span> sebagai berikut:</p>
+<p><span class="arithmatex">\({f({x}) = {y} = {w_0}{b} + {w_1}{x}}\)</span> dimana bobot <span class="arithmatex">\({w_0}\)</span> selalu sama dengan <span class="arithmatex">\({1}\)</span></p>
+<p>yang memiliki <em>fungsi biaya</em> atau <em>loss function</em> sebagai berikut:</p>
+<p><span class="arithmatex">\({Q({w})} = {\sum_{i=1}^{n}{{Q_i}({w})}} = {\sum_{i=1}^{n}{(\hat{y_i}\ -\ {y_i})^{2}}} = {\sum_{i=1}^{n}{({w_1}\ +\ {w_2}{x_i}\ -\ {y_i})}}\)</span></p>
+<p>dan nilai bobot <span class="arithmatex">\({w}\)</span> diupdate menggunakan formula <em>SGD</em> yang merupakan turunan (<em>derivative</em>) dari <em>loss function</em> sebagai berikut:</p>
+<p><span class="arithmatex">\({w}^{baru} := {w}^{lama} - \eta\nabla{Q_i}({w}^{baru})\)</span> dimana <span class="arithmatex">\({\eta}\)</span> adalah <em>learning rate</em></p>
+<p>dimana <span class="arithmatex">\({w}^{baru}\)</span> muncul pada kedua sisi persamaan yang dapat diturunkan menjadi persamaan berikut:</p>
+<p><span class="arithmatex">\({w}^{baru} = {w}^{lama}\ +\ \frac{\eta}{1\ +\ \eta||x_i||^2}{(y_i\ -\ x_i^{'}{w}^{lama}){x_i}}\)</span></p>
+</details>
 <details class="hint" open="open"><summary>Analogi Sederhana</summary><p>Jika anda adalah penggemar k-drama dan pernah menyaksikan film berjudul <em>Startup (2020)</em>.</p>
-<p>Maka mungkin anda pernah menyaksikan adega ketika <em>Nam Do-San</em> memberikan gambaran yang sederhana tentang jaringan saraf buatan atau kecerdasan buatan secara umumnya kepada <em>Seo Dal-Mi</em> yang dapat diumpamakan sebagai Tarzan dan Jane. </p>
-<p>Ketika Tarzan untuk pertama kali bertemu dengan manusia yang bernama Jane, Tarzan tidak tahu apa yang harus dilakukan. Seiring berjalannya waktu Tarzan memberikan batu (<em>forward propagation</em>) kepada Jane dan respon Jane adalah tidak senang (<em>loss</em> pada model tinggi dan akurasi rendah), maka Tarzan mempelajari sesuatu di dalam kepalanya (<em>back propagation</em> pemutakhiran bobot dan <em>bias</em> dalam jaringan saraf tiruan) dan kembali mencoba dengan benda - benda lainnya (<em>forward propagation</em> dan <em>back propagation</em>) dan mengamati respon Jane sebagai bahan pembelajarannya. Sampai suatu ketika Tarzan memberikan bunga dan respon Jane kali ini adalah senang (<em>loss</em> pada model rendah dan akurasi tinggi).</p>
+<p>Maka mungkin anda pernah menyaksikan adegan ketika <em>Nam Do-San</em> memberikan gambaran yang sederhana tentang jaringan saraf tiruan atau kecerdasan buatan secara umumnya kepada <em>Seo Dal-Mi</em> yang dapat diumpamakan sebagai Tarzan dan Jane. </p>
+<p>Ketika Tarzan untuk pertama kali bertemu dengan manusia yang bernama Jane, Tarzan tidak tahu apa yang harus dilakukan. Seiring berjalannya waktu Tarzan memberikan batu (<em>forward propagation</em>) kepada Jane dan respon Jane adalah tidak senang (<em>loss</em> pada model tinggi dan akurasi rendah), maka Tarzan mempelajari sesuatu di dalam kepalanya (<em>back propagation</em> pemutakhiran bobot dan <em>bias</em> dalam jaringan saraf tiruan) dan kembali mencoba dengan benda - benda lainnya (proses <em>forward propagation</em> dan <em>back propagation</em> yang berulang) dan mengamati respon Jane sebagai bahan pembelajarannya. Sampai suatu ketika Tarzan memberikan bunga dan respon Jane kali ini adalah senang (<em>loss</em> pada model rendah dan akurasi tinggi).</p>
+</details>
+<details class="example"><summary>Penerapan non-linearitas pada proses pemutakhiran bobot <em>neuron</em> dan <em>bias</em> dalam lapisan jaringan saraf tiruan dengan fungsi aktivasi Sigmoid</summary><p><em>All credit goes to</em> <a href="https://www.youtube.com/c/DanielKukie%C5%82a/videos">Daniel Kukiela</a> dan tim <a href="https://nnfs.io/">Neural Network from Scratch</a> untuk animasi mengenai jaringan saraf tiruan berikut: </p>
+<p><img alt="SigmoidNN" src="images/SigmoidNN.gif" /></p>
 </details>
 <h3 id="hambatan-pada-penerapan-jaringan-saraf-tiruan">Hambatan pada Penerapan Jaringan Saraf Tiruan</h3>
 <p>Beberapa hambatan yang umumnya dialami dalam penerapan jaringan saraf tiruan:</p>
 <ol>
 <li>
 <p><strong>Kotak Hitam</strong></p>
-<p>Jaringan saraf tiruan memiliki struktur lapisan yang sangat kompleks. Secara sederhana jaringan saraf tiruan dapat didefinisikan dalam dua ukuran yaitu lebar jaringan saraf dan kedalaman jaringan saraf. Dengan asumsi kita memiliki 1 <em>neuron</em> input, 5 lapisan tersembunyi (<em>NN depth</em>) dimana masing - masing lapisan tersembunyi memiliki 20 <em>neuron</em> (<em>NN width</em>) maka model kita akan memiliki 1 * 5 * 20 = 100 bobot dan 5 <em>bias</em>. Jika model kita memiliki lebih dari 1 variabel independen (<em>feature</em>), misalkan 10 fitur, maka jumlah bobot dengan struktur model yang sama kini memiliki 1000 bobot dan 5 <em>bias</em>. Dibandingkan dengan statistik sederhana dengan rumus <span class="arithmatex">\(\sum_{i=1}^{10} {y_i} = {b} + {w_i^1}{X_i^1} + {w_i^2}{X_i^2} + {w_i^3}{X_i^3} + ... + {w_i^10}{X_i^10}\)</span> yang hanya akan menghasilkan 10 bobot <span class="arithmatex">\({w}\)</span> dan 1 bias <span class="arithmatex">\({b}\)</span>, jelas bahwa bobot dan <em>bias</em> dalam jaringan saraf tiruan terkadang sulit untuk diinterpretasikan dan ditelaah secara kasat mata.</p>
+<p>Jaringan saraf tiruan memiliki struktur lapisan yang sangat kompleks. Secara sederhana jaringan saraf tiruan dapat didefinisikan dalam dua ukuran yaitu lebar jaringan saraf dan kedalaman jaringan saraf.</p>
+<p>Dengan asumsi kita memiliki 1 <em>neuron</em> pada lapisan input, 5 lapisan tersembunyi (<em>NN depth</em>) dimana masing - masing lapisan tersembunyi memiliki 20 <em>neuron</em> (<em>NN width</em>) dan 1 <em>neuron</em> pada lapisan <em>output</em>. Maka model kita akan memiliki (1 * 20) + (20 * 20) + (20 * 20) + (20 * 20) + (20 * 20) + (20 * 1) = 1,640 bobot dan 5 <em>bias</em>. Jika model kita memiliki lebih dari 1 variabel independen (<em>feature</em>), misalkan 10 fitur, maka jumlah bobot dengan struktur model yang sama kini memiliki 1,840 bobot (jumlah bobot antara lapisan input dengan 10 <em>neuron</em> dan lapisan tersembunyi pertama dengan 20 <em>neuron</em> menjadi 10 * 20 alih - alih 1 * 20) dan 5 <em>bias</em>. </p>
+<p>Dibandingkan dengan permasalahan yang sama pada statistika sederhana dengan rumus <span class="arithmatex">\(\sum_{i=1}^{10} {y_i} = {b} + {w_i^1}{X_i^1} + {w_i^2}{X_i^2} + {w_i^3}{X_i^3} + ... + {w_i^{10}}{X_i^{10}}\)</span> untuk persamaan matematika dengan 10 variabel independen, hanya akan menghasilkan 10 bobot <span class="arithmatex">\({w}\)</span> dan 1 bias <span class="arithmatex">\({b}\)</span>. </p>
+<p>Jelas bahwa jumlah bobot dalam jaringan saraf tiruan berkali - kali lipat lebih banyak dibandingkan dengan pendekatan statistika klasik. Jumlah bobot yang sangat banyak ini dapat menyulitkan untuk diinterpretasikan dan ditelaah secara kasat mata.</p>
 </li>
 <li>
 <p><strong>Durasi Pengembangan</strong></p>
@@ -388,12 +450,41 @@
 </li>
 <li>
 <p><strong>Biaya Komputasional yang Besar</strong></p>
-<p>Jaringan saraf tiruan yang dilatih pada struktur model pada poin 1 namun memiliki data sampel berjumlah 100,000 data akan melakukan perhitungan sebanyak 100,000 kali dalam satu epoch, jika dilatih pada 100 epoch, maka jaringan saraf tiruan akan melakukan 10,000,000 kali perhitungan. Belum lagi jika tipe data input adalah gambar atau video dimana tidak hanya memiliki lebar dan tinggi namun juga memiliki saluran RGB pada tiap pixelnya yang berarti 100,000 data menjadi 300,000 data yang perlu diproses.
-Sebagian besar jaringan saraf tiruan dilatih pada peralatan dengan GPU (<em>Graphical Processing Unit</em>) atau TPU (<em>Tensor Processing Unit</em>) yang kemampuan komputasinya bisa lebih cepat dari sekedar CPU berkat teknologi CUDA (<em>Compute Unified Device Architecture</em>). Biaya perolehan maupun penggunaan GPU secara intensif untuk kepentingan pelatihan jaringan saraf tiruan tidaklah murah, hal ini juga tercermin dengan makin maraknya jasa penyewaan GPU untuk pelatihan jaringan saraf tiruan di berbagai platform seperti <a href="https://colab.research.google.com/signup">Google Colab</a>, <a href="https://azure.microsoft.com/en-us/services/machine-learning/">Azure Machine Learning</a>, <a href="https://aws.amazon.com/sagemaker/pricing/?p=ft&amp;c=ml&amp;z=3">Amazon SageMaker</a>,  <a href="https://deepnote.com/pricing">Deepnote</a>, <a href="https://www.oracle.com/artificial-intelligence/pricing/">Oracle Machine Learning</a> dan masih banyak lainnya.</p>
+<p>Sebagai contoh, jaringan saraf tiruan yang dilatih pada struktur model pada poin 1 dengan jumlah data sampel berjumlah 100,000 data akan melakukan perhitungan <em>matrix</em> (<em>dot product</em>) sebanyak 100,000 kali dalam satu epoch (belum termasuk perhitungan pada proses <em>back propagation</em>), jika dilatih pada 100 epoch, maka jaringan saraf tiruan akan melakukan 10,000,000 kali perhitungan. Belum lagi jika tipe data input adalah gambar atau video dimana tidak hanya memiliki lebar dan tinggi namun juga memiliki saluran RGB pada tiap pixelnya yang berarti 100,000 data menjadi 300,000 data yang perlu diproses.</p>
+<p>Sebagian besar jaringan saraf tiruan dilatih pada peralatan dengan GPU (<em>Graphical Processing Unit</em>) atau TPU (<em>Tensor Processing Unit</em>) yang kemampuan komputasinya bisa lebih cepat dari sekedar CPU berkat teknologi CUDA (<em>Compute Unified Device Architecture</em>) pada GPU NVIDIA.</p>
+<ul>
+<li><a href="https://nvidia.github.io/cuda-python/overview.html">Dokumentasi CUDA 11.7.1</a></li>
+<li><a href="https://developer.nvidia.com/cuda-gpus">Kemampuan komputasi GPU</a></li>
+</ul>
+<p>Biaya perolehan maupun penggunaan GPU secara intensif untuk kepentingan pelatihan jaringan saraf tiruan tidaklah murah, hal ini juga tercermin dengan makin maraknya jasa penyewaan GPU untuk pelatihan jaringan saraf tiruan di berbagai platform seperti <a href="https://colab.research.google.com/signup">Google Colab</a>, <a href="https://azure.microsoft.com/en-us/services/machine-learning/">Azure Machine Learning</a>, <a href="https://aws.amazon.com/sagemaker/pricing/?p=ft&amp;c=ml&amp;z=3">Amazon SageMaker</a>, <a href="https://deepnote.com/pricing">Deepnote</a>, <a href="https://www.oracle.com/artificial-intelligence/pricing/">Oracle Machine Learning</a> dan masih banyak lainnya.</p>
 </li>
 </ol>
-<h2 id="penerapan-jaringan-saraf-tiruan-di-berbagai-industri">Penerapan Jaringan Saraf Tiruan di berbagai Industri</h2>
-<p>Capek nulis sama mikir, lanjut nanti lah....</p>
+<h2 id="kapan-menggunakan-pembelajaran-mesin"><strong>Kapan Menggunakan Pembelajaran Mesin?</strong></h2>
+<p>Seiring dengan semakin banyak dan beragamnya data yang tersedia saat ini baik dalam ranah publik maupun privat (korporat), kebutuhan akan interpretasi data ke dalam bentuk informasi pun meningkat. Meski perkembangan pembelajaran mesin yang pesat dan juga kemampuannya sangat baik dalam menginterpretasikan berbagai macam masalah, kenyataannya tidak semua harus menggunakan pembelajaran mesin.</p>
+<p>Pertama - tama kita harus dapat memahami perbedaan pendekatan antara pembelajaran mesin dengan pemrograman konvensional. <a href="https://twitter.com/mrdbourke">@mrdbourke</a> sebagai salah satu praktisi pembelajaran mesin yang menjadi wadah bagi penulis untuk mempelajari pembelajaran mesin menganalogikan masalah ini sebagai berikut:</p>
+<p><img alt="mlvsp" src="images/mlvsp.png" /></p>
+<p>Pada gambar di atas kita dapat melihat bahwa <strong>pendekatan pemrograman konvensional</strong> <mark>dimulai dari input data (kalkun segar) dan runtutan perintah (<em>business logic</em>) untuk menghasilkan <em>output</em> kalkun goreng</mark>, sedangkan <strong>pendekatan pembelajaran mesin</strong> <mark>dimulai dari input data dan <em>output</em> untuk memprediksi runtutan perintah (<em>business logic</em>)</mark>.</p>
+<p>Dengan pendekatan ini kita dapat menyimpulkan dua hal mengenai kapan pembelajaran mesin dapat digunakan alih - alih pemrograman konvensional:</p>
+<ul>
+<li><strong>Ketika runtutan peraturan tidak dapat dibuat secara eksplisit.</strong> Beberapa permasalahan manusia tidak dapat dengan baik diselesaikan dengan solusi baku berbasis runtutan peraturan yang deterministik, misalkan pada permasalahan kategorisasi email spam atau bukan atau sentimen analisis pada media sosial. Ketika runtutan perintah ini bergantung kepada terlalu banyak faktor dan ada <em>overlap</em> atau kebutuhan untuk <em>fine-tuning</em> pada solusi, akan menjadi semakin sulit bagi kita untuk membuat <em>business logic</em> dalam pemrogaman konvensional.</li>
+<li><strong>Atau ketika proses ini bisa dilakukan secara manual namun pada skala yang besar tidak dapat ditangani secara manual.</strong> Kita mungkin dapat mengenali beberapa ratus email spam atau bukan, namun proses ini akan menjadi sangat merepotkan ketika jumlah email menjadi jutaan.</li>
+</ul>
+<p>Pada akhirnya sebenarnya baik pembelajaran mesin maupun pemrograman konvensional dapat hidup berdampingan dengan baik, karena proses pembelajaran mesin biasanya akan menghasilkan sebuah model yang dipergunakan di dalam pemrograman konvensional.</p>
+<h2 id="penerapan-jaringan-saraf-tiruan-dalam-ranah-publik-dan-komersial"><strong>Penerapan Jaringan Saraf Tiruan dalam Ranah Publik dan Komersial</strong></h2>
+<p><strong>Dan Wellers</strong>, Global Lead for Digital Futures di SAP, <strong>Timo Elliott</strong>, Innovation Evangelist di SAP dan <strong>Markus Noga</strong>, VP of Machine Learning di SAP menuliskan sebuah artikel berjudul <a href="https://hbr.org/2017/05/8-ways-machine-learning-is-improving-companies-work-processes">8 Ways Machine Learning Is Improving Companies’ Work Processes</a> di situs Harvard Business Review memberikan contoh penerapan pembelajaran mesin pada ranah komersil sebagai berikut:</p>
+<ul>
+<li><strong>Personalisasi <em>customer service</em></strong></li>
+<li><strong>Meningkatkan <em>customer loyalty<em> dan </em>retention</em></strong></li>
+<li><strong>Memperkerjakan karyawan yang tepat</strong></li>
+<li><strong>Otomatisasi beberapa proses keuangan</strong></li>
+<li><strong>Mengukur eksposur <em>brand</em></strong></li>
+<li><strong>Deteksi <em>fraud</em></strong></li>
+<li><strong>Memprediksi <em>perawatan</em> mesin atau infrastruktur</strong></li>
+<li><strong>Meningkatkan efisiensi <em>supply chain</em></strong></li>
+<li><strong>Analisa rak di industri retail</strong></li>
+</ul>
+<p>Spesifik di dalam industri retail, pembelajaran mesin dapat digunakan untuk hal - hal sebagai berikut:</p>
+<p><img alt="retailaiusecases" src="images/retailaiusecases.png" /></p>
 <!-- ![Sejarah Pembelajaran Mesin](/images/what-is-ml.png) -->
 
               
@@ -416,13 +507,13 @@ Sebagian besar jaringan saraf tiruan dilatih pada peralatan dengan GPU (<em>Grap
       
       
         
-        <a href="ColorSkim_AI/" class="md-footer__link md-footer__link--next" aria-label="Selanjutnya: Dokumentasi ColorSkim" rel="next">
+        <a href="colorskim_intro/" class="md-footer__link md-footer__link--next" aria-label="Selanjutnya: Tentang ColorSkim" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Selanjutnya
               </span>
-              Dokumentasi ColorSkim
+              Tentang ColorSkim
             </div>
           </div>
           <div class="md-footer__button md-icon">
