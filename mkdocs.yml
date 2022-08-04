@@ -2,7 +2,7 @@ site_name: Pembelajaran Mesin untuk Warna Artikel
 site_url: https://colorskim.jpao.live/
 nav:
   - Mengenai Pembelajaran Mesin: index.md
-  - Tentang ColorSkim: colorskim_intro.md
+  - Mengenai ColorSkim: colorskim_intro.md
   - Dokumentasi ColorSkim: colorskim_notebook.md
 theme:
   name: material
@@ -23,11 +23,12 @@ theme:
   features:
     - navigation.instant
     - navigation.tracking
-    - navigation.sections
-    - toc.integrate
+    - navigation.expand
     - navigation.top
+    - content.code.annotate
 markdown_extensions:
   - admonition
+  - footnotes
   - pymdownx.details
   - pymdownx.mark
   - pymdownx.magiclink:

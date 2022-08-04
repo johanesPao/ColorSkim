@@ -4,7 +4,7 @@ Pembelajaran mesin merupakan satu percabangan dari kecerdasan buatan (AI) dan il
 
 Pembelajaran mesin sendiri merupakan sub bagian dari kecerdasan buatan, dan di dalam pembelajaran mesin ini masih ada sub bagian lagi yang lebih dikenal dengan jaringan saraf tiruan (*neural network*) dan di dalamnya lagi ada yang dikenal dengan istilah *deep learning*.
 
-## **Hierarki Kecerdasan Buatan (AI)**
+## **I. Hierarki Kecerdasan Buatan (AI)**
 Secara singkat berikut adalah susunan hierarki dalam kecerdasan buatan:
 
 ``` mermaid
@@ -22,9 +22,9 @@ graph LR
 
 ***Deep Learning*** pada dasarnya adalah sama dengan *Neural Network*, namun ketika *Neural Network* memiliki lebih dari setidaknya 3 lapisan maka hal ini dikategorikan sebagai *Deep Learning*
 
-## **Dasar - dasar Jaringan Saraf Tiruan (*Neural Network*)**
+## **II. Dasar - dasar Jaringan Saraf Tiruan (*Neural Network*)**
 
-### Jenis Jaringan Saraf Tiruan
+### II.1. Jenis Jaringan Saraf Tiruan
 Pada dasarnya setidaknya terdapat tiga jenis pembelajaran dalam jaringan saraf tiruan:
 
 * **Unsupervised Learning**
@@ -59,11 +59,11 @@ Untuk jenis - jenis dari jaringan saraf tiruan itu sendiri sebenarnya dapat dike
 
 * **Recurrent Neural Network (RNN)**
 
-    RNN merupakan bentuk jaringan saraf tiruan yang utamanya memanfaatkan keadaan dari input sebelumnya (*previous state*) ke dalam faktor penilaian keadaan saat ini (*current input & state*) sehingga jariangan saraf tiruan ini disebut bersifat *recurrent* atau berulang. Ciri khas dari jaringan ini terletak pada struktur data input yang mengharuskan bentuk sekuensial seperti pada kasus tekstual kalimat atau data dengan *timestamp* yang konsisten (jika data memiliki interval *timestamp* yang tidak konsisten, harus dilakukan normalisasi terlebih dahulu). Interval *timestamp* yang konsisten pada data disebut sebagai *timestep* dalam jaringan saraf tiruan RNN dan konsep mengenai *timestep* seperti ukuran jendela (*window size*) dan ukuran horizon (*horizon size*) merupakan konsep yang cukup krusial.
+    RNN merupakan bentuk jaringan saraf tiruan yang utamanya memanfaatkan keadaan dari input sebelumnya (*previous state*) ke dalam faktor penilaian keadaan saat ini (*current input & state*) sehingga jaringan saraf tiruan ini disebut bersifat *recurrent* atau berulang. Ciri khas dari jaringan ini terletak pada struktur data input yang mengharuskan bentuk sekuensial seperti pada kasus tekstual kalimat atau data dengan *timestamp* yang konsisten (jika data memiliki interval *timestamp* yang tidak konsisten, harus dilakukan normalisasi terlebih dahulu). Interval *timestamp* yang konsisten pada data disebut sebagai *timestep* dalam jaringan saraf tiruan RNN dan konsep mengenai *timestep* seperti ukuran jendela (*window size*) dan ukuran horizon (*horizon size*) merupakan konsep yang cukup krusial.
 
     RNN umumnya digunakan secara spesifik dalam *forecasting* namun juga dapat digunakan dalam berbagai kasus *seq2seq* seperti CNN.
 
-    Permasalahan yang sering timbul dalam jaringan saraf tiruan RNN adalah kasus menghilang atau meledaknya nilai *gradient* (*vanishing gradient* dan *exploding gradient*). Untuk kasus meledaknya nilai *gradient* masih dapat cukup dengan mudah ditangani dengan memangkas nilai *gradient* jika mencapai batas (*threshold*) tertentu dalam proses *back propagation*, namun permasalahan dengan nilai *gradient* yang menghilang sulit untuk diatasi, sehingga menyebabkan jaringan saraf tiruan berhenti "mempelajari". Namun untungnya, permasalahan *gradient* yang menghilang ini dapat diatasi sekitar tahun 1990 oleh *Sepp Hochreiter* dan *Juergen Schmidhuber* dengan memperkenalkan bentuk arsitektur *LSTM* (*Long Short Term Memory*) dalam jaringan saraf tiruan RNN.
+    Permasalahan yang sering timbul dalam jaringan saraf tiruan RNN adalah kasus menghilang atau meledaknya nilai *gradient* (*vanishing gradient* dan *exploding gradient*). Untuk kasus meledaknya nilai *gradient* masih dapat cukup dengan mudah ditangani dengan memangkas nilai *gradient* jika mencapai batas (*threshold*) tertentu dalam proses *back propagation*, namun permasalahan dengan nilai *gradient* yang menghilang sulit untuk diatasi, sehingga menyebabkan jaringan saraf tiruan berhenti "mempelajari". Namun untungnya, permasalahan *gradient* yang menghilang ini dapat diatasi sekitar tahun 1990 oleh *Sepp Hochreiter* dan *Juergen Schmidhuber*[^1] dengan memperkenalkan bentuk arsitektur *LSTM* (*Long Short Term Memory*) dalam jaringan saraf tiruan RNN.
 
     LSTM memiliki tiga gerbang untuk input, *forget* dan *output*. Ketiga gerbang ini akan menentukan apakah input baru yang masuk ke dalam *neuron* melalui *input gate* untuk menghapus informasi sebelumnya (*previous state*) karena dinilai tidak signifikan di *forget gate* atau membiarkan informasi mempengaruhi *output* pada *timestep* saat ini di *output gate*.
 
@@ -73,7 +73,7 @@ Untuk jenis - jenis dari jaringan saraf tiruan itu sendiri sebenarnya dapat dike
 
     Dua arsitektural pada jaringan saraf tiruan RNN yang cukup populer penggunaannya adalah *LSTM* dan *GRU* (*Gated Recurrent Unit*).
 
-### Konsep Jaringan Saraf Tiruan dan Cara Kerja
+### II.2. Konsep Jaringan Saraf Tiruan dan Cara Kerja
 Pada dasarnya jaringan saraf tiruan sebagai sub bagian dari kecerdasan buatan berusaha untuk memecahkan satu permasalahan, **pengambilan keputusan dengan proses pembelajaran yang dilakukan manusia dengan berdasarkan pendeteksian pola (*pattern recognition*)**. Konsep *neuron* dalam jaringan saraf tiruan ini bisa dilihat pada gambar di bawah ini:
 
 ![neuron_ai](images/neuron_ai.png)
@@ -138,12 +138,12 @@ Tujuan dari jaringan saraf tiruan adalah untuk melakukan pemutakhiran pada nilai
     
     Ketika Tarzan untuk pertama kali bertemu dengan manusia yang bernama Jane, Tarzan tidak tahu apa yang harus dilakukan. Seiring berjalannya waktu Tarzan memberikan batu (*forward propagation*) kepada Jane dan respon Jane adalah tidak senang (*loss* pada model tinggi dan akurasi rendah), maka Tarzan mempelajari sesuatu di dalam kepalanya (*back propagation* pemutakhiran bobot dan *bias* dalam jaringan saraf tiruan) dan kembali mencoba dengan benda - benda lainnya (proses *forward propagation* dan *back propagation* yang berulang) dan mengamati respon Jane sebagai bahan pembelajarannya. Sampai suatu ketika Tarzan memberikan bunga dan respon Jane kali ini adalah senang (*loss* pada model rendah dan akurasi tinggi).
 
-??? example "Penerapan non-linearitas pada proses pemutakhiran bobot *neuron* dan *bias* dalam lapisan jaringan saraf tiruan dengan fungsi aktivasi Sigmoid"
+??? example "Non-linearitas menggunakan ReLU pada proses pemutakhiran bobot *neuron* dan *bias*"
     *All credit goes to* [Daniel Kukiela](https://www.youtube.com/c/DanielKukie%C5%82a/videos) dan tim [Neural Network from Scratch](https://nnfs.io/) untuk animasi mengenai jaringan saraf tiruan berikut: 
 
     ![SigmoidNN](images/SigmoidNN.gif)
 
-### Hambatan pada Penerapan Jaringan Saraf Tiruan
+### II.3. Hambatan pada Penerapan Jaringan Saraf Tiruan
 
 Beberapa hambatan yang umumnya dialami dalam penerapan jaringan saraf tiruan:
 
@@ -153,7 +153,7 @@ Beberapa hambatan yang umumnya dialami dalam penerapan jaringan saraf tiruan:
     
     Dengan asumsi kita memiliki 1 *neuron* pada lapisan input, 5 lapisan tersembunyi (*NN depth*) dimana masing - masing lapisan tersembunyi memiliki 20 *neuron* (*NN width*) dan 1 *neuron* pada lapisan *output*. Maka model kita akan memiliki (1 * 20) + (20 * 20) + (20 * 20) + (20 * 20) + (20 * 20) + (20 * 1) = 1,640 bobot dan 5 *bias*. Jika model kita memiliki lebih dari 1 variabel independen (*feature*), misalkan 10 fitur, maka jumlah bobot dengan struktur model yang sama kini memiliki 1,840 bobot (jumlah bobot antara lapisan input dengan 10 *neuron* dan lapisan tersembunyi pertama dengan 20 *neuron* menjadi 10 * 20 alih - alih 1 * 20) dan 5 *bias*. 
 
-    Dibandingkan dengan permasalahan yang sama pada statistika sederhana dengan rumus $\sum_{i=1}^{10} {y_i} = {b} + {w_i^1}{X_i^1} + {w_i^2}{X_i^2} + {w_i^3}{X_i^3} + ... + {w_i^{10}}{X_i^{10}}$ untuk persamaan matematika dengan 10 variabel independen, hanya akan menghasilkan 10 bobot ${w}$ dan 1 bias ${b}$. 
+    Dibandingkan dengan permasalahan yang sama pada statistika sederhana dengan rumus $\sum_{i=1}^{n} {y_i} = {b} + {w_i^1}{X_i^1} + {w_i^2}{X_i^2} + {w_i^3}{X_i^3} + ... + {w_i^{10}}{X_i^{10}}$ untuk persamaan matematika dengan 10 variabel independen, hanya akan menghasilkan 10 bobot ${w}$ dan 1 bias ${b}$. 
 
     Jelas bahwa jumlah bobot dalam jaringan saraf tiruan berkali - kali lipat lebih banyak dibandingkan dengan pendekatan statistika klasik. Jumlah bobot yang sangat banyak ini dapat menyulitkan untuk diinterpretasikan dan ditelaah secara kasat mata.
 
@@ -176,15 +176,15 @@ Beberapa hambatan yang umumnya dialami dalam penerapan jaringan saraf tiruan:
     
     Biaya perolehan maupun penggunaan GPU secara intensif untuk kepentingan pelatihan jaringan saraf tiruan tidaklah murah, hal ini juga tercermin dengan makin maraknya jasa penyewaan GPU untuk pelatihan jaringan saraf tiruan di berbagai platform seperti [Google Colab](https://colab.research.google.com/signup), [Azure Machine Learning](https://azure.microsoft.com/en-us/services/machine-learning/), [Amazon SageMaker](https://aws.amazon.com/sagemaker/pricing/?p=ft&c=ml&z=3), [Deepnote](https://deepnote.com/pricing), [Oracle Machine Learning](https://www.oracle.com/artificial-intelligence/pricing/) dan masih banyak lainnya.
 
-## **Kapan Menggunakan Pembelajaran Mesin?**
+## **III. Kapan Menggunakan Pembelajaran Mesin?**
 
 Seiring dengan semakin banyak dan beragamnya data yang tersedia saat ini baik dalam ranah publik maupun privat (korporat), kebutuhan akan interpretasi data ke dalam bentuk informasi pun meningkat. Meski perkembangan pembelajaran mesin yang pesat dan juga kemampuannya sangat baik dalam menginterpretasikan berbagai macam masalah, kenyataannya tidak semua harus menggunakan pembelajaran mesin.
 
-Pertama - tama kita harus dapat memahami perbedaan pendekatan antara pembelajaran mesin dengan pemrograman konvensional. [@mrdbourke](https://twitter.com/mrdbourke) sebagai salah satu praktisi pembelajaran mesin yang menjadi wadah bagi penulis untuk mempelajari pembelajaran mesin menganalogikan masalah ini sebagai berikut:
+Pertama - tama kita harus dapat memahami perbedaan pendekatan antara pembelajaran mesin dengan pemrograman konvensional. [@mrdbourke](https://twitter.com/mrdbourke) sebagai salah satu praktisi pembelajaran mesin yang menjadi salah satu sumber bagi penulis untuk mempelajari pembelajaran mesin menganalogikan masalah ini sebagai berikut:
 
 ![mlvsp](images/mlvsp.png)
 
-Pada gambar di atas kita dapat melihat bahwa **pendekatan pemrograman konvensional** ==dimulai dari input data (kalkun segar) dan runtutan perintah (*business logic*) untuk menghasilkan *output* kalkun goreng==, sedangkan **pendekatan pembelajaran mesin** ==dimulai dari input data dan *output* untuk memprediksi runtutan perintah (*business logic*)==.
+Pada gambar di atas kita dapat melihat bahwa **pendekatan pemrograman konvensional** ==dimulai dari input data (kalkun segar) dan runtutan perintah (*business logic*) untuk menghasilkan *output* (kalkun goreng)==, sedangkan **pendekatan pembelajaran mesin** ==dimulai dari input data dan *output* untuk memprediksi runtutan perintah (*business logic*)==.
 
 Dengan pendekatan ini kita dapat menyimpulkan dua hal mengenai kapan pembelajaran mesin dapat digunakan alih - alih pemrograman konvensional:
 
@@ -193,9 +193,9 @@ Dengan pendekatan ini kita dapat menyimpulkan dua hal mengenai kapan pembelajara
 
 Pada akhirnya sebenarnya baik pembelajaran mesin maupun pemrograman konvensional dapat hidup berdampingan dengan baik, karena proses pembelajaran mesin biasanya akan menghasilkan sebuah model yang dipergunakan di dalam pemrograman konvensional.
 
-## **Penerapan Jaringan Saraf Tiruan dalam Ranah Publik dan Komersial**
+## **IV. Penerapan Jaringan Saraf Tiruan dalam Ranah Publik dan Komersial**
 
-**Dan Wellers**, Global Lead for Digital Futures di SAP, **Timo Elliott**, Innovation Evangelist di SAP dan **Markus Noga**, VP of Machine Learning di SAP menuliskan sebuah artikel berjudul [8 Ways Machine Learning Is Improving Companies’ Work Processes](https://hbr.org/2017/05/8-ways-machine-learning-is-improving-companies-work-processes) di situs Harvard Business Review memberikan contoh penerapan pembelajaran mesin pada ranah komersil sebagai berikut:
+***Dan Wellers***, *Global Lead for Digital Futures* di SAP, ***Timo Elliott***, *Innovation Evangelist* di SAP dan ***Markus Noga***, *VP of Machine Learning* di SAP menuliskan sebuah artikel berjudul [8 Ways Machine Learning Is Improving Companies’ Work Processes](https://hbr.org/2017/05/8-ways-machine-learning-is-improving-companies-work-processes) di situs Harvard Business Review memberikan contoh penerapan pembelajaran mesin pada ranah komersial sebagai berikut:
 
 * **Personalisasi *customer service***
 * **Meningkatkan *customer loyalty* dan *retention***
@@ -211,3 +211,5 @@ Spesifik di dalam industri retail, pembelajaran mesin dapat digunakan untuk hal 
 
 ![retailaiusecases](images/retailaiusecases.png)
 <!-- ![Sejarah Pembelajaran Mesin](/images/what-is-ml.png) -->
+
+[^1]: Sepp; Hochreiter and J ̈urgen Schmidhuber. [Long Short-Term Memory](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.676.4320&rep=rep1&type=pdf). Neural computation, 9(8):1735–1780, 1997.

@@ -1,37 +1,76 @@
-## Welcome to GitHub Pages
+# Mengenai ColorSkim
 
-You can use the [editor on GitHub](https://github.com/johanesPao/ColorSkim/edit/main/README.md) to maintain and preview the content for your website in Markdown files.
+<!-- ### Abstrak -->
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### **Pendahuluan**
 
-### Markdown
+Di dalam dunia retail, suatu produk lebih dikenal dengan istilah artikel atau SKU (*Stock Keeping Unit*). Umumnya artikel atau SKU memiliki format dalam deret karakter alfanumerik yang dilabelkan pada suatu produk dan akan menjadi identitas pada produk tersebut.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+Selain deret karakter alfanumerik, biasanya artikel juga memiliki beberapa atribut seperti `nama artikel`, `gender`, `ukuran`, `satuan`, `dimensi`, `warna` dan lain sebagainya yang mungkin cukup variatif tergantung jenis dari produknya.
 
-```markdown
-Syntax highlighted code block
+Pada kasus kali ini, penulisan atribut `warna` dari sebuah artikel biasanya disatukan ke dalam `nama artikel` seperti misalnya 'PUMA XTG WOVEN PANTS PUMA BLACK-PUMA WHITE' dimana atribut `warna` dari artikel ini sebenarnya adalah 'PUMA BLACK-PUMA WHITE' sedangkan bagian 'PUMA XTG WOVEN PANTS' adalah bagian dari atribut `nama artikel`.
 
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+```mermaid
+flowchart TD
+    id1[PUMA XTG WOVEN PANTS PUMA BLACK-PUMA WHITE] -. nama artikel .-> id2[PUMA XTG WOVEN PANTS]
+    id1 -. warna .-> id3[PUMA BLACK-PUMA WHITE]
 ```
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+Terdapat kebutuhan untuk meng-ekstrak atribut `warna` ini dari `nama artikel` sehingga misalnya, `nama artikel` dapat dipergunakan sebagai tampilan yang lebih bersih di halaman produk di *e-commerce* tanpa kehilangan informasi mengenai `nama artikel` yang utuh, lengkap dengan atribut `warna`-nya yang diberikan oleh *vendor*.
 
-### Jekyll Themes
+Kebutuhan untuk meng-ekstrak `warna` dari `nama artikel` ini juga nantinya diharapkan dapat digunakan sebagai bagian dari pembelajaran mesin untuk mengklasifikasikan `warna` yang diekstrak menjadi `kode warna internal` yang lebih seragam seperti `BLA`, `GRN`, `WHT`, ..., `MTL`, `NOC`.
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/johanesPao/ColorSkim/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+### **Metode**
 
-### Support or Contact
+#### Data Preprocessing
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+Sebelum data dapat dipergunakan dalam proses *training* jaringan saraf tiruan, beberapa hal berikut akan terlebih dahulu dilakukan:
+
+* *Pemrosesan raw data ke dalam potongan kata*
+  
+    Pada awalnya data merupakan daftar (*list*) dari semua `nama artikel` beserta `brand` yang ada saat ini, dalam bentuk *csv* sebagai berikut
+
+    | brand | nama_artikel                       |
+    | ----- | ---------------------------------- |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT        |
+    | ADI   | ADISSAGE-N.NAVY/N.NAVY/RUNWHT      |
+    | ADI   | 3 STRIPE D 29.5-BASKETBALL NATURAL |
+    | ADI   | 3S RUBBER X-BLACK                  |
+    | ...   | ...                                |
+    | WAR   | 125CM VINTAGE ORANGE               |
+
+    Data ini akan dirubah menjadi 
+
+    | brand | nama_artikel                | kata     | label | urut_kata | total_kata |
+    | ----- | --------------------------- | -------- | ----- | --------- | ---------- |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | ADISSAGE |       | 1         | 4          |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | BLACK    |       | 2         | 4          |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | BLACK    |       | 3         | 4          |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | RUNWHT   |       | 4         | 4          |
+    | ...   | ...                         | ...      |       | ...       | ...        |
+    | WAR   | 125CM VINTAGE ORANGE        | 125CM    |       | 1         | 3          |
+    | WAR   | 125CM VINTAGE ORANGE        | VINTAGE  |       | 2         | 3          |
+    | WAR   | 125CM VINTAGE ORANGE        | ORANGE   |       | 3         | 3          |
+
+    Lalu akan dilakukan pengisian label pada kolom `label` secara manual untuk dijadikan variabel dependen yang dijadikan sebagai target dalam proses *training* jaringan saraf tiruan seperti di bawah ini
+
+    | brand | nama_artikel                | kata     | label       | urut_kata | total_kata |
+    | ----- | --------------------------- | -------- | ----------- | --------- | ---------- |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | ADISSAGE | bukan_warna | 1         | 4          |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | BLACK    | warna       | 2         | 4          |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | BLACK    | warna       | 3         | 4          |
+    | ADI   | ADISSAGE-BLACK/BLACK/RUNWHT | RUNWHT   | warna       | 4         | 4          |
+    | ...   | ...                         | ...      | ...         | ...       | ...        |
+    | WAR   | 125CM VINTAGE ORANGE        | 125CM    | bukan_warna | 1         | 3          |
+    | WAR   | 125CM VINTAGE ORANGE        | VINTAGE  | warna       | 2         | 3          |
+    | WAR   | 125CM VINTAGE ORANGE        | ORANGE   | warna       | 3         | 3          |
+
+
+
+* 
+
+### **Hasil**
+
+### **Kesimpulan**
+
+### **Saran**
