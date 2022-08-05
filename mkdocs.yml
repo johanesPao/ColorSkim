@@ -53,6 +53,8 @@ markdown_extensions:
       custom_checkbox: true
 extra_javascript:
   - javascripts/mathjax.js
+  - javascripts/feedback.js
+  - javascripts/consent.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 extra_css:
@@ -70,8 +72,40 @@ extra:
       name: jPao on Docker
   version:
     provider: mike
+  analytics:
+    provider: google
+    property: G-Q50VJ71SC8
+    feedback:
+      title: Apakah halaman ini bermanfaat?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: Halaman ini bermanfaat
+          data: 1
+          note: >-
+            Terima kasih atas feedbacknya!
+        - icon: material/emoticon-sad-outline
+          name: Halaman ini masih dapat diperbaiki
+          data: 0
+          note: >-
+            Terima kasih atas feedbacknya! Bantu kami dalam memperbaiki 
+            halaman ini menggunakan <a href="https://github.com/johanesPao/ColorSkim/issues/new/?title=[Feedback]+{title}+-+{url}" target=_blank>formulir feedback</a>
+  consent:
+    title: Persetujuan Penggunaan Cookies
+    description: >-
+      Halaman ini menggunakan cookies untuk mengenali kunjungan berulang dan preferensi pengunjung, juga untuk 
+      mengukur keefektifan dari dokumentasi pada situs ini, serta untuk mengetahui apakah pengguna dapat menemukan 
+      apa yang mereka cari. Dengan persetujuan anda, anda telah membantu kami dalam membuat dokumentasi yang lebih 
+      baik
+    cookies:
+      analytics: Google Analytics
+      custom: ColorSkim Cookies
+    actions:
+      - accept
+      - manage
 repo_url: https://github.com/johanesPao/ColorSkim
 repo_name: johanesPao/ColorSkim
 plugins:
   - tags
-copyright: Copyright &copy; 2022 Johanes Indra Pradana Pao
+copyright: >
+  Copyright &copy; 2022 - Johanes Indra Pradana Pao - 
+  <a href="#__consent">Kelola pengaturan cookies</a>

@@ -47,6 +47,16 @@
     <script>__md_scope=new URL(".",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
+  
+
+
+  
+  
+
+
+  <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-Q50VJ71SC8"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&gtag("event","search",{search_term:this.value})}),"undefined"!=typeof location$&&location$.subscribe(function(e){gtag("config","G-Q50VJ71SC8",{page_path:e.pathname})})})</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q50VJ71SC8"></script>
+
 
     
     
@@ -423,7 +433,7 @@
     C --&gt; D[Deep Learning];</code></pre>
 <p><strong><em>Artificial Intelligence</em></strong> umumnya tidak hanya menerapkan statistik ke dalam permodelan, tapi juga kemampuan robotik atau sensorik.</p>
 <p><strong><em>Machine Learning</em></strong> dan <em>Neural Network</em> secara teori dapat diartikan serupa namun <em>Machine Learning</em> lebih berfokus kepada algoritma dasar dalam permodelan statistik seperti <em>Naive Bayes Classifier</em>, <em>Random Forest</em>, <em>Linear Regression</em>, <em>Support Vector Machine</em>, <em>Time Series Forecasting</em> dll.</p>
-<p><strong><em>Neural Network</em></strong> lebih mengacu kepada suatu topologi proses pembentukan struktur model diantaranya jumlah saraf (<em>neuron</em>)dalam lapisan, kedalaman lapisan (jumlah lapisan), metode aktivasi lapisan dan proses <em>update</em> bobot (<em>weight</em>) dan konstanta (<em>intercept</em>/<em>bias</em>).</p>
+<p><strong><em>Neural Network</em></strong> lebih mengacu kepada suatu topologi proses pembentukan struktur model diantaranya jumlah saraf (<em>neuron</em>) dalam lapisan, kedalaman lapisan (jumlah lapisan), metode aktivasi lapisan dan proses <em>update</em> bobot (<em>weight</em>) dan konstanta (<em>intercept</em>/<em>bias</em>).</p>
 <p><strong><em>Deep Learning</em></strong> pada dasarnya adalah sama dengan <em>Neural Network</em>, namun ketika <em>Neural Network</em> memiliki lebih dari setidaknya 3 lapisan maka hal ini dikategorikan sebagai <em>Deep Learning</em></p>
 <h2 id="ii-dasar-dasar-jaringan-saraf-tiruan-neural-network"><strong>II. Dasar - dasar Jaringan Saraf Tiruan (<em>Neural Network</em>)</strong></h2>
 <h3 id="ii1-jenis-jaringan-saraf-tiruan">II.1. Jenis Jaringan Saraf Tiruan</h3>
@@ -474,13 +484,13 @@
 <p><img alt="nn" src="images/nn.jpg" /></p>
 <p>Dimana satu lapisan pada jaringan saraf tiruan memiliki setidaknya 4 komponen:</p>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> input data (<em>X</em>)</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> konstanta <em>bias</em> </li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> bobot (<em>weight</em>) <em>neuron</em> dalam lapisan</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> nilai <em>output</em> (<em>y</em>)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> input data (<span class="arithmatex">\({x}\)</span>)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> konstanta <em>bias</em> (<span class="arithmatex">\({b}\)</span>)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> bobot (<em>weight</em>, <span class="arithmatex">\({w}\)</span>) <em>neuron</em> dalam lapisan</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> nilai <em>output</em> (<span class="arithmatex">\({y}\)</span>)</li>
 </ul>
 <p>Atau di dalam simulasi persamaan matematik sebagai berikut:</p>
-<p><span class="arithmatex">\(\sum_{i=1}^{n} {y_i} = {b} + {w_i^1}{X_i^1} + {w_i^2}{X_i^2} + {w_i^3}{X_i^3} + ... + {w_i^m}{X_i^m}\)</span></p>
+<p><span class="arithmatex">\(\sum_{i=1}^{n} {y_i} = {b} + {w_i^1}{x_i^1} + {w_i^2}{x_i^2} + {w_i^3}{x_i^3} + ... + {w_i^m}{x_i^m}\)</span></p>
 <p>Dimana idealnya suatu permasalahan dengan output <span class="arithmatex">\({y}\)</span> (<span class="arithmatex">\({y}\)</span> aktual) ditentukan oleh perkalian bobot <span class="arithmatex">\({w}\)</span> dengan masing - masing variabel independen <span class="arithmatex">\({X}\)</span> dan ditambahkan dengan <em>bias</em> <span class="arithmatex">\({b}\)</span>. Proses menemukan <span class="arithmatex">\(\hat{y}\)</span> (<span class="arithmatex">\({y}\)</span> prediksi model) ini dikenal dengan istilah <em>forward propagation</em> dimana perhitungan dalam model dilakukan dari lapisan input, lapisan tersembunyi (<em>hidden</em>) dan sampai di lapisan <em>output</em>.</p>
 <p>Pada kasus <em>regresi linear</em> nilai yang didapat dalam satu lapisan diteruskan ke lapisan berikutnya tanpa memerlukan aktivasi. Namun dalam kasus regresi yang tidak bersifat linear (<em>non-linear regression</em>) atau dalam kasus klasifikasi biner (<em>binary classification</em>) atau multi kelas (<em>multiclass classification</em>) biasanya dipergunakan fungsi aktivasi <em>ReLU</em> (<em>Rectified Linear Unit</em>) untuk memperkenalkan non-linearitas pada model, <em>Sigmoid</em> (pada kasus <em>binary classification</em>) atau <em>Softmax</em> (pada kasus <em>multiclass classification</em>).</p>
 <details class="info" open="open"><summary>Sigmoid Function</summary><p><span class="arithmatex">\({S(x)} = \frac{1}{1 + {e}^{-z}}\)</span> </p>
@@ -490,7 +500,7 @@
 <p>dimana <span class="arithmatex">\({\vec{z}}\)</span> adalah input vektor dan <span class="arithmatex">\({K}\)</span> adalah jumlah kelas dalam kasus <em>multiclass classifier</em></p>
 </details>
 <p>Pada lapisan output akan dilakukan penghitungan selisih antara <em>output</em> <span class="arithmatex">\({y}\)</span> yang sebenarnya dengan <em>output</em> <span class="arithmatex">\(\hat{y}\)</span> yang diprediksi oleh model (dengan input <span class="arithmatex">\({X}\)</span> yang dimiliki) untuk menentukan <em>error</em>, <em>residual</em> atau lebih dikenal dengan istilah <em>loss</em> <span class="arithmatex">\({L}\)</span> dari suatu model dalam memprediksi <em>output</em> yang biasanya terangkum dalam <em>Mean Absolute Error</em> (MAE) atau <em>Mean Squared Error</em> (MSE).</p>
-<details class="info" open="open"><summary>Loss Function (MAE)</summary><p><span class="arithmatex">\({L(y,\hat{y})} = \frac{1}{n}\sum_{i=1}^{n}|{y}-\hat{y_i}|\)</span></p>
+<details class="info" open="open"><summary>Loss Function (MAE)</summary><p><span class="arithmatex">\({L(y,\hat{y})} = \frac{1}{n}\sum_{i=1}^{n}|{y_i}-\hat{y_i}|\)</span></p>
 </details>
 <p>Tujuan dari jaringan saraf tiruan adalah untuk melakukan pemutakhiran pada nilai - nilai bobot <span class="arithmatex">\({w}\)</span> dalam setiap <em>neuron</em> di masing - masing lapisan dan <em>bias</em> <span class="arithmatex">\({b}\)</span> untuk memperkecil <em>loss</em> <span class="arithmatex">\({L}\)</span> dari suatu model. Proses pemutakhiran bobot dan <em>bias</em> pada jaringan saraf tiruan ini dikenal dengan istilah <em>back propagation</em> yang akan dimutakhirkan menggunakan <em>learning rate</em> dalam fungsi optimisasi seperti <em>AdaGrad</em> (<em>Adaptive Gradient</em>), <em>RMSProp</em> (<em>Root Mean Square Propagation</em>), <em>SGD</em> (<em>Stochastic Gradient Descent</em>), <em>Adam</em> (<em>Adaptive Momentum</em>) dan masih banyak fungsi optimisasi lainnya.</p>
 <details class="info" open="open"><summary>Optimizer Function (SGD)</summary><p>dimana pada kasus regresi linear kita mungkin memiliki persamaan/fungsi dari <span class="arithmatex">\({x}\)</span> atau <span class="arithmatex">\({f(x)}\)</span> atau <span class="arithmatex">\({y}\)</span> sebagai berikut:</p>
@@ -616,7 +626,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2022 Johanes Indra Pradana Pao
+      Copyright &copy; 2022 - Johanes Indra Pradana Pao -  <a href="#__consent">Kelola pengaturan cookies</a>
     </div>
   
   
@@ -663,6 +673,10 @@
       <script src="assets/javascripts/bundle.6c7ad80a.min.js"></script>
       
         <script src="javascripts/mathjax.js"></script>
+      
+        <script src="javascripts/feedback.js"></script>
+      
+        <script src="javascripts/consent.js"></script>
       
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
       

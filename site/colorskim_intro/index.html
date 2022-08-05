@@ -47,6 +47,16 @@
     <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
+  
+
+
+  
+  
+
+
+  <script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-Q50VJ71SC8"),document.addEventListener("DOMContentLoaded",function(){document.forms.search&&document.forms.search.query.addEventListener("blur",function(){this.value&&gtag("event","search",{search_term:this.value})}),"undefined"!=typeof location$&&location$.subscribe(function(e){gtag("config","G-Q50VJ71SC8",{page_path:e.pathname})})})</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q50VJ71SC8"></script>
+
 
     
     
@@ -281,6 +291,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v-penggunaan" class="md-nav__link">
+    V. Penggunaan
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v-saran" class="md-nav__link">
     V. Saran
   </a>
@@ -380,6 +397,13 @@
         <li class="md-nav__item">
   <a href="#iv-kesimpulan" class="md-nav__link">
     IV. Kesimpulan
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v-penggunaan" class="md-nav__link">
+    V. Penggunaan
   </a>
   
 </li>
@@ -701,15 +725,78 @@
 <h4 id="ii2-permodelan">II.2. Permodelan</h4>
 <p>Ada setidaknya 4 jenis permodelan yang akan diujikan pada kesempatan kali ini.</p>
 <ol>
-<li>Model <em>Multinomial Naive Bayes</em></li>
+<li>Model <em>Multinomial Naive-Bayes</em></li>
 <li>Model <em>Convolutional</em> 1 Dimensi dengan Lapisan <em>Embedding</em></li>
 <li>Model dengan ekstraksi fitur yang sudah terlatih (<em>Pretrained Feature Extraction</em>) <em>Universal Sentence Encoder</em></li>
 <li>Model <em>Quadbrid</em> dengan Lapisan <em>Embedding</em></li>
 </ol>
 <p>Penjelasan mengenai algoritma masing - masing permodelan dapat dilihat langsung di bagian <a href="../colorskim_notebook/">Dokumentasi ColorSkim</a></p>
 <h3 id="iii-hasil"><strong>III. Hasil</strong></h3>
+<p>Berdasarkan pelatihan pada pembelajaran mesin untuk keempat model yang disebutkan di poin II.2. adalah sebagai berikut:</p>
+<ul>
+<li>
+<p>Pada pengujian menggunakan empat metrik (Akurasi, Presisi, <em>Recall</em> dan <em>F1-score</em>) <em>Model Multinomial Naive-Bayes</em>, <em>Model Convolutional 1 Dimensi dengan Lapisan Embedding</em> dan <em>Model Quadbrid dengan Lapisan Embedding</em> memiliki skor yang cukup jauh dibandingkan dengan <em>Model Pretrained Feature Extracion Universal Sentence Encoder</em>.</p>
+<p><em>Model Quadbrid dengan Lapisan Embedding</em> memiliki tingkat akurasi paling tinggi diantara keempat model dengasn nilai 99.44%.</p>
+<p><img alt="metriks" src="../ColorSkim_AI_files/ColorSkim_AI_109_0.png" /></p>
+</li>
+<li>
+<p>Pada tabel <em>Confusion Matrix</em> untuk keempat model yang dilatih menggunakan pembelajaran mesin, didapat hasil sebagai berikut</p>
+<p><img alt="cm" src="../ColorSkim_AI_files/ColorSkim_AI_111_0.png" /></p>
+<p>Dimana:</p>
+<ul>
+<li><em>Model Multinomial Naive-Bayes</em> dengan akurasi keseluruhan model pada <code>test_dataset</code> sebesar 99.22%.<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 6,785 kata dengan label <code>bukan_warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 4,477 kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 34 kata dengan label <code>bukan_warna</code> sebagai kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 55 kata dengan label <code>warna</code> sebagai kata dengan label <code>bukan_warna</code>.</li>
+</ul>
+</li>
+<li><em>Model Convolutional 1 Dimensi dengan Lapisan Embedding</em> dengan akurasi keseluruhan model pada <code>test_dataset</code> sebesar 99.21%.<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 6,784 kata dengan label <code>bukan_warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 4,477 kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 35 kata dengan label <code>bukan_warna</code> sebagai kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 55 kata dengan label <code>warna</code> sebagai kata dengan label <code>bukan_warna</code>.</li>
+</ul>
+</li>
+<li><em>Model Pretrained Feature Extraction Universal Sentence Encoder</em> dengan akurasi keseluruhan model pada <code>test_dataset</code> sebesar 93.89%.<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 6,578 kata dengan label <code>bukan_warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 4,079 kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 241 kata dengan label <code>bukan_warna</code> sebagai kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 453 kata dengan label <code>warna</code> sebagai kata dengan label <code>bukan_warna</code>.</li>
+</ul>
+</li>
+<li><em>Model Quadbrid dengan Lapisan Embedding</em><ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 6,795 kata dengan label <code>bukan_warna</code> dengan akurasi keseluruhan model pada <code>test_dataset</code> sebesar 99.44%.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Tepat memprediksi 4,493 kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 24 kata dengan label <code>bukan_warna</code> sebagai kata dengan label <code>warna</code>.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Keliru memprediksi 39 kata dengan label <code>warna</code> sebagai kata dengan label <code>bukan_warna</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Distribusi residual pada <em>Model Convolutional 1 Dimensi dengan Lapisan Embedding</em>, <em>Model Pretrained Feature Extraction Universal Sentence Encoder</em> dan <em>Model Quadbrid dengan Lapisan Embedding</em> adalah sebagai berikut</p>
+<p><img alt="residual" src="../ColorSkim_AI_files/ColorSkim_AI_113_0.png" /></p>
+<p>Dimana kita dapat melihat bahwa <em>Model Quadbrid dengan Lapisan Embedding</em> memiliki residual dari model yang paling terkonsentrasi mendekati garis axis <span class="arithmatex">\({y\ =\ 0}\)</span> dibandingkan dengan <em>Model Convolutional 1 Dimensi dengan Lapisan Embedding</em> dan <em>Model Pretrained Feature Extraction Universal Sentence Encoder</em>. Masih tersisa beberapa residual pada <em>Model Quadbrid dengan Lapisan Embedding</em> terutama di sekitar axis <span class="arithmatex">\({x\ =\ 1}\)</span>.</p>
+<p>Hal ini juga terlihat pada presentasi kata dalam bidang tiga dimensi yang memfilter kata '<em>black</em>' di bawah ini yang menunjukkan bahwa beberapa kata (<em>gocblack</em>) dengan label <code>warna</code> masih ada di bidang label <code>bukan_warna</code></p>
+<p><img alt="black_3d" src="../images/black_3d.png" /></p>
+</li>
+</ul>
 <h3 id="iv-kesimpulan"><strong>IV. Kesimpulan</strong></h3>
+<p>Hasil dari pelatihan pada keempat model pada poin II.2. menunjukkan bahwa <strong>Model <em>Quadbrid<em> dengan Lapisan </em>Embedding</em></strong> memiliki tingkat akurasi yang paling tinggi dalam mengenali atribut <code>warna</code> di dalam suatu artikel dengan tingkat akurasi sebesar 99.44% dan akan dipergunakan sebagai model acuan dalam melakukan prediksi dan ekstraksi atribut <code>warna</code> ke depannya.</p>
+<h3 id="v-penggunaan"><strong>V. Penggunaan</strong></h3>
+<p>Untuk penggunaan model dari pembelajaran mesin dalam meng-ekstrak atribut <code>warna</code> dari <code>nama artikel</code> nantinya akan diterapkan di <a href="https://streamlit.io/cloud">streamlit cloud</a>. Pengguna dapat memasukkan daftar artikel untuk diekstrak atribut <code>nama artikel</code> lengkap, <code>nama artikel</code> setelah ekstraksi dan juga <code>warna</code> atau dengan mengupload daftar artikel dalam bentuk csv yang akan dikembalikan dalam bentuk csv lainnya yang juga melakukan hal serupa dengan poin sebelumnya.</p>
+<p>Untuk streamlit cloud ini masih dalam tahap pengembangan, diekspektasikan untuk mulai bisa dioperasikan per 15 Agustus 2022.</p>
+<p>Link untuk streamlit cloud akan dibagikan pada email terpisah.</p>
 <h3 id="v-saran"><strong>V. Saran</strong></h3>
+<p>Beberapa hal masih dapat dilakukan dalam usaha memperbaiki dan meningkatkan akurasi dari model untuk ekstraksi atribut <code>warna</code> dari <code>nama artikel</code> diantaranya:</p>
+<ol>
+<li>Penggunaan modul NER (<a href="https://spacy.io/usage/linguistic-features#named-entities"><em>Named Entity Recognition</em></a>) pada <code>spacy</code>.</li>
+<li>Penggunaan <code>stratify</code> sebagai salah satu parameter dalam <code>train_test_split</code> pada modul <code>scikit-learn</code>.</li>
+<li>Penyeimbangan komposisi label dalam data <em>training</em> untuk menghilangkan <em>bias</em> pada label tertentu.</li>
+<li>Penggunaan <em>k-fold cross validation</em> dalam data <em>training</em> untuk memastikan model dilatih menggunakan pemisahan data <em>training</em> dan <em>validation</em> yang berbeda - beda dan memberikan pemahaman akan pola yang lebih baik bagi model.</li>
+<li>Penggunaan struktur modeling <em>ensemble</em> dan <em>stacking meta-learner</em></li>
+</ol>
 
               
             </article>
@@ -767,7 +854,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2022 Johanes Indra Pradana Pao
+      Copyright &copy; 2022 - Johanes Indra Pradana Pao -  <a href="#__consent">Kelola pengaturan cookies</a>
     </div>
   
   
@@ -814,6 +901,10 @@
       <script src="../assets/javascripts/bundle.6c7ad80a.min.js"></script>
       
         <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="../javascripts/feedback.js"></script>
+      
+        <script src="../javascripts/consent.js"></script>
       
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
       

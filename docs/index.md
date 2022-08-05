@@ -18,7 +18,7 @@ graph LR
 
 ***Machine Learning*** dan *Neural Network* secara teori dapat diartikan serupa namun *Machine Learning* lebih berfokus kepada algoritma dasar dalam permodelan statistik seperti *Naive Bayes Classifier*, *Random Forest*, *Linear Regression*, *Support Vector Machine*, *Time Series Forecasting* dll.
 
-***Neural Network*** lebih mengacu kepada suatu topologi proses pembentukan struktur model diantaranya jumlah saraf (*neuron*)dalam lapisan, kedalaman lapisan (jumlah lapisan), metode aktivasi lapisan dan proses *update* bobot (*weight*) dan konstanta (*intercept*/*bias*).
+***Neural Network*** lebih mengacu kepada suatu topologi proses pembentukan struktur model diantaranya jumlah saraf (*neuron*) dalam lapisan, kedalaman lapisan (jumlah lapisan), metode aktivasi lapisan dan proses *update* bobot (*weight*) dan konstanta (*intercept*/*bias*).
 
 ***Deep Learning*** pada dasarnya adalah sama dengan *Neural Network*, namun ketika *Neural Network* memiliki lebih dari setidaknya 3 lapisan maka hal ini dikategorikan sebagai *Deep Learning*
 
@@ -84,14 +84,14 @@ Sedangkan contoh jaringan saraf tiruan secara keseluruhan dapat dilihat pada gam
 
 Dimana satu lapisan pada jaringan saraf tiruan memiliki setidaknya 4 komponen:
 
-- [X] input data (*X*)
-- [X] konstanta *bias* 
-- [X] bobot (*weight*) *neuron* dalam lapisan
-- [X] nilai *output* (*y*)
+- [X] input data (${x}$)
+- [X] konstanta *bias* (${b}$)
+- [X] bobot (*weight*, ${w}$) *neuron* dalam lapisan
+- [X] nilai *output* (${y}$)
 
 Atau di dalam simulasi persamaan matematik sebagai berikut:
 
-$\sum_{i=1}^{n} {y_i} = {b} + {w_i^1}{X_i^1} + {w_i^2}{X_i^2} + {w_i^3}{X_i^3} + ... + {w_i^m}{X_i^m}$
+$\sum_{i=1}^{n} {y_i} = {b} + {w_i^1}{x_i^1} + {w_i^2}{x_i^2} + {w_i^3}{x_i^3} + ... + {w_i^m}{x_i^m}$
 
 Dimana idealnya suatu permasalahan dengan output ${y}$ (${y}$ aktual) ditentukan oleh perkalian bobot ${w}$ dengan masing - masing variabel independen ${X}$ dan ditambahkan dengan *bias* ${b}$. Proses menemukan $\hat{y}$ (${y}$ prediksi model) ini dikenal dengan istilah *forward propagation* dimana perhitungan dalam model dilakukan dari lapisan input, lapisan tersembunyi (*hidden*) dan sampai di lapisan *output*.
 
@@ -110,7 +110,7 @@ Pada kasus *regresi linear* nilai yang didapat dalam satu lapisan diteruskan ke 
 Pada lapisan output akan dilakukan penghitungan selisih antara *output* ${y}$ yang sebenarnya dengan *output* $\hat{y}$ yang diprediksi oleh model (dengan input ${X}$ yang dimiliki) untuk menentukan *error*, *residual* atau lebih dikenal dengan istilah *loss* ${L}$ dari suatu model dalam memprediksi *output* yang biasanya terangkum dalam *Mean Absolute Error* (MAE) atau *Mean Squared Error* (MSE).
 
 ???+ info "Loss Function (MAE)"
-    ${L(y,\hat{y})} = \frac{1}{n}\sum_{i=1}^{n}|{y}-\hat{y_i}|$
+    ${L(y,\hat{y})} = \frac{1}{n}\sum_{i=1}^{n}|{y_i}-\hat{y_i}|$
 
 Tujuan dari jaringan saraf tiruan adalah untuk melakukan pemutakhiran pada nilai - nilai bobot ${w}$ dalam setiap *neuron* di masing - masing lapisan dan *bias* ${b}$ untuk memperkecil *loss* ${L}$ dari suatu model. Proses pemutakhiran bobot dan *bias* pada jaringan saraf tiruan ini dikenal dengan istilah *back propagation* yang akan dimutakhirkan menggunakan *learning rate* dalam fungsi optimisasi seperti *AdaGrad* (*Adaptive Gradient*), *RMSProp* (*Root Mean Square Propagation*), *SGD* (*Stochastic Gradient Descent*), *Adam* (*Adaptive Momentum*) dan masih banyak fungsi optimisasi lainnya.
 

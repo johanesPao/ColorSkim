@@ -148,7 +148,7 @@ Sebelum data dapat dipergunakan dalam proses *training* jaringan saraf tiruan, b
 
 Ada setidaknya 4 jenis permodelan yang akan diujikan pada kesempatan kali ini.
 
-1. Model *Multinomial Naive Bayes*
+1. Model *Multinomial Naive-Bayes*
 2. Model *Convolutional* 1 Dimensi dengan Lapisan *Embedding*
 3. Model dengan ekstraksi fitur yang sudah terlatih (*Pretrained Feature Extraction*) *Universal Sentence Encoder*
 4. Model *Quadbrid* dengan Lapisan *Embedding*
@@ -156,7 +156,66 @@ Ada setidaknya 4 jenis permodelan yang akan diujikan pada kesempatan kali ini.
 Penjelasan mengenai algoritma masing - masing permodelan dapat dilihat langsung di bagian [Dokumentasi ColorSkim](colorskim_notebook.md)
 
 ### **III. Hasil**
+Berdasarkan pelatihan pada pembelajaran mesin untuk keempat model yang disebutkan di poin II.2. adalah sebagai berikut:
+
+* Pada pengujian menggunakan empat metrik (Akurasi, Presisi, *Recall* dan *F1-score*) *Model Multinomial Naive-Bayes*, *Model Convolutional 1 Dimensi dengan Lapisan Embedding* dan *Model Quadbrid dengan Lapisan Embedding* memiliki skor yang cukup jauh dibandingkan dengan *Model Pretrained Feature Extracion Universal Sentence Encoder*.
+  
+    *Model Quadbrid dengan Lapisan Embedding* memiliki tingkat akurasi paling tinggi diantara keempat model dengasn nilai 99.44%.
+
+    ![metriks](ColorSkim_AI_files/ColorSkim_AI_109_0.png)
+
+* Pada tabel *Confusion Matrix* untuk keempat model yang dilatih menggunakan pembelajaran mesin, didapat hasil sebagai berikut
+
+    ![cm](ColorSkim_AI_files/ColorSkim_AI_111_0.png)
+
+    Dimana:
+
+    - *Model Multinomial Naive-Bayes* dengan akurasi keseluruhan model pada `test_dataset` sebesar 99.22%.
+        - [X] Tepat memprediksi 6,785 kata dengan label `bukan_warna`.
+        - [X] Tepat memprediksi 4,477 kata dengan label `warna`.
+        - [ ] Keliru memprediksi 34 kata dengan label `bukan_warna` sebagai kata dengan label `warna`.
+        - [ ] Keliru memprediksi 55 kata dengan label `warna` sebagai kata dengan label `bukan_warna`.
+    - *Model Convolutional 1 Dimensi dengan Lapisan Embedding* dengan akurasi keseluruhan model pada `test_dataset` sebesar 99.21%.
+        - [X] Tepat memprediksi 6,784 kata dengan label `bukan_warna`.
+        - [X] Tepat memprediksi 4,477 kata dengan label `warna`.
+        - [ ] Keliru memprediksi 35 kata dengan label `bukan_warna` sebagai kata dengan label `warna`.
+        - [ ] Keliru memprediksi 55 kata dengan label `warna` sebagai kata dengan label `bukan_warna`.
+    - *Model Pretrained Feature Extraction Universal Sentence Encoder* dengan akurasi keseluruhan model pada `test_dataset` sebesar 93.89%.
+        - [X] Tepat memprediksi 6,578 kata dengan label `bukan_warna`.
+        - [X] Tepat memprediksi 4,079 kata dengan label `warna`.
+        - [ ] Keliru memprediksi 241 kata dengan label `bukan_warna` sebagai kata dengan label `warna`.
+        - [ ] Keliru memprediksi 453 kata dengan label `warna` sebagai kata dengan label `bukan_warna`.
+    - *Model Quadbrid dengan Lapisan Embedding*
+        - [X] Tepat memprediksi 6,795 kata dengan label `bukan_warna` dengan akurasi keseluruhan model pada `test_dataset` sebesar 99.44%.
+        - [X] Tepat memprediksi 4,493 kata dengan label `warna`.
+        - [ ] Keliru memprediksi 24 kata dengan label `bukan_warna` sebagai kata dengan label `warna`.
+        - [ ] Keliru memprediksi 39 kata dengan label `warna` sebagai kata dengan label `bukan_warna`.
+
+* Distribusi residual pada *Model Convolutional 1 Dimensi dengan Lapisan Embedding*, *Model Pretrained Feature Extraction Universal Sentence Encoder* dan *Model Quadbrid dengan Lapisan Embedding* adalah sebagai berikut
+
+    ![residual](ColorSkim_AI_files/ColorSkim_AI_113_0.png)
+
+    Dimana kita dapat melihat bahwa *Model Quadbrid dengan Lapisan Embedding* memiliki residual dari model yang paling terkonsentrasi mendekati garis axis ${y\ =\ 0}$ dibandingkan dengan *Model Convolutional 1 Dimensi dengan Lapisan Embedding* dan *Model Pretrained Feature Extraction Universal Sentence Encoder*. Masih tersisa beberapa residual pada *Model Quadbrid dengan Lapisan Embedding* terutama di sekitar axis ${x\ =\ 1}$.
+
+    Hal ini juga terlihat pada presentasi kata dalam bidang tiga dimensi yang memfilter kata '*black*' di bawah ini yang menunjukkan bahwa beberapa kata (*gocblack*) dengan label `warna` masih ada di bidang label `bukan_warna`
+
+    ![black_3d](images/black_3d.png)
 
 ### **IV. Kesimpulan**
+Hasil dari pelatihan pada keempat model pada poin II.2. menunjukkan bahwa **Model *Quadbrid* dengan Lapisan *Embedding*** memiliki tingkat akurasi yang paling tinggi dalam mengenali atribut `warna` di dalam suatu artikel dengan tingkat akurasi sebesar 99.44% dan akan dipergunakan sebagai model acuan dalam melakukan prediksi dan ekstraksi atribut `warna` ke depannya.
+
+### **V. Penggunaan**
+Untuk penggunaan model dari pembelajaran mesin dalam meng-ekstrak atribut `warna` dari `nama artikel` nantinya akan diterapkan di [streamlit cloud](https://streamlit.io/cloud). Pengguna dapat memasukkan daftar artikel untuk diekstrak atribut `nama artikel` lengkap, `nama artikel` setelah ekstraksi dan juga `warna` atau dengan mengupload daftar artikel dalam bentuk csv yang akan dikembalikan dalam bentuk csv lainnya yang juga melakukan hal serupa dengan poin sebelumnya.
+
+Untuk streamlit cloud ini masih dalam tahap pengembangan, diekspektasikan untuk mulai bisa dioperasikan per 15 Agustus 2022.
+
+Link untuk streamlit cloud akan dibagikan pada email terpisah.
 
 ### **V. Saran**
+Beberapa hal masih dapat dilakukan dalam usaha memperbaiki dan meningkatkan akurasi dari model untuk ekstraksi atribut `warna` dari `nama artikel` diantaranya:
+
+1. Penggunaan modul NER ([*Named Entity Recognition*](https://spacy.io/usage/linguistic-features#named-entities)) pada `spacy`.
+2. Penggunaan `stratify` sebagai salah satu parameter dalam `train_test_split` pada modul `scikit-learn`.
+3. Penyeimbangan komposisi label dalam data *training* untuk menghilangkan *bias* pada label tertentu.
+4. Penggunaan *k-fold cross validation* dalam data *training* untuk memastikan model dilatih menggunakan pemisahan data *training* dan *validation* yang berbeda - beda dan memberikan pemahaman akan pola yang lebih baik bagi model.
+5. Penggunaan struktur modeling *ensemble* dan *stacking meta-learner*
