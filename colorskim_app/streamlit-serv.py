@@ -5,30 +5,27 @@ import bahasa.id_ID as bahasa
 
 st.set_page_config(layout="wide")
 
-if "input_brand" not in st.session_state:
-    st.session_state.input_brand = []
-if "input_artikel" not in st.session_state:
-    st.session_state.input_artikel = []
-
-
-def tambah_artikel():
-    st.session_state.input_brand.append(input_brand)
-    st.session_state.input_artikel.append(input_nama_artikel)
-    st.session_state.txt_brand = ""
-    st.session_state.txt_artikel = ""
-
+if "input_brand" and "input_artikel" not in st.session_state:
+    st.session_state.multiple_brand = []
+    st.session_state.multiple_artikel = []
 
 st.write(bahasa.judul)
-st.write(bahasa.intro)
 
-input_brand = st.text_input(bahasa.txt_brand, "", key="txt_brand")
-input_nama_artikel = st.text_input(bahasa.txt_nama_artikel, "", key="txt_artikel")
-submit_input = st.button("Tambahkan brand dan artikel", on_click=tambah_artikel)
-# st.write(st.session_state.input_brand)
-# st.write(st.session_state.input_artikel)
-st.dataframe(
-    {"brand": st.session_state.input_brand, "artikel": st.session_state.input_artikel}
-)
+kolom_penjelasan, kolom_penggunaan = st.columns(2)
+with kolom_penjelasan:
+    st.write(bahasa.intro)
+with kolom_penggunaan:
+    with st.form(key="form_metode_1"):
+        st.write(bahasa.metode_1_judul)
+        st.text_input(bahasa.txt_brand, key="input_brand")
+        st.text_input(bahasa.txt_nama_artikel, key="input_artikel")
+        metode_1_submit = st.form_submit_button(label="Esktrak")
+    with st.form(key="form_metode_2"):
+        st.write(bahasa.metode_2_judul)
+        st.text_input(bahasa.txt_brand, key="input_brand2")
+        st.text_input(bahasa.txt_nama_artikel, key="input_artikel2")
+        metode_2_submit = st.form_submit_button(label="Esktrak")
+    # st.write(bahasa.metode_2_judul)
 
 # jumlah_input = st.number_input(bahasa.txt_baris_input, 5)
 
