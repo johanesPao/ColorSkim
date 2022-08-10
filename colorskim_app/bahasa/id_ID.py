@@ -7,7 +7,7 @@ txt_judul = """
         dari `nama_artikel` menggunakan [**Model Quadbrid Embedding**](https://dagshub.com/johanesPao/ColorSkim/src/44665a6c8887fca566143f03753c756356333377/colorskim_checkpoint/model_3_quadbrid_embedding/saved_model.pb) yang 
         dilatih menggunakan TensorFlow pada training data [`setengah_dataset_artikel.csv`](https://dagshub.com/johanesPao/ColorSkim/src/44665a6c8887fca566143f03753c756356333377/data/setengah_dataset_artikel.csv).*
         
-        *Note: untuk detail instruksi penggunaan, lihat di bagian **Logika Ekstraksi** dan **Metode Penggunaan**.*
+        *Note: untuk detail instruksi penggunaan, lihat di **Menu** kiri atas.*
         
         ----
         """
@@ -15,6 +15,7 @@ txt_intro = """
         ----
         
         * Dokumentasi ColorSkim: https://colorskim.jpao.live
+        * Notebook ColorSkim: http://nbviewer.org/github/johanesPao/ColorSkim/blob/main/ColorSkim_AI.ipynb
         * Github Repository: https://github.com/johanesPao/ColorSkim
         * Streamlit Container: *in progress*
         * Data Version Control: https://dagshub.com/johanesPao/ColorSkim?filter=model
@@ -32,21 +33,6 @@ txt_intro = """
         3. Ekstraksi `warna` akan dilakukan untuk semua kata sejak kejadian pertama (*first occurence*) label yang diprediksi sebagai `warna` hingga akhir kalimat. 
         
         > Contoh: Adidas Yeezy Afternoon Orange Dim -> Afternoon adalah kata pertama dengan label warna -> Adidas Yeezy (`nama_artikel`) & Afternoon Orange Dim (`warna`)
-        
-        ### Metode Penggunaan
-        
-        Terdapat dua alternatif metode pemisahan `warna` dari `nama_artikel` 
-        pada aplikasi ini. 
-        
-        1. *Quick One Line Extraction*
-        
-        Metode ini dapat anda gunakan saat anda ingin melakukan *quick 
-        extraction* `warna` dari satu artikel saja.
-        
-        2. *Multiple Articles Extraction*
-        
-        Metode ini dapat anda gunakan ketika anda memiliki banyak artikel 
-        yang ingin diekstrak `warna` dari `nama_artikel`-nya.
         """
 txt_garis = "----"
 txt_brand = "Brand"
@@ -59,4 +45,33 @@ txt_help_unggah = """
         UTF-8, memiliki 2 kolom brand dan nama artikel 
         serta tidak memiliki header pada baris pertama.
         """
-txt_tbl_ekstraksi_warna = "Ekstraksi Warna"
+txt_tbl_ekstraksi_warna = "Ekstrak Warna"
+txt_instruksi_metode = """
+        Untuk melakukan ekstraksi warna dari artikel 
+        silahkan pilih satu diantara dua metode ekstraksi warna yang
+        tersedia dalam aplikasi ini.
+        
+        * ### Metode 1: *Quick One Line Extraction*
+        
+          1. Input Brand yang terdiri dari 3 karakter (contoh: ADI).
+          2. Input Nama Artikel.
+          3. Klik tombol `Ekstrak Warna`
+        
+        * ### Metode 2: *Multiple Articles Extraction*
+        
+          1. Pastikan file CSV memiliki encoding UTF-8.
+          2. Pastikan file CSV hanya memiliki 2 kolom dimana kolom pertama adalah `brand` dan kolom kedua adalah `nama_artikel`.
+          3. Pastikan file tidak memiliki header pada baris pertama.
+          4. Klik `Browse files` untuk mengunggah file CSV.
+          5. Review data pada tabel input.
+          6. Klik tombol `Ekstrak Warna`.
+          7. Review data pada tabel output.
+          8. Download file CSV.
+"""
+txt_link_help = "https://colorskim.jpao.live"
+txt_link_bug = "https://github.com/johanesPao/ColorSkim/issues/new"
+txt_tentang = """
+        # ColorSkim untuk Artikel
+        
+        Copyright (c) 2022 Johanes Indra Pradana Pao
+"""

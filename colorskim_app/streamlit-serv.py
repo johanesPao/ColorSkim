@@ -3,32 +3,59 @@ import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder
 from bahasa.id_ID import *
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    page_title="Pemisahan Warna dari Artikel - PRI",
+    page_icon="🤖",
+    initial_sidebar_state="collapsed",
+    layout="wide",
+    menu_items={
+        "Get Help": txt_link_help,
+        "Report a bug": txt_link_bug,
+        "About": txt_tentang,
+    },
+)
 
-if "input_brand" and "input_artikel" not in st.session_state:
-    st.session_state.multiple_brand = []
-    st.session_state.multiple_artikel = []
+if "single_brand" and "single_artikel" not in st.session_state:
+    st.session_state.single_brand = ""
+    st.session_state.single_artikel = ""
+if "metode_ekstraksi" not in st.session_state:
+    st.session_state.metode_ekstraksi = "Metode 2"
 
 
 def prediksi_warna(file):
     st.write(f"Lakukan prediksi warna pada {file.name}")
 
 
+with st.sidebar:
+    st.write(txt_instruksi_metode)
+    st.selectbox(
+        "Pilih metode ekstraksi warna:",
+        ["Metode 1", "Metode 2"],
+        index=1,
+        key="metode_ekstraksi",
+    )
+
 st.write(txt_judul)
 
-# METODE 1
-# st.write(txt_metode_1_judul)
-# st.text_input(txt_brand, key="input_brand")
-# st.text_input(txt_nama_artikel, key="input_artikel")
-
-# METODE 2
-st.write(txt_metode_2_judul)
-file_diupload = st.file_uploader(txt_label_unggah, type="csv", help=txt_help_unggah)
-if file_diupload is not None:
-    df = pd.read_csv(file_diupload)
-    st.dataframe(df)
-    # AgGrid(df)
-    st.button(txt_tbl_ekstraksi_warna, on_click=prediksi_warna, args=(file_diupload,))
+if st.session_state.metode_ekstraksi == "Metode 2":
+    # METODE 2
+    st.write(txt_metode_2_judul)
+    file_diupload = st.file_uploader(txt_label_unggah, type="csv", help=txt_help_unggah)
+    if file_diupload is not None:
+        df = pd.read_csv(file_diupload)
+        st.dataframe(df)
+        # AgGrid(df)
+        st.button(
+            txt_tbl_ekstraksi_warna, on_click=prediksi_warna, args=(file_diupload,)
+        )
+else:
+    # METODE 1
+    st.write(txt_metode_1_judul)
+    st.text_input(txt_brand, key="single_brand")
+    st.text_input(txt_nama_artikel, key="single_artikel")
+    tbl_ekstrak_metode_1 = st.button(txt_tbl_ekstraksi_warna)
+    if tbl_ekstrak_metode_1:
+        st.write("Prediksi warna metode 1")
 
 st.write(txt_intro)
 
