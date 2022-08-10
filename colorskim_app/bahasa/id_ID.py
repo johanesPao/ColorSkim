@@ -1,14 +1,18 @@
 import streamlit as st
 
-judul = """
+txt_judul = """
         # ColorSkim untuk Artikel
         
-        *Pemisahan warna untuk artikel*
-        """
-intro = """
-        Aplikasi ini merupakan implementasi dari pemisahan atribut `warna` 
+        *Aplikasi ini merupakan implementasi dari pemisahan atribut `warna` 
         dari `nama_artikel` menggunakan [**Model Quadbrid Embedding**](https://dagshub.com/johanesPao/ColorSkim/src/44665a6c8887fca566143f03753c756356333377/colorskim_checkpoint/model_3_quadbrid_embedding/saved_model.pb) yang 
-        dilatih menggunakan TensorFlow pada training data [`setengah_dataset_artikel.csv`](https://dagshub.com/johanesPao/ColorSkim/src/44665a6c8887fca566143f03753c756356333377/data/setengah_dataset_artikel.csv).
+        dilatih menggunakan TensorFlow pada training data [`setengah_dataset_artikel.csv`](https://dagshub.com/johanesPao/ColorSkim/src/44665a6c8887fca566143f03753c756356333377/data/setengah_dataset_artikel.csv).*
+        
+        *Note: untuk detail instruksi penggunaan, lihat di bagian **Logika Ekstraksi** dan **Metode Penggunaan**.*
+        
+        ----
+        """
+txt_intro = """
+        ----
         
         * Dokumentasi ColorSkim: https://colorskim.jpao.live
         * Github Repository: https://github.com/johanesPao/ColorSkim
@@ -44,7 +48,15 @@ intro = """
         Metode ini dapat anda gunakan ketika anda memiliki banyak artikel 
         yang ingin diekstrak `warna` dari `nama_artikel`-nya.
         """
-txt_brand = "Nama brand"
-txt_nama_artikel = "Nama artikel"
-metode_1_judul = "### Metode 1: Quick One Line Extraction"
-metode_2_judul = "### Metode 2: Multiple Articles Extraction"
+txt_garis = "----"
+txt_brand = "Brand"
+txt_nama_artikel = "Nama Artikel"
+txt_metode_1_judul = "### Metode 1: *Quick One Line Extraction*"
+txt_metode_2_judul = "### Metode 2: *Multiple Articles Extraction*"
+txt_label_unggah = "Unggah file CSV dengan encoding UTF-8 dengan 2 kolom Brand dan Nama Artikel tanpa header pada baris pertama !!"
+txt_help_unggah = """
+        Pastikan file dalam format CSV dengan encoding 
+        UTF-8, memiliki 2 kolom brand dan nama artikel 
+        serta tidak memiliki header pada baris pertama.
+        """
+txt_tbl_ekstraksi_warna = "Ekstraksi Warna"

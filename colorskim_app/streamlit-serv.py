@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder
-import bahasa.id_ID as bahasa
+from bahasa.id_ID import *
 
 st.set_page_config(layout="wide")
 
@@ -9,23 +9,33 @@ if "input_brand" and "input_artikel" not in st.session_state:
     st.session_state.multiple_brand = []
     st.session_state.multiple_artikel = []
 
-st.write(bahasa.judul)
 
-kolom_penjelasan, kolom_penggunaan = st.columns(2)
-with kolom_penjelasan:
-    st.write(bahasa.intro)
-with kolom_penggunaan:
-    with st.form(key="form_metode_1"):
-        st.write(bahasa.metode_1_judul)
-        st.text_input(bahasa.txt_brand, key="input_brand")
-        st.text_input(bahasa.txt_nama_artikel, key="input_artikel")
-        metode_1_submit = st.form_submit_button(label="Esktrak")
-    with st.form(key="form_metode_2"):
-        st.write(bahasa.metode_2_judul)
-        st.text_input(bahasa.txt_brand, key="input_brand2")
-        st.text_input(bahasa.txt_nama_artikel, key="input_artikel2")
-        metode_2_submit = st.form_submit_button(label="Esktrak")
-    # st.write(bahasa.metode_2_judul)
+def prediksi_warna(file):
+    st.write(f"Lakukan prediksi warna pada {file.name}")
+
+
+st.write(txt_judul)
+
+# METODE 1
+# st.write(txt_metode_1_judul)
+# st.text_input(txt_brand, key="input_brand")
+# st.text_input(txt_nama_artikel, key="input_artikel")
+
+# METODE 2
+st.write(txt_metode_2_judul)
+file_diupload = st.file_uploader(txt_label_unggah, type="csv", help=txt_help_unggah)
+if file_diupload is not None:
+    df = pd.read_csv(file_diupload)
+    st.dataframe(df)
+    # AgGrid(df)
+    st.button(txt_tbl_ekstraksi_warna, on_click=prediksi_warna, args=(file_diupload,))
+
+st.write(txt_intro)
+
+# Cara lain yang mungkin lebih baik dan rapi adalah menggunakan sidebar
+# untuk menentukan metode yang ingin dipakai, default adalah metode 2.
+# Menampilkan konten ekstraksi sesuai dengan metode yang dipilih.
+# st.write(bahasa.metode_2_judul)
 
 # jumlah_input = st.number_input(bahasa.txt_baris_input, 5)
 
