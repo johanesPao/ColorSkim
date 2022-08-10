@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder
 from bahasa.id_ID import *
+from tensorflow.keras.models import load_model  # type: ignore
+from annotated_text import annotated_text
 
 st.set_page_config(
     page_title="Pemisahan Warna dari Artikel - PRI",
@@ -18,8 +20,6 @@ st.set_page_config(
 if "single_brand" and "single_artikel" not in st.session_state:
     st.session_state.single_brand = ""
     st.session_state.single_artikel = ""
-if "metode_ekstraksi" not in st.session_state:
-    st.session_state.metode_ekstraksi = "Metode 2"
 
 
 def prediksi_warna(file):
@@ -28,16 +28,16 @@ def prediksi_warna(file):
 
 with st.sidebar:
     st.write(txt_instruksi_metode)
-    st.selectbox(
+    st.radio(
         "Pilih metode ekstraksi warna:",
-        ["Metode 1", "Metode 2"],
+        ["One Line Quick Extraction", "Multiple Articles Extraction"],
         index=1,
         key="metode_ekstraksi",
     )
 
 st.write(txt_judul)
 
-if st.session_state.metode_ekstraksi == "Metode 2":
+if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
     # METODE 2
     st.write(txt_metode_2_judul)
     file_diupload = st.file_uploader(txt_label_unggah, type="csv", help=txt_help_unggah)
@@ -55,7 +55,24 @@ else:
     st.text_input(txt_nama_artikel, key="single_artikel")
     tbl_ekstrak_metode_1 = st.button(txt_tbl_ekstraksi_warna)
     if tbl_ekstrak_metode_1:
-        st.write("Prediksi warna metode 1")
+        # Cek panjang karakter st.session_state.single_brand
+        if (
+            len(st.session_state.single_brand) == 0
+            or len(st.session_state.single_artikel) == 0
+        ):
+            st.write("Brand/Nama Artikel tidak boleh kosong")
+            pass
+        else:
+            st.write("Prediksi warna metode 1")
+            # Preprocessing input data
+
+            # Load model
+
+            # Prediksi label warna
+
+            # Restrukturisasi output
+
+            # Kembalikan nama_artikel dengan anotasi warna
 
 st.write(txt_intro)
 

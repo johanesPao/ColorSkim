@@ -37,8 +37,8 @@ txt_intro = """
 txt_garis = "----"
 txt_brand = "Brand"
 txt_nama_artikel = "Nama Artikel"
-txt_metode_1_judul = "### Metode 1: *Quick One Line Extraction*"
-txt_metode_2_judul = "### Metode 2: *Multiple Articles Extraction*"
+txt_metode_1_judul = "### *One Line Quick Extraction*"
+txt_metode_2_judul = "### *Multiple Articles Extraction*"
 txt_label_unggah = "Unggah file CSV dengan encoding UTF-8 dengan 2 kolom Brand dan Nama Artikel tanpa header pada baris pertama !!"
 txt_help_unggah = """
         Pastikan file dalam format CSV dengan encoding 
@@ -51,13 +51,13 @@ txt_instruksi_metode = """
         silahkan pilih satu diantara dua metode ekstraksi warna yang
         tersedia dalam aplikasi ini.
         
-        * ### Metode 1: *Quick One Line Extraction*
+        * ### *One Line Quick Extraction*
         
           1. Input Brand yang terdiri dari 3 karakter (contoh: ADI).
           2. Input Nama Artikel.
           3. Klik tombol `Ekstrak Warna`
         
-        * ### Metode 2: *Multiple Articles Extraction*
+        * ### *Multiple Articles Extraction*
         
           1. Pastikan file CSV memiliki encoding UTF-8.
           2. Pastikan file CSV hanya memiliki 2 kolom dimana kolom pertama adalah `brand` dan kolom kedua adalah `nama_artikel`.
