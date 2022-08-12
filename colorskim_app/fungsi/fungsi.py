@@ -6,9 +6,20 @@ import tensorflow as tf
 
 
 def preprocessing_input_artikel(brand, artikel):
+    """
+    Fungsi ini akan memproses input data ke dalam format yang benar untuk
+    prediksi model.
+
+    Args:
+        brand (str atau list): Brand dalam bentuk string atau list of string
+        artikel (str atau list): Artikel dalam bentuk string atau list of string
+
+    Returns:
+        dataset_kata (pd.DataFrame): DataFrame dalam format brand, nama_artikel,
+            urut_kata dan total_kata
+    """
     dataset_kata = pd.DataFrame([])
-    # Cek metode ekstraksi
-    st.write(f"Prediksi akan dilakukan pada: [{brand} - {artikel}]")
+
     df = pd.DataFrame({"brand": [brand], "nama_artikel": [artikel]})
     ganti_karakter = "/-"
     progress_bar = st.progress(0)
@@ -46,6 +57,19 @@ def preprocessing_input_artikel(brand, artikel):
 
 
 def preprocessing_input_model(input_dataset):
+    """
+    Fungsi ini akan mempersiapkan input data yang sudah diformat untuk
+    persiapan input ke dalam model melalui proses encoding, dataset,
+    batching dan prefetching
+
+    Args:
+        input_dataset (pf.DataFrame): DataFrame dengan format brand, nama_artikel,
+            urut_kata dan total_kata
+
+    Returns:
+        dataset (tf.data.Dataset): Dataset yang sudah dilakukan batching dan
+            prefetching
+    """
     # onehot brand
     encoder = OneHotEncoder(sparse=False)
     brand_encode = encoder.fit_transform(
