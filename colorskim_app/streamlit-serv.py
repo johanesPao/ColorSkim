@@ -5,7 +5,10 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 from bahasa.id_ID import *
 from fungsi.fungsi import *
 from tensorflow.keras.models import load_model  # type: ignore
+import tensorflow as tf
 from annotated_text import annotated_text
+
+tf.config.run_functions_eagerly(True)
 
 direktori = os.getcwd()
 direktori_streamlit = os.path.join(direktori, "colorskim_app")
@@ -69,7 +72,9 @@ else:
             pass
         else:
             # PREPROCESSING INPUT DATA
-            st.write("Prediksi warna metode 1")
+            st.write(
+                f"Prediksi akan dilakukan pada: [{st.session_state.single_brand} - {st.session_state.single_artikel}]"
+            )
 
             # preprocessing input ke dalam format untuk prediksi model
             dataset = preprocessing_input_artikel(
@@ -91,6 +96,9 @@ else:
             )
 
             # LOAD MODEL
+            with st.spinner("Memuat Model Quadbrid Embedding..."):
+                model = memuat_model()
+                st.info("Model selesai dimuat.")
             # with st.spinner("Memuat Model Quadbrid Embedding..."):
             #     model = load_model(
             #         os.path.join(
@@ -100,6 +108,59 @@ else:
             #     st.success("Model berhasil dimuat")
 
             # Prediksi label warna
+            with st.spinner("Mempersiapkan batching dan prefetching input data..."):
+                dataset, df_encode = preprocessing_input_model(dataset)
+                st.info("Batching dan prefetching input data selesai.")
+
+            # konfigurasi dan build AgGrid
+            gb_df_encode = GridOptionsBuilder.from_dataframe(df_encode)
+            gb_df_encode.configure_pagination(enabled=True)
+            opsi_aggrid_encode = gb_df_encode.build()
+
+            AgGrid(
+                df_encode,
+                gridOptions=opsi_aggrid_encode,
+                height=250,
+                theme="dark",
+            )
+
+            with st.spinner("Memprediksi warna..."):
+                prediksi = tf.squeeze(tf.round(model.predict(dataset)))
+                st.success("Prediksi selesai.")
+
+            kata = tf.squeeze(df_encode["kata"])
+
+            st.write(kata)
+            st.write(prediksi)
+
+            bukan_warna = []
+            warna = []
+
+            # loop dalam df_encode
+            for i in range(len(df_encode)):
+                # jika urut_kata = total_kata maka artikel baru
+                if df_encode.iloc[i, 2] == df_encode.iloc[i, 3]:
+                    print("akhir dari artikel")
+                    # ambil nama_artikel
+                    # cek label kata terakhir
+                else:
+                    print("proses dalam 1 artikel")
+                    # cek label kata dan berusaha untuk menemukan
+                    # kejadian pertama dari label warna
+                    # selama looping dalam 1 artikel, simpan
+                    # semua kata ke dalam list temporer dan
+                    # ketika menemukan label warna pertama,
+                    # cek apakah kata tersebut pernah muncul di
+                    # list temporer sebelumnya (contoh PUMA SHOES
+                    # PUMA WHITE - PUMA BLACK)
+                    # gunakan fungsi find seperti:
+                    # def findnth(haystack, needle, n):
+                    #     parts= haystack.split(needle, n+1)
+                    #     if len(parts)<=n+1:
+                    #         return -1
+                    #     return len(haystack)-len(parts[-1])-len(needle)
+                    # kembalikan indeks kata warna pertama ini dan slice
+                    # nama_artikel berdasar indeks ini
 
             # Restrukturisasi output
 

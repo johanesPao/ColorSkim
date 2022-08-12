@@ -56,7 +56,7 @@ def preprocessing_input_artikel(brand, artikel):
                     ],
                 )
                 dataset_kata = pd.concat([dataset_kata, artikel_df], ignore_index=True)
-            st.success(f"Selesai memproses {len(df)} baris.")
+            st.info(f"Selesai memproses {len(df)} baris data.")
 
     return dataset_kata
 
