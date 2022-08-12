@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder
 from bahasa.id_ID import *
+from fungsi.fungsi import *
 from tensorflow.keras.models import load_model  # type: ignore
 from annotated_text import annotated_text
 
@@ -63,10 +64,29 @@ else:
             st.write("Brand/Nama Artikel tidak boleh kosong")
             pass
         else:
+            # PREPROCESSING INPUT DATA
             st.write("Prediksi warna metode 1")
-            # Preprocessing input data
 
-            # Load model
+            # preprocessing input ke dalam format untuk prediksi model
+            dataset = preprocessing_input_artikel(
+                st.session_state.single_brand, st.session_state.single_artikel
+            )
+
+            # konfigurasi dan build AgGrid
+            gb = GridOptionsBuilder.from_dataframe(dataset)
+            gb.configure_pagination(enabled=True)
+            opsi_aggrid = gb.build()
+
+            # display preprocessed data dalam tabel
+            AgGrid(
+                dataset,
+                gridOptions=opsi_aggrid,
+                height=200,
+                theme="dark",
+                fit_columns_on_grid_load=True,
+            )
+
+            # LOAD MODEL
 
             # Prediksi label warna
 
