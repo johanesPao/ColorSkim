@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder
@@ -5,6 +6,9 @@ from bahasa.id_ID import *
 from fungsi.fungsi import *
 from tensorflow.keras.models import load_model  # type: ignore
 from annotated_text import annotated_text
+
+direktori = os.getcwd()
+direktori_streamlit = os.path.join(direktori, "colorskim_app")
 
 st.set_page_config(
     page_title="Pemisahan Warna dari Artikel - PRI",
@@ -81,12 +85,19 @@ else:
             AgGrid(
                 dataset,
                 gridOptions=opsi_aggrid,
-                height=200,
+                height=250,
                 theme="dark",
                 fit_columns_on_grid_load=True,
             )
 
             # LOAD MODEL
+            # with st.spinner("Memuat Model Quadbrid Embedding..."):
+            #     model = load_model(
+            #         os.path.join(
+            #             direktori_streamlit, "model/model_3_quadbrid_embedding"
+            #         )
+            #     )
+            #     st.success("Model berhasil dimuat")
 
             # Prediksi label warna
 
