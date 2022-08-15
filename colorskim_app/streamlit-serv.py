@@ -9,6 +9,7 @@ import tensorflow as tf
 from annotated_text import annotated_text
 
 tf.config.run_functions_eagerly(True)
+tf.data.experimental.enable_debug_mode()
 
 direktori = os.getcwd()
 direktori_streamlit = os.path.join(direktori, "colorskim_app")
@@ -107,7 +108,7 @@ else:
             #     )
             #     st.success("Model berhasil dimuat")
 
-            # Prediksi label warna
+            # PREDIKSI LABEL WARNA
             with st.spinner("Mempersiapkan batching dan prefetching input data..."):
                 dataset, df_encode = preprocessing_input_model(dataset)
                 st.info("Batching dan prefetching input data selesai.")
@@ -133,87 +134,48 @@ else:
             st.write(kata)
             st.write(prediksi)
 
-            bukan_warna = []
-            warna = []
+            # buat dictionary untuk menampung hasil formatting prediksi
+            prediksi_terformat = {"nama_artikel": [], "bukan_warna": [], "warna": []}
+
+            # buat list untuk menampung kata selama loop
+            list_kata = []
 
             # loop dalam df_encode
             for i in range(len(df_encode)):
-                # jika urut_kata = total_kata maka artikel baru
-                if df_encode.iloc[i, 2] == df_encode.iloc[i, 3]:
-                    print("akhir dari artikel")
-                    # ambil nama_artikel
-                    # cek label kata terakhir
+                # jika urut_kata tidak sama dengan total_kata,
+                # maka tambahkan kata ke dalam list_kata
+                if df_encode.iloc[i, 2] != df_encode.iloc[i, 3]:
+                    list_kata.append(df_encode.iloc[i, 1])
+                # jika urut_kata sama dengan total_kata,
+                # maka tambahkan kata ke dalam list_kata,
+                # lakukan loop untuk memformat prediksi
+                # ke dalam bentuk yg bisa dipahami pengguna
+                # dan tambahkan ke dalam prediksi_terformat
+                # di akhir bagian bersihkan list_kata = []
+                # untuk loop selanjutnya
                 else:
-                    print("proses dalam 1 artikel")
-                    # cek label kata dan berusaha untuk menemukan
-                    # kejadian pertama dari label warna
-                    # selama looping dalam 1 artikel, simpan
-                    # semua kata ke dalam list temporer dan
-                    # ketika menemukan label warna pertama,
-                    # cek apakah kata tersebut pernah muncul di
-                    # list temporer sebelumnya (contoh PUMA SHOES
-                    # PUMA WHITE - PUMA BLACK)
-                    # gunakan fungsi find seperti:
-                    # def findnth(haystack, needle, n):
-                    #     parts= haystack.split(needle, n+1)
-                    #     if len(parts)<=n+1:
-                    #         return -1
-                    #     return len(haystack)-len(parts[-1])-len(needle)
-                    # kembalikan indeks kata warna pertama ini dan slice
-                    # nama_artikel berdasar indeks ini
+                    # tambahkan kata terakhir ke dalam list_kata
+                    list_kata.append(df_encode.iloc[i, 1])
 
-            # Restrukturisasi output
+                    # format prediksi
+                    artikel_full, bukan_warna, warna = prediksi_kata(
+                        artikel_full=df_encode.iloc[i, 0],
+                        list_kata=list_kata,
+                        prediksi=prediksi,
+                    )
 
-            # Kembalikan nama_artikel dengan anotasi warna
+                    # tambahkan ke dalam prediksi_terformat
+                    prediksi_terformat["nama_artikel"].append(artikel_full)
+                    prediksi_terformat["bukan_warna"].append(bukan_warna)
+                    prediksi_terformat["warna"].append(warna)
+
+                    # bersihkan list_kata
+                    list_kata = []
+
+            st.write("### Prediksi dalam format JSON:")
+            st.write(prediksi_terformat)
+
+            st.write("### Prediksi label warna:")
+            annotated_text(bukan_warna, (warna, "WARNA", "#d02"))
 
 st.write(txt_intro)
-
-# Cara lain yang mungkin lebih baik dan rapi adalah menggunakan sidebar
-# untuk menentukan metode yang ingin dipakai, default adalah metode 2.
-# Menampilkan konten ekstraksi sesuai dengan metode yang dipilih.
-# st.write(bahasa.metode_2_judul)
-
-# jumlah_input = st.number_input(bahasa.txt_baris_input, 5)
-
-# mode_halaman = st.checkbox("Aktifkan mode halaman tabel", value=False)
-# if mode_halaman:
-#     st.write("Opsi halaman tabel")
-#     halaman_tabel_auto = st.checkbox("Halaman tabel otomatis", value=True)
-#     if not halaman_tabel_auto:
-#         mode_halaman_tabel = st.number_input(
-#             "Data per halaman", value=5, min_value=0, max_value=100
-#         )
-
-# submit_jumlah_input = st.button("Buat Baris")
-# if submit_jumlah_input:
-#     st.session_state.jumlah_input = int(jumlah_input)
-
-# # data = pd.DataFrame({"brand": [], "nama_artikel": []})
-# if st.session_state.jumlah_input != 0:
-#     list_brand = []
-#     list_artikel = []
-
-#     for i in range(st.session_state.jumlah_input):
-#         list_brand.append("")
-#         list_artikel.append("")
-
-#     data = pd.DataFrame({"brand": list_brand, "nama_artikel": list_artikel})
-#     gb = GridOptionsBuilder.from_dataframe(data)
-#     gb.configure_default_column(editable=True, groupable=True)
-
-#     if mode_halaman:
-#         if halaman_tabel_auto:
-#             gb.configure_pagination(paginationAutoPageSize=True)
-#         else:
-#             gb.configure_pagination(
-#                 paginationAutoPageSize=False, paginationPageSize=mode_halaman_tabel
-#             )
-#     gb.configure_grid_options(domLayout="autoWidth")
-#     opsi_grid = gb.build()
-
-#     grid = AgGrid(data, gridOptions=opsi_grid, width="100%")
-
-#     st.write(st.session_state.jumlah_input)
-
-# # data = pd.read_csv("./data/setengah_dataset_artikel.csv")
-# # AgGrid(data, theme="dark")

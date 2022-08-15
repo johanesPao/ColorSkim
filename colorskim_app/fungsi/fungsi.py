@@ -1,3 +1,4 @@
+from nntplib import ArticleInfo
 import os
 import streamlit as st
 import pandas as pd
@@ -138,6 +139,71 @@ def preprocessing_input_model(input_dataset, max_kata=15):
 
 
 @st.cache(allow_output_mutation=True)
-def memuat_model():
+def memuat_model(direktori_model="model"):
+    """
+    Fungsi ini digunakan untuk memuat model yang terdapat dalam folder
+    ./model
+
+    Args:
+        direktori_model (str): Direktori model yang akan dimuat. Default = 'model'
+
+    Returns:
+        model (tf.keras.Model): Model yang dimuat untuk prediksi
+    """
     model = tf.keras.models.load_model(os.path.join(direktori_streamlit, "model"))
     return model
+
+
+def prediksi_kata(artikel_full, list_kata, prediksi):
+    """
+    Fungsi ini digunakan untuk menampilkan hasil prediksi dalam format
+    artikel_full, bukan_warna dan warna
+
+    Args:
+        artikel_full (str): string nama_artikel secara lengkap
+        list_kata (list): list kata yang akan digunakan sebagai referensi pencarian
+            kejadian label warna yang pertama
+        prediksi (list): list hasil prediksi dari model
+
+    Returns:
+        artikel_full (str): string nama_artikel secara lengkap
+        bukan_warna (str): string kata yang merupakan bukan warna
+        warna (str): string kata yang merupakan warna
+    """
+    # CARI INDEKS KEJADIAN PERTAMA WARNA
+    # jika bukan_warna, masukkan ke dalam list temporer
+    list_bukan_warna = []
+    for indeks, i in enumerate(prediksi):
+        if i == 0:
+            list_bukan_warna.append(list_kata[indeks])
+        else:
+            # jika warna, cek apakah kata ini sudah ada di dalam
+            # list_bukan_warna, dan jika sudah ada, kata keberapa?
+            n_kata = list_bukan_warna.count(list_kata[indeks]) + 1
+            kata = list_kata[indeks]
+
+            # hentikan for loop
+            break
+
+    # Membagi artikel_full menjadi beberapa bagian berdasar jumlah kejadin
+    # kata saat kata pertama dengan label warna muncul
+    bagian = artikel_full.split(kata, n_kata)
+    # Kurangi panjang artikel_full dengan panjang bagian paling akhir
+    # dan dikurangi dengan panjang kata untuk mendapatkan indeks
+    # terakhir bukan_warna dan indeks pertama warna dalam kalimat
+    # artikel_full
+    indeks = len(artikel_full) - len(bagian[-1]) - len(kata)
+
+    # Membuat kalimat bukan_warna dan warna berdasar indeks dalam kalimat
+    bukan_warna = artikel_full[:indeks]
+    warna = artikel_full[indeks:]
+
+    # hapus special char di akhir bukan_warna dan awal warna
+    special_char = "/-"
+    for char in special_char:
+        if char == bukan_warna[-1]:
+            bukan_warna = bukan_warna[:-1]
+        if char == warna[0]:
+            warna = warna[1:]
+
+    return artikel_full, bukan_warna, warna
