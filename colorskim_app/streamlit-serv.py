@@ -6,7 +6,6 @@ from bahasa.id_ID import *
 from fungsi.fungsi import *
 from tensorflow.keras.models import load_model  # type: ignore
 import tensorflow as tf
-from annotated_text import annotated_text
 
 tf.config.run_functions_eagerly(True)
 tf.data.experimental.enable_debug_mode()
