@@ -3,6 +3,7 @@ colorskim_dataset.*
 rahasia.py
 wandb/
 __pycache__/
+ekstraksi_warna_37_artikel.xlsx
 
 # untuk model yang menggunakan universal sentence encoder, folder variables
 # yang menyimpan model terbaik di-exclude dari tracking git dikarenakan

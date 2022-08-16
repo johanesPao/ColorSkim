@@ -31,10 +31,6 @@ if "single_brand" and "single_artikel" not in st.session_state:
     st.session_state.single_artikel = ""
 
 
-def prediksi_warna(file):
-    st.write(f"Lakukan prediksi warna pada {file.name}")
-
-
 with st.sidebar:
     st.write(txt_instruksi_metode)
     st.radio(
@@ -71,9 +67,9 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
         tbl_ekstrak_metode_2 = st.button(txt_tbl_ekstraksi_warna)
         if tbl_ekstrak_metode_2:
             # PREPROCESSING INPUT DATA
-            st.write(f"Prediksi dilakukan untuk {df_file.shape[0]} artikel.")
+            st.write(f"Ekstraksi dilakukan untuk {df_file.shape[0]} artikel.")
 
-            # preprocessing input ke dalam format untuk prediksi model
+            # preprocessing input ke dalam format untuk ekstraksi model
             dataset_file = preprocessing_input_artikel(
                 df_file.brand, df_file.nama_artikel
             )
@@ -98,7 +94,7 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
                 model = memuat_model()
                 st.info("Model selesai dimuat.")
 
-            # PREDIKSI LABEL WARNA
+            # EKSTRAKSI LABEL WARNA
             with st.spinner("Mempersiapkan batching dan prefetching input data..."):
                 dataset_file, df_encode_file = preprocessing_input_model(dataset_file)
                 st.info("Batching dan prefetching input data selesai")
@@ -115,77 +111,85 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
                 theme="dark",
             )
 
-            with st.spinner("Memprediksi warna..."):
-                prediksi = tf.squeeze(tf.round(model.predict(dataset_file)))
-                st.success("Prediksi selesai.")
+            with st.spinner("Mengekstrak warna..."):
+                ekstraksi = tf.squeeze(tf.round(model.predict(dataset_file)))
+                st.success("Ekstraksi warna selesai.")
 
             kata = tf.squeeze(df_encode_file["kata"])
 
             st.write(kata)
-            st.write(prediksi)
+            st.write(ekstraksi)
 
-            # buat dictionary untuk menampung hasil formatting prediksi
-            prediksi_terformat = {"nama_artikel": [], "bukan_warna": [], "warna": []}
+            # buat dictionary untuk menampung hasil formatting ekstraksi
+            ekstraksi_terformat = {"nama_artikel": [], "bukan_warna": [], "warna": []}
 
-            # buat list untuk menampung kata dan prediksi selama loop
+            # buat list untuk menampung kata dan ekstraksi selama loop
             list_kata = []
-            list_prediksi_kata = []
+            list_ekstraksi_kata = []
 
             # loop dalam df_encode_file
             for i in range(len(df_encode_file)):
-                print(i)
-                # ambil nilai prediksi untuk kata
-                list_prediksi_kata.append(prediksi[i])
+                # ambil nilai ekstraksi untuk kata
+                list_ekstraksi_kata.append(ekstraksi[i])
                 # jika urut_kata tidak sama dengan total_kata,
                 # maka tambahkan kata ke dalam list_kata
                 if df_encode_file.iloc[i, 2] != df_encode_file.iloc[i, 3]:
                     list_kata.append(df_encode_file.iloc[i, 1])
                 # jika urut_kata sama dengan total_kata,
                 # maka tambahkan kata ke dalam list_kata,
-                # lakukan loop untuk memformat prediksi
+                # lakukan loop untuk memformat ekstraksi
                 # ke dalam bentuk yg bisa dipahami pengguna
-                # dan tambahkan ke dalam prediksi_terformat
+                # dan tambahkan ke dalam ekstraksi_terformat
                 # di akhir bagian bersihkan list_kata = []
                 # untuk loop selanjutnya
                 else:
                     # tambahkan kata terakhir ke dalam list_kata
-                    # dan prediksi kata terakhir ke dalam list_prediksi_kata
+                    # dan ekstraksi kata terakhir ke dalam list_ekstraksi_kata
                     list_kata.append(df_encode_file.iloc[i, 1])
 
-                    # format prediksi
-                    artikel_full, bukan_warna, warna = prediksi_kata(
+                    # format ekstraksi
+                    artikel_full, bukan_warna, warna = ekstraksi_kata(
                         artikel_full=df_encode_file.iloc[i, 0],
                         list_kata=list_kata,
-                        prediksi=list_prediksi_kata,
+                        prediksi=list_ekstraksi_kata,
                     )
 
-                    # tambahkan ke dalam prediksi_terformat
-                    prediksi_terformat["nama_artikel"].append(artikel_full)
-                    prediksi_terformat["bukan_warna"].append(bukan_warna)
-                    prediksi_terformat["warna"].append(warna)
+                    # tambahkan ke dalam ekstraksi_terformat
+                    ekstraksi_terformat["nama_artikel"].append(artikel_full)
+                    ekstraksi_terformat["bukan_warna"].append(bukan_warna)
+                    ekstraksi_terformat["warna"].append(warna)
 
-                    # bersihkan list_kata dan list_prediksi_kata
+                    # bersihkan list_kata dan list_ekstraksi_kata
                     # untuk satu artikel lengkap
                     list_kata = []
-                    list_prediksi_kata = []
+                    list_ekstraksi_kata = []
 
-            st.write("### Prediksi dalam format JSON:")
-            st.write(prediksi_terformat)
+            st.write("### Ekstraksi warna dalam format JSON:")
+            st.write(ekstraksi_terformat)
 
-            st.write("### Prediksi dalam tabel:")
+            st.write("### Ekstraksi warna dalam tabel:")
             # buat dataframe
-            df_prediksi_file = pd.DataFrame(prediksi_terformat)
+            df_ekstraksi_file = pd.DataFrame(ekstraksi_terformat)
             # konfigurasi dan build AgGrid
-            gb_df_prediksi_file = GridOptionsBuilder.from_dataframe(df_prediksi_file)
-            gb_df_prediksi_file.configure_pagination(enabled=True)
-            opsi_aggrid_prediksi_file = gb_df_prediksi_file.build()
+            gb_df_ekstraksi_file = GridOptionsBuilder.from_dataframe(df_ekstraksi_file)
+            gb_df_ekstraksi_file.configure_pagination(enabled=True)
+            opsi_aggrid_ekstraksi_file = gb_df_ekstraksi_file.build()
 
             AgGrid(
-                df_prediksi_file,
-                gridOptions=opsi_aggrid_prediksi_file,
-                height=250,  # set tinggi 50 untuk metode prediksi 1 baris
+                df_ekstraksi_file,
+                gridOptions=opsi_aggrid_ekstraksi_file,
+                height=250,  # set tinggi 50 untuk metode ekstraksi 1 baris
                 theme="dark",
                 fit_columns_on_grid_load=True,
+            )
+
+            # DOWNLOAD HASIL DALAM FORMAT XLSX
+            df_csv = file_csv(df_ekstraksi_file)
+            st.download_button(
+                label="Unduh Hasil Ekstraksi Warna",
+                data=df_csv,
+                file_name=f"ekstraksi_warna_{df_ekstraksi_file.shape[0]}_artikel",
+                mime="text/csv",
             )
 else:
     # METODE 1
@@ -204,10 +208,10 @@ else:
         else:
             # PREPROCESSING INPUT DATA
             st.write(
-                f"Prediksi akan dilakukan untuk: {st.session_state.single_brand} - {st.session_state.single_artikel}"
+                f"ekstraksi akan dilakukan untuk: {st.session_state.single_brand} - {st.session_state.single_artikel}"
             )
 
-            # preprocessing input ke dalam format untuk prediksi model
+            # preprocessing input ke dalam format untuk ekstraksi model
             dataset = preprocessing_input_artikel(
                 [st.session_state.single_brand], [st.session_state.single_artikel]
             )
@@ -238,7 +242,7 @@ else:
             #     )
             #     st.success("Model berhasil dimuat")
 
-            # PREDIKSI LABEL WARNA
+            # ekstraksi LABEL WARNA
             with st.spinner("Mempersiapkan batching dan prefetching input data..."):
                 dataset, df_encode = preprocessing_input_model(dataset)
                 st.info("Batching dan prefetching input data selesai.")
@@ -250,17 +254,17 @@ else:
 
             AgGrid(df_encode, gridOptions=opsi_aggrid_encode, height=250, theme="dark")
 
-            with st.spinner("Memprediksi warna..."):
-                prediksi = tf.squeeze(tf.round(model.predict(dataset)))
-                st.success("Prediksi selesai.")
+            with st.spinner("Memekstraksi warna..."):
+                ekstraksi = tf.squeeze(tf.round(model.predict(dataset)))
+                st.success("ekstraksi selesai.")
 
             kata = tf.squeeze(df_encode["kata"])
 
             st.write(kata)
-            st.write(prediksi)
+            st.write(ekstraksi)
 
-            # buat dictionary untuk menampung hasil formatting prediksi
-            prediksi_terformat = {"nama_artikel": [], "bukan_warna": [], "warna": []}
+            # buat dictionary untuk menampung hasil formatting ekstraksi
+            ekstraksi_terformat = {"nama_artikel": [], "bukan_warna": [], "warna": []}
 
             # buat list untuk menampung kata selama loop
             list_kata = []
@@ -273,45 +277,45 @@ else:
                     list_kata.append(df_encode.iloc[i, 1])
                 # jika urut_kata sama dengan total_kata,
                 # maka tambahkan kata ke dalam list_kata,
-                # lakukan loop untuk memformat prediksi
+                # lakukan loop untuk memformat ekstraksi
                 # ke dalam bentuk yg bisa dipahami pengguna
-                # dan tambahkan ke dalam prediksi_terformat
+                # dan tambahkan ke dalam ekstraksi_terformat
                 # di akhir bagian bersihkan list_kata = []
                 # untuk loop selanjutnya
                 else:
                     # tambahkan kata terakhir ke dalam list_kata
                     list_kata.append(df_encode.iloc[i, 1])
 
-                    # format prediksi
-                    artikel_full, bukan_warna, warna = prediksi_kata(
+                    # format ekstraksi
+                    artikel_full, bukan_warna, warna = ekstraksi_kata(
                         artikel_full=df_encode.iloc[i, 0],
                         list_kata=list_kata,
-                        prediksi=prediksi,
+                        prediksi=ekstraksi,
                     )
 
-                    # tambahkan ke dalam prediksi_terformat
-                    prediksi_terformat["nama_artikel"].append(artikel_full)
-                    prediksi_terformat["bukan_warna"].append(bukan_warna)
-                    prediksi_terformat["warna"].append(warna)
+                    # tambahkan ke dalam ekstraksi_terformat
+                    ekstraksi_terformat["nama_artikel"].append(artikel_full)
+                    ekstraksi_terformat["bukan_warna"].append(bukan_warna)
+                    ekstraksi_terformat["warna"].append(warna)
 
                     # bersihkan list_kata
                     list_kata = []
 
-            st.write("### Prediksi dalam format JSON:")
-            st.write(prediksi_terformat)
+            st.write("### ekstraksi dalam format JSON:")
+            st.write(ekstraksi_terformat)
 
-            st.write("### Prediksi dalam tabel:")
+            st.write("### ekstraksi dalam tabel:")
             # buat dataframe
-            df_prediksi = pd.DataFrame(prediksi_terformat)
+            df_ekstraksi = pd.DataFrame(ekstraksi_terformat)
             # konfigurasi dan build AgGrid
-            gb_df_prediksi = GridOptionsBuilder.from_dataframe(df_prediksi)
-            gb_df_prediksi.configure_pagination(enabled=True)
-            opsi_aggrid_prediksi = gb_df_prediksi.build()
+            gb_df_ekstraksi = GridOptionsBuilder.from_dataframe(df_ekstraksi)
+            gb_df_ekstraksi.configure_pagination(enabled=True)
+            opsi_aggrid_ekstraksi = gb_df_ekstraksi.build()
 
             AgGrid(
-                df_prediksi,
-                gridOptions=opsi_aggrid_prediksi,
-                height=95,  # set tinggi 50 untuk metode prediksi 1 baris
+                df_ekstraksi,
+                gridOptions=opsi_aggrid_ekstraksi,
+                height=95,  # set tinggi 50 untuk metode ekstraksi 1 baris
                 theme="dark",
                 fit_columns_on_grid_load=True,
             )

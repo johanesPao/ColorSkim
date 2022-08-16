@@ -1,4 +1,3 @@
-from nntplib import ArticleInfo
 import os
 import streamlit as st
 import pandas as pd
@@ -155,7 +154,7 @@ def memuat_model(direktori_model="model"):
     return model
 
 
-def prediksi_kata(artikel_full, list_kata, prediksi):
+def ekstraksi_kata(artikel_full, list_kata, prediksi):
     """
     Fungsi ini digunakan untuk menampilkan hasil prediksi dalam format
     artikel_full, bukan_warna dan warna
@@ -177,14 +176,12 @@ def prediksi_kata(artikel_full, list_kata, prediksi):
 
     # jika tidak mengandung warna maka
     if sum(prediksi) == 0:
-        print("ga ada warna")
         bukan_warna = artikel_full
         warna = []
     # jika kata pertama sudah mengandung warna
     # dan fungsi ini berusaha mengembalikan
     # list warna dan tidak ada list bukan_warna
     elif prediksi[0] == 1:
-        print("semua warna")
         bukan_warna = []
         warna = artikel_full
     # normalnya...
@@ -224,3 +221,8 @@ def prediksi_kata(artikel_full, list_kata, prediksi):
                 warna = warna[1:]
 
     return artikel_full, bukan_warna, warna
+
+
+@st.cache
+def file_csv(dataframe):
+    return dataframe.to_csv().encode("utf-8")
