@@ -51,7 +51,7 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
     st.write(txt_metode_2_judul)
     file_diupload = st.file_uploader(txt_label_unggah, type="csv", help=txt_help_unggah)
     if file_diupload is not None:
-        df_file = pd.read_csv(file_diupload)
+        df_file = pd.read_csv(file_diupload, names=["brand", "nama_artikel"])
 
         # TAMPILKAN TABEL DATA INPUT
         # konfigurasi dan build AgGrid
@@ -199,8 +199,9 @@ else:
             AgGrid(
                 df_prediksi,
                 gridOptions=opsi_aggrid_prediksi,
-                height=50,  # set tinggi 50 untuk metode prediksi 1 baris
+                height=95,  # set tinggi 50 untuk metode prediksi 1 baris
                 theme="dark",
+                fit_columns_on_grid_load=True,
             )
 
 st.write(txt_intro)
