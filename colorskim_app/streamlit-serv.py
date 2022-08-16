@@ -51,9 +51,22 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
     st.write(txt_metode_2_judul)
     file_diupload = st.file_uploader(txt_label_unggah, type="csv", help=txt_help_unggah)
     if file_diupload is not None:
-        df = pd.read_csv(file_diupload)
-        st.dataframe(df)
-        # AgGrid(df)
+        df_file = pd.read_csv(file_diupload)
+
+        # TAMPILKAN TABEL DATA INPUT
+        # konfigurasi dan build AgGrid
+        gb_df_file = GridOptionsBuilder.from_dataframe(df_file)
+        gb_df_file.configure_pagination(enabled=True)
+        opsi_aggrid_df_file = gb_df_file.build()
+
+        # display preprocessed data dalam tabel
+        AgGrid(
+            df_file,
+            gridOptions=opsi_aggrid_df_file,
+            height=250,
+            theme="dark",
+            fit_columns_on_grid_load=True,
+        )
         st.button(
             txt_tbl_ekstraksi_warna, on_click=prediksi_warna, args=(file_diupload,)
         )
@@ -74,7 +87,7 @@ else:
         else:
             # PREPROCESSING INPUT DATA
             st.write(
-                f"Prediksi akan dilakukan pada: [{st.session_state.single_brand} - {st.session_state.single_artikel}]"
+                f"Prediksi akan dilakukan untuk: {st.session_state.single_brand} - {st.session_state.single_artikel}"
             )
 
             # preprocessing input ke dalam format untuk prediksi model
@@ -83,14 +96,14 @@ else:
             )
 
             # konfigurasi dan build AgGrid
-            gb = GridOptionsBuilder.from_dataframe(dataset)
-            gb.configure_pagination(enabled=True)
-            opsi_aggrid = gb.build()
+            gb_dataset = GridOptionsBuilder.from_dataframe(dataset)
+            gb_dataset.configure_pagination(enabled=True)
+            opsi_aggrid_dataset = gb_dataset.build()
 
             # display preprocessed data dalam tabel
             AgGrid(
                 dataset,
-                gridOptions=opsi_aggrid,
+                gridOptions=opsi_aggrid_dataset,
                 height=250,
                 theme="dark",
                 fit_columns_on_grid_load=True,
@@ -175,7 +188,19 @@ else:
             st.write("### Prediksi dalam format JSON:")
             st.write(prediksi_terformat)
 
-            st.write("### Prediksi label warna:")
-            annotated_text(bukan_warna, (warna, "WARNA", "#d02"))
+            st.write("### Prediksi dalam tabel:")
+            # buat dataframe
+            df_prediksi = pd.DataFrame(prediksi_terformat)
+            # konfigurasi dan build AgGrid
+            gb_df_prediksi = GridOptionsBuilder.from_dataframe(df_prediksi)
+            gb_df_prediksi.configure_pagination(enabled=True)
+            opsi_aggrid_prediksi = gb_df_prediksi.build()
+
+            AgGrid(
+                df_prediksi,
+                gridOptions=opsi_aggrid_prediksi,
+                height=50,  # set tinggi 50 untuk metode prediksi 1 baris
+                theme="dark",
+            )
 
 st.write(txt_intro)
