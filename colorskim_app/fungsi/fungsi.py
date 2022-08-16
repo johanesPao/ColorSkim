@@ -26,22 +26,23 @@ def preprocessing_input_artikel(brand, artikel):
     """
     dataset_kata = pd.DataFrame([])
 
-    df = pd.DataFrame({"brand": [brand], "nama_artikel": [artikel]})
+    df = pd.DataFrame({"brand": brand, "nama_artikel": artikel})
     ganti_karakter = "/-"
-    progress_bar = st.progress(0)
-    for i in range(len(df)):
-        artikel_full = df.loc[i, "nama_artikel"]
-        artikel_untuk_split = artikel_full
-        for c in ganti_karakter:
-            artikel_untuk_split = artikel_untuk_split.replace(c, " ")
-        split_spasi_artikel = artikel_untuk_split.split()
-        with st.spinner(f"Memproses {i + 1} dari {len(df)} baris..."):
+    with st.spinner(f"Memproses {len(df)} baris artikel..."):
+        progress_bar = st.progress(0)
+        for i in range(len(df)):
+            nama_brand = df.iloc[i, 0]
+            artikel_full = df.iloc[i, 1]
+            artikel_untuk_split = artikel_full
+            for c in ganti_karakter:
+                artikel_untuk_split = artikel_untuk_split.replace(c, " ")
+            split_spasi_artikel = artikel_untuk_split.split()
             progress_bar.progress((i + 1) / len(df))
             for i in range(len(split_spasi_artikel)):
                 artikel_df = pd.DataFrame(
                     [
                         [
-                            brand,
+                            nama_brand,
                             artikel_full,
                             split_spasi_artikel[i],
                             i + 1,
@@ -57,7 +58,7 @@ def preprocessing_input_artikel(brand, artikel):
                     ],
                 )
                 dataset_kata = pd.concat([dataset_kata, artikel_df], ignore_index=True)
-            st.info(f"Selesai memproses {len(df)} baris data.")
+        st.info(f"Selesai memproses {len(df)} baris data.")
 
     return dataset_kata
 
@@ -173,37 +174,53 @@ def prediksi_kata(artikel_full, list_kata, prediksi):
     # CARI INDEKS KEJADIAN PERTAMA WARNA
     # jika bukan_warna, masukkan ke dalam list temporer
     list_bukan_warna = []
-    for indeks, i in enumerate(prediksi):
-        if i == 0:
-            list_bukan_warna.append(list_kata[indeks])
-        else:
-            # jika warna, cek apakah kata ini sudah ada di dalam
-            # list_bukan_warna, dan jika sudah ada, kata keberapa?
-            n_kata = list_bukan_warna.count(list_kata[indeks]) + 1
-            kata = list_kata[indeks]
 
-            # hentikan for loop
-            break
+    # jika tidak mengandung warna maka
+    if sum(prediksi) == 0:
+        print("ga ada warna")
+        bukan_warna = artikel_full
+        warna = []
+    # jika kata pertama sudah mengandung warna
+    # dan fungsi ini berusaha mengembalikan
+    # list warna dan tidak ada list bukan_warna
+    elif prediksi[0] == 1:
+        print("semua warna")
+        bukan_warna = []
+        warna = artikel_full
+    # normalnya...
+    else:
+        for indeks, i in enumerate(prediksi):
+            if i == 0:
+                list_bukan_warna.append(list_kata[indeks])
+            else:
+                # jika warna, cek apakah kata ini sudah ada di dalam
+                # list_bukan_warna, dan jika sudah ada, kata keberapa?
+                n_kata = list_bukan_warna.count(list_kata[indeks]) + 1
+                kata = list_kata[indeks]
+                # print(list_bukan_warna, list_kata, kata, n_kata)
 
-    # Membagi artikel_full menjadi beberapa bagian berdasar jumlah kejadin
-    # kata saat kata pertama dengan label warna muncul
-    bagian = artikel_full.split(kata, n_kata)
-    # Kurangi panjang artikel_full dengan panjang bagian paling akhir
-    # dan dikurangi dengan panjang kata untuk mendapatkan indeks
-    # terakhir bukan_warna dan indeks pertama warna dalam kalimat
-    # artikel_full
-    indeks = len(artikel_full) - len(bagian[-1]) - len(kata)
+                # hentikan for loop
+                break
 
-    # Membuat kalimat bukan_warna dan warna berdasar indeks dalam kalimat
-    bukan_warna = artikel_full[:indeks]
-    warna = artikel_full[indeks:]
+        # Membagi artikel_full menjadi beberapa bagian berdasar jumlah kejadin
+        # kata saat kata pertama dengan label warna muncul
+        bagian = artikel_full.split(kata, n_kata)
+        # Kurangi panjang artikel_full dengan panjang bagian paling akhir
+        # dan dikurangi dengan panjang kata untuk mendapatkan indeks
+        # terakhir bukan_warna dan indeks pertama warna dalam kalimat
+        # artikel_full
+        indeks = len(artikel_full) - len(bagian[-1]) - len(kata)
 
-    # hapus special char di akhir bukan_warna dan awal warna
-    special_char = "/-"
-    for char in special_char:
-        if char == bukan_warna[-1]:
-            bukan_warna = bukan_warna[:-1]
-        if char == warna[0]:
-            warna = warna[1:]
+        # Membuat kalimat bukan_warna dan warna berdasar indeks dalam kalimat
+        bukan_warna = artikel_full[:indeks]
+        warna = artikel_full[indeks:]
+
+        # hapus special char di akhir bukan_warna dan awal warna
+        special_char = "/-"
+        for char in special_char:
+            if char == bukan_warna[-1]:
+                bukan_warna = bukan_warna[:-1]
+            if char == warna[0]:
+                warna = warna[1:]
 
     return artikel_full, bukan_warna, warna

@@ -63,13 +63,130 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
         AgGrid(
             df_file,
             gridOptions=opsi_aggrid_df_file,
-            height=250,
+            height=200,
             theme="dark",
             fit_columns_on_grid_load=True,
         )
-        st.button(
-            txt_tbl_ekstraksi_warna, on_click=prediksi_warna, args=(file_diupload,)
-        )
+
+        tbl_ekstrak_metode_2 = st.button(txt_tbl_ekstraksi_warna)
+        if tbl_ekstrak_metode_2:
+            # PREPROCESSING INPUT DATA
+            st.write(f"Prediksi dilakukan untuk {df_file.shape[0]} artikel.")
+
+            # preprocessing input ke dalam format untuk prediksi model
+            dataset_file = preprocessing_input_artikel(
+                df_file.brand, df_file.nama_artikel
+            )
+
+            # menampilkan hasil preprocessing input data csv
+            # konfigurasi dan build AgGrid
+            gb_dataset_file = GridOptionsBuilder.from_dataframe(dataset_file)
+            gb_dataset_file.configure_pagination(enabled=True)
+            opsi_aggrid_dataset_file = gb_dataset_file.build()
+
+            # display preprocessed data dalam tabel
+            AgGrid(
+                dataset_file,
+                gridOptions=opsi_aggrid_dataset_file,
+                height=250,
+                theme="dark",
+                fit_columns_on_grid_load=True,
+            )
+
+            # LOAD MODEL
+            with st.spinner("Memuat Model Quadbrid Embedding..."):
+                model = memuat_model()
+                st.info("Model selesai dimuat.")
+
+            # PREDIKSI LABEL WARNA
+            with st.spinner("Mempersiapkan batching dan prefetching input data..."):
+                dataset_file, df_encode_file = preprocessing_input_model(dataset_file)
+                st.info("Batching dan prefetching input data selesai")
+
+            # konfigurasi dan build AgGrid
+            gb_df_encode_file = GridOptionsBuilder.from_dataframe(df_encode_file)
+            gb_df_encode_file.configure_pagination(enabled=True)
+            opsi_aggrid_encode_file = gb_df_encode_file.build()
+
+            AgGrid(
+                df_encode_file,
+                gridOptions=opsi_aggrid_encode_file,
+                height=250,
+                theme="dark",
+            )
+
+            with st.spinner("Memprediksi warna..."):
+                prediksi = tf.squeeze(tf.round(model.predict(dataset_file)))
+                st.success("Prediksi selesai.")
+
+            kata = tf.squeeze(df_encode_file["kata"])
+
+            st.write(kata)
+            st.write(prediksi)
+
+            # buat dictionary untuk menampung hasil formatting prediksi
+            prediksi_terformat = {"nama_artikel": [], "bukan_warna": [], "warna": []}
+
+            # buat list untuk menampung kata dan prediksi selama loop
+            list_kata = []
+            list_prediksi_kata = []
+
+            # loop dalam df_encode_file
+            for i in range(len(df_encode_file)):
+                print(i)
+                # ambil nilai prediksi untuk kata
+                list_prediksi_kata.append(prediksi[i])
+                # jika urut_kata tidak sama dengan total_kata,
+                # maka tambahkan kata ke dalam list_kata
+                if df_encode_file.iloc[i, 2] != df_encode_file.iloc[i, 3]:
+                    list_kata.append(df_encode_file.iloc[i, 1])
+                # jika urut_kata sama dengan total_kata,
+                # maka tambahkan kata ke dalam list_kata,
+                # lakukan loop untuk memformat prediksi
+                # ke dalam bentuk yg bisa dipahami pengguna
+                # dan tambahkan ke dalam prediksi_terformat
+                # di akhir bagian bersihkan list_kata = []
+                # untuk loop selanjutnya
+                else:
+                    # tambahkan kata terakhir ke dalam list_kata
+                    # dan prediksi kata terakhir ke dalam list_prediksi_kata
+                    list_kata.append(df_encode_file.iloc[i, 1])
+
+                    # format prediksi
+                    artikel_full, bukan_warna, warna = prediksi_kata(
+                        artikel_full=df_encode_file.iloc[i, 0],
+                        list_kata=list_kata,
+                        prediksi=list_prediksi_kata,
+                    )
+
+                    # tambahkan ke dalam prediksi_terformat
+                    prediksi_terformat["nama_artikel"].append(artikel_full)
+                    prediksi_terformat["bukan_warna"].append(bukan_warna)
+                    prediksi_terformat["warna"].append(warna)
+
+                    # bersihkan list_kata dan list_prediksi_kata
+                    # untuk satu artikel lengkap
+                    list_kata = []
+                    list_prediksi_kata = []
+
+            st.write("### Prediksi dalam format JSON:")
+            st.write(prediksi_terformat)
+
+            st.write("### Prediksi dalam tabel:")
+            # buat dataframe
+            df_prediksi_file = pd.DataFrame(prediksi_terformat)
+            # konfigurasi dan build AgGrid
+            gb_df_prediksi_file = GridOptionsBuilder.from_dataframe(df_prediksi_file)
+            gb_df_prediksi_file.configure_pagination(enabled=True)
+            opsi_aggrid_prediksi_file = gb_df_prediksi_file.build()
+
+            AgGrid(
+                df_prediksi_file,
+                gridOptions=opsi_aggrid_prediksi_file,
+                height=250,  # set tinggi 50 untuk metode prediksi 1 baris
+                theme="dark",
+                fit_columns_on_grid_load=True,
+            )
 else:
     # METODE 1
     st.write(txt_metode_1_judul)
@@ -82,7 +199,7 @@ else:
             len(st.session_state.single_brand) == 0
             or len(st.session_state.single_artikel) == 0
         ):
-            st.write("Brand/Nama Artikel tidak boleh kosong")
+            st.write("Brand/Nama Artikel tidak boleh kosong.")
             pass
         else:
             # PREPROCESSING INPUT DATA
@@ -92,7 +209,7 @@ else:
 
             # preprocessing input ke dalam format untuk prediksi model
             dataset = preprocessing_input_artikel(
-                st.session_state.single_brand, st.session_state.single_artikel
+                [st.session_state.single_brand], [st.session_state.single_artikel]
             )
 
             # konfigurasi dan build AgGrid
@@ -131,12 +248,7 @@ else:
             gb_df_encode.configure_pagination(enabled=True)
             opsi_aggrid_encode = gb_df_encode.build()
 
-            AgGrid(
-                df_encode,
-                gridOptions=opsi_aggrid_encode,
-                height=250,
-                theme="dark",
-            )
+            AgGrid(df_encode, gridOptions=opsi_aggrid_encode, height=250, theme="dark")
 
             with st.spinner("Memprediksi warna..."):
                 prediksi = tf.squeeze(tf.round(model.predict(dataset)))
