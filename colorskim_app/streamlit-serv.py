@@ -110,9 +110,9 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
                 theme="dark",
             )
 
-            with st.spinner("Mengekstrak warna..."):
+            with st.spinner("Melakukan prediksi label dari kata..."):
                 ekstraksi = tf.squeeze(tf.round(model.predict(dataset_file)))
-                st.success("Ekstraksi warna selesai.")
+                st.success("Prediksi label pada kata selesai.")
 
             kata = tf.squeeze(df_encode_file["kata"])
 
@@ -126,42 +126,53 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
             list_kata = []
             list_ekstraksi_kata = []
 
-            # loop dalam df_encode_file
-            for i in range(len(df_encode_file)):
-                # ambil nilai ekstraksi untuk kata
-                list_ekstraksi_kata.append(ekstraksi[i])
-                # jika urut_kata tidak sama dengan total_kata,
-                # maka tambahkan kata ke dalam list_kata
-                if df_encode_file.iloc[i, 2] != df_encode_file.iloc[i, 3]:
-                    list_kata.append(df_encode_file.iloc[i, 1])
-                # jika urut_kata sama dengan total_kata,
-                # maka tambahkan kata ke dalam list_kata,
-                # lakukan loop untuk memformat ekstraksi
-                # ke dalam bentuk yg bisa dipahami pengguna
-                # dan tambahkan ke dalam ekstraksi_terformat
-                # di akhir bagian bersihkan list_kata = []
-                # untuk loop selanjutnya
-                else:
-                    # tambahkan kata terakhir ke dalam list_kata
-                    # dan ekstraksi kata terakhir ke dalam list_ekstraksi_kata
-                    list_kata.append(df_encode_file.iloc[i, 1])
+            # Buat spinner dan progress bar disini karena proses
+            # ekstraksi dan formatting akan memakan waktu
+            with st.spinner(
+                "Melakukan formatting output ekstraksi label bukan_warna dan warna"
+            ):
+                progress_bar = st.progress(0)
 
-                    # format ekstraksi
-                    artikel_full, bukan_warna, warna = ekstraksi_kata(
-                        artikel_full=df_encode_file.iloc[i, 0],
-                        list_kata=list_kata,
-                        prediksi=list_ekstraksi_kata,
-                    )
+                # loop dalam df_encode_file
+                for i in range(len(df_encode_file)):
+                    progress_bar.progress((i + 1) / len(df_encode_file))
+                    # ambil nilai ekstraksi untuk kata
+                    list_ekstraksi_kata.append(ekstraksi[i])
+                    # jika urut_kata tidak sama dengan total_kata,
+                    # maka tambahkan kata ke dalam list_kata
+                    if df_encode_file.iloc[i, 2] != df_encode_file.iloc[i, 3]:
+                        list_kata.append(df_encode_file.iloc[i, 1])
+                    # jika urut_kata sama dengan total_kata,
+                    # maka tambahkan kata ke dalam list_kata,
+                    # lakukan loop untuk memformat ekstraksi
+                    # ke dalam bentuk yg bisa dipahami pengguna
+                    # dan tambahkan ke dalam ekstraksi_terformat
+                    # di akhir bagian bersihkan list_kata = []
+                    # untuk loop selanjutnya
+                    else:
+                        # tambahkan kata terakhir ke dalam list_kata
+                        # dan ekstraksi kata terakhir ke dalam list_ekstraksi_kata
+                        list_kata.append(df_encode_file.iloc[i, 1])
 
-                    # tambahkan ke dalam ekstraksi_terformat
-                    ekstraksi_terformat["nama_artikel"].append(artikel_full)
-                    ekstraksi_terformat["bukan_warna"].append(bukan_warna)
-                    ekstraksi_terformat["warna"].append(warna)
+                        # format ekstraksi
+                        artikel_full, bukan_warna, warna = ekstraksi_kata(
+                            artikel_full=df_encode_file.iloc[i, 0],
+                            list_kata=list_kata,
+                            prediksi=list_ekstraksi_kata,
+                        )
 
-                    # bersihkan list_kata dan list_ekstraksi_kata
-                    # untuk satu artikel lengkap
-                    list_kata = []
-                    list_ekstraksi_kata = []
+                        # tambahkan ke dalam ekstraksi_terformat
+                        ekstraksi_terformat["nama_artikel"].append(artikel_full)
+                        ekstraksi_terformat["bukan_warna"].append(bukan_warna)
+                        ekstraksi_terformat["warna"].append(warna)
+
+                        # bersihkan list_kata dan list_ekstraksi_kata
+                        # untuk satu artikel lengkap
+                        list_kata = []
+                        list_ekstraksi_kata = []
+                st.success(
+                    "Proses formatting output ekstraksi label bukan_warna dan warna selesai."
+                )
 
             st.write("### Ekstraksi warna dalam format JSON:")
             st.write(ekstraksi_terformat)
@@ -182,7 +193,7 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
                 fit_columns_on_grid_load=True,
             )
 
-            # DOWNLOAD HASIL DALAM FORMAT XLSX
+            # DOWNLOAD HASIL DALAM FORMAT CSV
             df_csv = file_csv(df_ekstraksi_file)
             st.download_button(
                 label="Unduh Hasil Ekstraksi Warna",
@@ -253,9 +264,9 @@ else:
 
             AgGrid(df_encode, gridOptions=opsi_aggrid_encode, height=250, theme="dark")
 
-            with st.spinner("Memekstraksi warna..."):
+            with st.spinner("Melakukan prediksi label dari kata..."):
                 ekstraksi = tf.squeeze(tf.round(model.predict(dataset)))
-                st.success("ekstraksi selesai.")
+                st.success("Prediksi label pada kata selesai.")
 
             kata = tf.squeeze(df_encode["kata"])
 

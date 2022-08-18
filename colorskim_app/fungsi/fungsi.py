@@ -192,7 +192,24 @@ def ekstraksi_kata(artikel_full, list_kata, prediksi):
             else:
                 # jika warna, cek apakah kata ini sudah ada di dalam
                 # list_bukan_warna, dan jika sudah ada, kata keberapa?
-                n_kata = list_bukan_warna.count(list_kata[indeks]) + 1
+
+                # pada beberapa kasus seperti 'STAN SMITH W-ST PALE NUDE'
+                # list_bukan_warna di fase ini akan berisikan
+                # ['STAN', 'SMITH', 'W'] yang jika dihitung
+                # sedangkan kata warna pertama adalah 'ST'
+                # list_bukan_warna.count('ST') akan menghasilkan
+                # kecocokan 0 + 1 karena tidak ada kata ST di dalam list
+                # namun pada tahap selanjutnya ketika variabel
+                # bagian diinisiasi dengan artikel_full.split('ST', 1)
+                # akan menghasilkan ['', 'AN SMITH W-ST PALE NUDE']
+                # dikarenakan komparasi dilakukan dengan kalimat
+                # alih - alih per kata.
+                # Untuk itu kita juga akan melakukan komparasi
+                # terhadap kalimat alih - alih per kata
+                # dalam menentukan n_kata
+                # n_kata = list_bukan_warna.count(list_kata[indeks])
+                # diubah menjadi...
+                n_kata = " ".join(list_bukan_warna).count(list_kata[indeks]) + 1
                 kata = list_kata[indeks]
                 # print(list_bukan_warna, list_kata, kata, n_kata)
 
