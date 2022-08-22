@@ -174,9 +174,6 @@ if st.session_state.metode_ekstraksi == "Multiple Articles Extraction":
                     "Proses formatting output ekstraksi label bukan_warna dan warna selesai."
                 )
 
-            st.write("### Ekstraksi warna dalam format JSON:")
-            st.write(ekstraksi_terformat)
-
             st.write("### Ekstraksi warna dalam tabel:")
             # buat dataframe
             df_ekstraksi_file = pd.DataFrame(ekstraksi_terformat)
