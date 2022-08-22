@@ -1,0 +1,1 @@
+web: sh setup.sh && streamlit run colorskim_app/streamlit-serv.py
